@@ -1,4 +1,4 @@
-package com.example.unilife;
+package com.unilife;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

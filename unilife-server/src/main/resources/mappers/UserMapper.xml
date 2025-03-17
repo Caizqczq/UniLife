@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.unilife.mapper.UserMapper">
+    <insert id="insert" parameterType="com.unilife.model.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            username,
+            email,
+            password,
+            nickname,
+            avatar,
+            bio,
+            gender,
+            student_id,
+            department,
+            major,
+            grade,
+            points,
+            role,
+            status,
+            is_verified,
+            login_ip,
+            login_time
+        ) VALUES (
+                     #{username},
+                     #{email},
+                     #{password},
+                     #{nickname},
+                     #{avatar},
+                     #{bio},
+                     #{gender},
+                     #{studentId},
+                     #{department},
+                     #{major},
+                     #{grade},
+                     #{points},
+                     #{role},
+                     #{status},
+                     #{isVerified},
+                     #{loginIp},
+                     #{loginTime}
+                 )
+    </insert>
+</mapper>

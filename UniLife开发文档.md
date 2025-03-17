@@ -124,7 +124,7 @@ CREATE TABLE `users` (
 
 #### 3.1.1 用户注册
 
-- **URL**: `/auth/register`
+- **URL**: `/users/register`
 
 - **方法**: POST
 
@@ -162,7 +162,7 @@ CREATE TABLE `users` (
 
 #### 3.1.2 用户密码登录
 
-- **URL**: `/auth/login`
+- **URL**: `/users/login`
 - **方法**: POST
 - **描述**: 用户登录
 
@@ -198,7 +198,7 @@ CREATE TABLE `users` (
 
 #### 3.1.3 获取邮箱验证码
 
-- **URL**: `/auth/email/code`
+- **URL**: `/users/code`
 
 - **方法**: POST
 
@@ -224,7 +224,7 @@ CREATE TABLE `users` (
 
 #### 3.1.4 邮箱验证码登录
 
-- **URL**: `/auth/login/code`
+- **URL**: `/users/login/code`
 - **方法**: POST
 - **描述**: 使用邮箱和验证码进行登录
 

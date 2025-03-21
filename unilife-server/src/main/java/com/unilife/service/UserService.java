@@ -9,4 +9,6 @@ import com.unilife.model.entity.User;
 public interface UserService {
     Result register(LoginDTO loginDTO);
     Result login(LogDTO logDTO);
+
+    Result sendVerificationCode(String email);
 }

@@ -1,6 +1,7 @@
 package com.unilife.controller;
 
 import com.unilife.common.result.Result;
+import com.unilife.model.dto.LogDTO;
 import com.unilife.model.dto.LoginDTO;
 import com.unilife.service.UserService;
 import io.swagger.annotations.Api;
@@ -24,4 +25,8 @@ public class UserController {
     public Result register(@RequestBody LoginDTO loginDTO) {
         return userService.register(loginDTO);
     }
+
+    @ApiOperation(value = "用户登录")
+    @PostMapping("login")
+    public Result login(@RequestBody LogDTO logDTO) { return userService.login(logDTO); }
 }

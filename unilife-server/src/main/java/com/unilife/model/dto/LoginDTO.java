@@ -1,5 +1,5 @@
 package com.unilife.model.dto;
-
+//这个是注册的DTO
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

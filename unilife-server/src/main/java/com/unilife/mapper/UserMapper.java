@@ -2,8 +2,10 @@ package com.unilife.mapper;
 
 import com.unilife.model.entity.User;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface UserMapper {
-    public void insert(User user) ;
+    void insert(User user);
+    User FindByEmail(@Param("email") String email, @Param("password") String password);
 }

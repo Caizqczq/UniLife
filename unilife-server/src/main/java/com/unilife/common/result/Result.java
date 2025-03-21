@@ -39,6 +39,10 @@ public class Result<T>{
         return new Result<>(200, "success", null);
     }
 
+    public static <T> Result<T> success(T data, String message) {
+        return new Result<>(200, message, null);
+    }
+
     /**
      * 失败返回结果
      * @param code 状态码
@@ -47,5 +51,9 @@ public class Result<T>{
      */
     public static <T> Result<T> error(Integer code, String message) {
         return new Result<>(code, message, null);
+    }
+
+    public static <T> Result<T> error(T data,String message){
+        return new Result<>(200,message,null);
     }
 }

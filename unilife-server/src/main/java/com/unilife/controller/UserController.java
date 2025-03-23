@@ -4,6 +4,7 @@ import com.unilife.common.result.Result;
 import com.unilife.model.dto.EmailDTO;
 import com.unilife.model.dto.LogDTO;
 import com.unilife.model.dto.LoginDTO;
+import com.unilife.model.dto.LoginEmailDTO;
 import com.unilife.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -42,5 +43,10 @@ public class UserController {
         return userService.sendVerificationCode(email);
     }
 
+    @ApiOperation(value = "邮箱验证码登录")
+    @PostMapping("login/code")
+    public Result loginWithEmailCode(@RequestBody LoginEmailDTO loginEmailDTO){
+        return userService.loginWithEmail(loginEmailDTO);
+    }
 
 }

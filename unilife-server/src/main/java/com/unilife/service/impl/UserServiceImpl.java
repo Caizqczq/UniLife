@@ -2,10 +2,13 @@ package com.unilife.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import com.unilife.common.constant.RedisConstant;
 import com.unilife.common.result.Result;
 import com.unilife.mapper.UserMapper;
 import com.unilife.model.dto.LogDTO;
 import com.unilife.model.dto.LoginDTO;
+import com.unilife.model.dto.LoginEmailDTO;
 import com.unilife.model.entity.User;
 import com.unilife.model.vo.LogVO;
 import com.unilife.model.vo.LoginVO;
@@ -14,6 +17,7 @@ import com.unilife.utils.RegexUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -21,6 +25,13 @@ import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.unilife.common.constant.RedisConstant.LOGIN_EMAIL_KEY;
 
 @Slf4j
 @Component
@@ -33,8 +44,14 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @Value("${spring.mail.username}")
     private String from;
+
+    final int CODE_EXPIRE_MINUTES = 10;
+    final int LIMIT_SECONDS=60;
 
 
 
@@ -76,14 +93,25 @@ public class UserServiceImpl implements UserService {
             return Result.error(400,"邮箱格式不正确");
         }
 
-        //2.生成随机验证码
+        //2.防止频繁发送验证码
+        String countKey = RedisConstant.LOGIN_EMAIL_LIMIT_KEY + email;
+        Boolean setSuccess = stringRedisTemplate.opsForValue().setIfAbsent(
+                countKey,
+                "1",
+                Duration.ofSeconds(LIMIT_SECONDS)
+        );
+
+        if (Boolean.FALSE.equals(setSuccess)) {
+            return Result.error(null, "请求过于频繁，请稍后再试");
+        }
+
+
+        //3.生成随机验证码
         String code = RandomUtil.randomNumbers(6);
         log.debug("成功生成验证码,邮箱{},验证码{}", email, code);
 
 
-
-        //3.发送验证码到邮箱
-
+        //4.发送验证码到邮箱
         try {
             //构建邮件
             MimeMessage message=mailSender.createMimeMessage();
@@ -115,12 +143,78 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        //4.存储随机产生的验证码
-        //TODO
-
+        //5.存储随机产生的验证码,设置有效期为十分钟
+        stringRedisTemplate.opsForValue().set(LOGIN_EMAIL_KEY + email, code, Duration.ofMinutes(CODE_EXPIRE_MINUTES));
 
         return Result.success(200,"验证码已发送");
-
-
     }
+
+    @Override
+    public Result loginWithEmail(LoginEmailDTO loginEmailDTO) {
+        String email=loginEmailDTO.getEmail();
+
+        if(RegexUtils.isEmailInvalid(email)){
+            return Result.error(null,"请输入正确的邮箱");
+        }
+
+        String cacheCode = stringRedisTemplate.opsForValue().get(RedisConstant.LOGIN_EMAIL_KEY + email);
+        if (cacheCode == null) {
+            return Result.error(null, "验证码已过期或未发送，请重新获取");
+        }
+
+        // 3. 校验验证码是否正确
+        String code = loginEmailDTO.getCode();
+        if (!cacheCode.equals(code)) {
+            return Result.error(null, "验证码错误");
+        }
+
+        // 4. 验证通过，删除验证码
+        stringRedisTemplate.delete(RedisConstant.LOGIN_EMAIL_KEY + email);
+
+        // 5. 查询用户是否存在
+        User user=userMapper.getUserByEmail(email);
+        if(user == null){
+            user=createUserWithEmail(email);
+        }
+
+        //6.生成登录凭证
+        //TODO
+
+        // 8. 返回用户信息和登录凭证
+        Map<String, Object> userInfo = new HashMap<>();
+        //HashMap userInfo.put("token", token);
+        userInfo.put("user", user);
+
+        return Result.success(userInfo);
+    }
+
+    /**
+     * 使用邮箱信息创建新用户
+     */
+    private User createUserWithEmail(String email) {
+        User user = new User();
+        user.setEmail(email);
+        user.setNickname("用户" + RandomUtil.randomString(6)); // 生成随机昵称
+        String username = email.split("@")[0]+"_"+ RandomUtil.randomString(4); // 使用@前面的部分作为用户名
+        user.setUsername(username);
+
+        String password=RandomUtil.randomString(6);
+        user.setPassword(password);
+
+        user.setRole((byte)0);      // 普通用户角色
+        user.setStatus((byte)1);    // 正常状态
+        user.setIsVerified((byte)0); // 未验证
+        user.setPoints(0);          // 初始积分
+        user.setGender((byte)0);
+
+        // 保存用户
+        try {
+            userMapper.insert(user);
+        }catch (Exception e){
+            log.error("用户创建失败");
+        }
+
+        return user;
+    }
+
 }

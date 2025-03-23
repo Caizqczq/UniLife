@@ -14,23 +14,7 @@
     </resultMap>
     <insert id="insert" parameterType="com.unilife.model.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
-            username,
-            email,
-            password,
-            nickname,
-            avatar,
-            bio,
-            gender,
-            student_id,
-            department,
-            major,
-            grade,
-            points,
-            role,
-            status,
-            is_verified,
-            login_ip,
-            login_time
+            username, email, password,nickname,avatar,bio, gender,student_id,department, major,grade,points,role,status,is_verified,login_ip,login_time
         ) VALUES (
                      #{username},
                      #{email},
@@ -56,5 +40,26 @@
         SELECT id, email, password, username, nickname, avatar, role, is_verified, status
         FROM users
         WHERE email = #{email} AND password = #{password}
+    </select>
+
+    <select id="getUserByEmail" resultType="com.unilife.model.entity.User">
+        select username,
+               email,
+               password,
+               nickname,
+               avatar,
+               bio,
+               gender,
+               student_id,
+               department,
+               major,
+               grade,
+               points,
+               role,
+               status,
+               is_verified,
+               login_ip,
+               login_time
+        from users where email=#{email};
     </select>
 </mapper>

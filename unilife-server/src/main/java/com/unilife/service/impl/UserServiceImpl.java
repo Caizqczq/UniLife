@@ -2,17 +2,17 @@ package com.unilife.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.RandomUtil;
-import cn.hutool.core.util.StrUtil;
 import com.unilife.common.constant.RedisConstant;
 import com.unilife.common.result.Result;
 import com.unilife.mapper.UserMapper;
-import com.unilife.model.dto.LogDTO;
 import com.unilife.model.dto.LoginDTO;
 import com.unilife.model.dto.LoginEmailDTO;
+import com.unilife.model.dto.RegisterDTO;
 import com.unilife.model.entity.User;
-import com.unilife.model.vo.LogVO;
 import com.unilife.model.vo.LoginVO;
+import com.unilife.model.vo.RegisterVO;
 import com.unilife.service.UserService;
+import com.unilife.utils.JwtUtil;
 import com.unilife.utils.RegexUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,6 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,37 +51,38 @@ public class UserServiceImpl implements UserService {
 
     final int CODE_EXPIRE_MINUTES = 10;
     final int LIMIT_SECONDS=60;
-
+    @Autowired
+    private JwtUtil jwtUtil;
 
 
     @Override
-    public Result register(LoginDTO loginDTO) {
-        if(loginDTO.getEmail().equals("") || loginDTO.getPassword().equals("")) {
+    public Result register(RegisterDTO registerDTO) {
+        if(registerDTO.getEmail().isEmpty() || registerDTO.getPassword().isEmpty()) {
             return Result.error(400,"邮箱或密码不能为空");
         }
         User user = new User();
-        BeanUtil.copyProperties(loginDTO,user);
+        BeanUtil.copyProperties(registerDTO,user);
         userMapper.insert(user);
-        LoginVO loginVO = new LoginVO(Math.toIntExact(user.getId()),user.getUsername(),user.getNickname());
-        return Result.success(loginVO);
+        RegisterVO registerVO = new RegisterVO(user.getId(),user.getUsername(),user.getNickname());
+        return Result.success(registerVO);
     }
 
     @Override
-    public Result login(LogDTO logDTO) {
+    public Result login(LoginDTO loginDTO) {
         User user = new User();
-        BeanUtil.copyProperties(logDTO,user);//将登录的前端传来的消息拷贝给这个user
+        BeanUtil.copyProperties(loginDTO,user);//将登录的前端传来的消息拷贝给这个user
         User getuser = userMapper.FindByEmail(user.getEmail(),user.getPassword());
         if(getuser == null)
         {
-            return Result.error(logDTO,"用户不存在，登录失败!");
+            return Result.error(loginDTO,"用户不存在，登录失败!");
         }
         if(!user.getPassword().equals(getuser.getPassword()))
         {
-            return Result.error(logDTO,"密码错误，登录失败!");
+            return Result.error(loginDTO,"密码错误，登录失败!");
         }
-        LogVO logVO = new LogVO(Math.toIntExact(getuser.getId()), getuser.getUsername(), getuser.getNickname(),
-                getuser.getAvatar(), getuser.getRole(), getuser.getIsVerified(), getuser.getStatus());
-        return Result.success(logVO);
+        LoginVO loginVO=new LoginVO();
+        BeanUtil.copyProperties(getuser,loginVO);
+        return Result.success(loginVO);
     }
 
     @Override
@@ -178,12 +178,13 @@ public class UserServiceImpl implements UserService {
         }
 
         //6.生成登录凭证
-        //TODO
+        String token=jwtUtil.generateToken(user.getId());
 
         // 8. 返回用户信息和登录凭证
         Map<String, Object> userInfo = new HashMap<>();
         //HashMap userInfo.put("token", token);
         userInfo.put("user", user);
+        userInfo.put("token", token);
 
         return Result.success(userInfo);
     }

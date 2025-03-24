@@ -7,15 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginVO {
+public class RegisterVO {
     private Long id;
     private String username;
     private String nickname;
-    private String avatar;
-    private Byte role;
-    private Byte isVerified;
-    private Byte status;
-    private String token;
 
 }
-

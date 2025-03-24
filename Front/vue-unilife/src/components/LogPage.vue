@@ -27,19 +27,6 @@ const form_box = ref<HTMLElement | null>(null);
 //保证界面切换后不出现非对应的错误提示——可优化！！！！！
     const switchLoginEvent = () =>{
     password.value = vericode.value = verifyPassword.value = "";
-    if(switchLogin.value)//注册切换登录
-    {
-        if(switchLoginMethod.value)//邮箱登录切换密码登录
-        {
-            password.value = verifyPassword.value = 123456;
-
-        }
-        else
-        {
-            vericode.value = 1;
-        }
-    }    
-
     switchLogin.value = !switchLogin.value;
     switchLogin.value ? transRate.value = '0' : transRate.value = '90';
     if(form_box.value)
@@ -199,13 +186,17 @@ async function login(){
 
 <template>
     <title>登录</title>
+    <!-- 错误信息显示，但是有bug无法显示 -->
     <el-alert
+        class = "error-msg"
         v-if="showErrors"
-        title={{ ErrorsMessage }}
+        :title=ErrorsMessage
         type="error"
         :closable="true"
         @close="showErrors = false"
+        show-icon = "true"
         center/>
+    <!-- 登录注册表单 -->
     <div class = "container">
         <div ref = "form_box" class = "form-box">
             <!-- 注册表单 -->
@@ -218,7 +209,7 @@ async function login(){
                 <input type="password" placeholder="密码" v-model="password">
                 <input type ="password" placeholder = "确认密码" v-model = "verifyPassword">
                 <input type="text" placeholder="验证码" v-model="vericode">
-                <button @click = "onRegisterSubmit;checkErrors">注册</button>   
+                <button @click = "onRegisterSubmit(),checkErrors()">注册</button>   
             </div>
             <!-- 登录表单 -->
             <div class = "login-box" :class ="{hidden: switchLogin}">
@@ -237,7 +228,7 @@ async function login(){
                         <input type="text" placeholder="验证码" v-model="vericode">
                         <button class = "switch-btn" @click="switchLoginMethodEvent">密码登录</button>
                 </div>
-                <button @click="chooseLogin;checkErrors">登录</button>
+                <button @click="chooseLogin(),checkErrors()">登录</button>
             </div>      
         </div>
     <div>
@@ -288,14 +279,11 @@ async function login(){
         position: relative;
     }
 
-    .error-msg p{
-        align-items: center;
-        position:absolute;
-        flex-direction: column;
-        color:#fff;
-        font-size:20px;
-        top:12%;
-        left:37%;
+    .error-msg{
+        width:500px;
+        position: absolute;
+        top:5%;
+        left:30%;
     }
 
     .form-box{

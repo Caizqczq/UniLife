@@ -6,9 +6,9 @@ export default defineComponent({
 });
 </script>
 <template>
-    <h1>AcountManager</h1>
+    
 </template>
 
-<sytle>
-    
+<sytle scoped>
+
 </sytle>

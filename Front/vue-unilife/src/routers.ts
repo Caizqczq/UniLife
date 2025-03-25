@@ -16,7 +16,7 @@ const routes:Array<RouteRecordRaw> = [
         component: Personal,
         children: [
             {
-                path:'/manager',
+                path:'manager',
                 name: 'Manager',
                 component:Manager,
             }

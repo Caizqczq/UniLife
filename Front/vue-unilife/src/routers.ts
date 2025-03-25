@@ -2,6 +2,7 @@ import type { RouteRecord, RouteRecordRaw } from 'vue-router';
 import { createWebHashHistory, createRouter,createWebHistory } from 'vue-router';
 import LogPage from './components/LogPage.vue';
 import Personal from './components/Personal.vue';
+import Manager from './components/Personal/AcountManager.vue';
 
 const routes:Array<RouteRecordRaw> = [
     {
@@ -12,7 +13,14 @@ const routes:Array<RouteRecordRaw> = [
     {
         path:'/personal',
         name: 'Personal',
-        component: Personal
+        component: Personal,
+        children: [
+            {
+                path:'/manager',
+                name: 'Manager',
+                component:Manager,
+            }
+        ]
     }
 ];
 

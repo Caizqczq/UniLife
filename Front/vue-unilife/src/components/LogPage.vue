@@ -53,7 +53,7 @@ const RegisterForm = useForm({
         validationSchema : yup.object({
             register_email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
             register_password: yup.string().min(6,"密码至少6位").required("请输入密码"),
-            register_verifyPassword: yup.string().oneOf([yup.ref('password')],"两次密码不一致").required("请确认密码"),
+            register_verifyPassword: yup.string().oneOf([yup.ref('register_verifyPassword')],"两次密码不一致").required("请确认密码"),
             register_vericode: yup.string().required("请输入验证码")
         }),
 })
@@ -103,7 +103,9 @@ const checkErrors = () => {
 const onRegisterSubmit = () => {
     LoginEmailForm.resetForm();
     LoginPasswordForm.resetForm();
-    RegisterForm.handleSubmit(() => {
+    console.log('函数调用成功')
+    RegisterForm.handleSubmit((values) => {
+        console.log('表单调用成功',values)
         testcode().then((res) => {
             if(res.code === 200) {
                 register().then((res) => {
@@ -119,6 +121,9 @@ const onRegisterSubmit = () => {
                 console.log('注册失败')
             }
         })
+    },
+    (errors)=>{
+        console.log('注册表单调用失败',errors)
     })();
 }
 
@@ -186,8 +191,10 @@ const password = computed(()=>register_password.value ?? login_password.value)
 const vericode = computed(()=>register_vericode.value ?? login_vericode.value)
 //发送邮箱验证码
 async function emailcode(){
-    const res = await request.post('/users/code', {
+    const res = await request.get('/users/code', {
+        data:{
             email: email.value
+        }
     })
 
     console.log("success")
@@ -196,8 +203,10 @@ async function emailcode(){
 //验证邮箱验证码
 async function testcode() {
     const res = await request.post('/users/login/code', {
+        data: {
             email: email.value,
             code: vericode.value
+        }
     })
     
     return res.data;
@@ -205,6 +214,7 @@ async function testcode() {
 
 async function register(){
     const res = await request.post('/users/register', {
+        data:{
             email: email.value,
             password: password.value,
             username:null,
@@ -213,14 +223,17 @@ async function register(){
             department:null,
             major:null,
             grade:null,
+        }
     })
     return res.data;
 }
 
 async function login(){
     const res = await request.post('/users/login', {
+        data:{
             email: email.value,
             password: password.value
+        }
     })
     return res.data;
 }

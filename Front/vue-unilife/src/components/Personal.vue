@@ -7,8 +7,16 @@ export default defineComponent({
 </script>
 
 <template>
-  <div>
-    <h1>Personal</h1>
+  <div class = "shell">
+    <ul class="nav">
+        <li class="active" id = "avatar">
+            <router-link to="/">
+                <div class="imageBox">
+                    
+                </div>
+            </router-link>
+        </li>
+    </ul>
   </div>
 </template>
 

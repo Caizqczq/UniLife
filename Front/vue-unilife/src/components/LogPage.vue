@@ -186,10 +186,8 @@ const password = computed(()=>register_password.value ?? login_password.value)
 const vericode = computed(()=>register_vericode.value ?? login_vericode.value)
 //发送邮箱验证码
 async function emailcode(){
-    const res = await request.get('/users/code', {
-        data:{
+    const res = await request.post('/users/code', {
             email: email.value
-        }
     })
 
     console.log("success")
@@ -198,10 +196,8 @@ async function emailcode(){
 //验证邮箱验证码
 async function testcode() {
     const res = await request.post('/users/login/code', {
-        data: {
             email: email.value,
             code: vericode.value
-        }
     })
     
     return res.data;
@@ -209,7 +205,6 @@ async function testcode() {
 
 async function register(){
     const res = await request.post('/users/register', {
-        data:{
             email: email.value,
             password: password.value,
             username:null,
@@ -218,17 +213,14 @@ async function register(){
             department:null,
             major:null,
             grade:null,
-        }
     })
     return res.data;
 }
 
 async function login(){
     const res = await request.post('/users/login', {
-        data:{
             email: email.value,
             password: password.value
-        }
     })
     return res.data;
 }

@@ -1,37 +1,48 @@
 <script setup lang="ts">
 import request from '../utils/request' // 确认路径是否正确
 import * as yup from 'yup'
-import { useField, useForm } from 'vee-validate'
-import { ref ,watch} from 'vue'
+import {useRouter} from 'vue-router'
+import { useField, useForm, } from 'vee-validate'
+import { ref } from 'vue'
+import { computed } from 'vue'
 
+const token = ref<string>('')
+const router = useRouter()
 
-// 注册登录切换
+const testEmail = ref('test@example.com')
+const testPassword = ref('123456')
+
+//切换功能实现
 const transRate = ref('90')
 const switchLogin = ref(true);
 const switchLoginMethod = ref<boolean>(true);
 const switchLoginMethodEvent = () =>{
-    password.value = vericode.value = verifyPassword.value = "";
     switchLoginMethod.value = !switchLoginMethod.value;
-    if(switchLoginMethod.value)//邮箱登录切换密码登录
-    {
-        password.value = verifyPassword.value = 123456;
-
-    }
-    else
-    {
-        vericode.value = 1;
+    if(switchLoginMethod.value) {
+        login_password.value = "";
+        login_password_email.value = login_vericode_email.value;
+    } else {
+        login_vericode.value = "";
+        login_vericode_email.value = login_password_email.value;
     }
 }
 const form_box = ref<HTMLElement | null>(null);
-
-//保证界面切换后不出现非对应的错误提示——可优化！！！！！
-    const switchLoginEvent = () =>{
-    password.value = vericode.value = verifyPassword.value = "";
+//登录注册切换
+const switchLoginEvent = () =>{
+    
     switchLogin.value = !switchLogin.value;
     switchLogin.value ? transRate.value = '0' : transRate.value = '90';
     if(form_box.value)
     {
     form_box.value.style.transform = `translateX(${transRate.value}%)`;
+    }
+
+    if(switchLoginMethod.value) {
+        login_password.value = login_vericode.value = "";
+        login_password_email.value = login_vericode_email.value = register_email.value;
+    } else {
+        register_password.value = register_verifyPassword.value = register_vericode.value = "";
+        login_vericode_email.value = login_password_email.value = register_email.value;
     }
 }
 
@@ -40,56 +51,65 @@ const form_box = ref<HTMLElement | null>(null);
 //注册表单
 const RegisterForm = useForm({
         validationSchema : yup.object({
-            email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
-            password: yup.string().min(6,"密码至少6位").required("请输入密码"),
-            verifyPassword: yup.string().oneOf([yup.ref('password')],"两次密码不一致").required("请确认密码"),
-            vericode: yup.string().required("请输入验证码")
+            register_email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
+            register_password: yup.string().min(6,"密码至少6位").required("请输入密码"),
+            register_verifyPassword: yup.string().oneOf([yup.ref('password')],"两次密码不一致").required("请确认密码"),
+            register_vericode: yup.string().required("请输入验证码")
         }),
 })
+const {value: register_email} = useField('register_email')
+const {value: register_password} = useField  ('register_password')
+const {value: register_verifyPassword} = useField('register_verifyPassword')
+const {value: register_vericode} = useField('register_vericode')//验证码
+
 //登录表单
+//密码登录表单
 const LoginPasswordForm = useForm({
     validationSchema : yup.object({
-        email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
-        password: yup.string().min(6,"密码至少6位").required("请输入密码"),
+        login_password_email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
+        login_password: yup.string().min(6,"密码至少6位").required("请输入密码")
     }),
 })
+const{value: login_password_email} = useField('login_password_email')
+const{value: login_password} = useField('login_password')
+//验证码登录表单
 const LoginEmailForm = useForm({
     validationSchema : yup.object({
-        email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
-        vericode: yup.string().required("请输入验证码")
+        login_vericode_email: yup.string().email("请输入邮箱").required("请输入正确的邮箱"),
+        login_vericode: yup.string().required("请输入验证码")
     }),
 })
-
-const {value: email} = useField('email')
-const {value: password} = useField('password')
-const {value: verifyPassword} = useField('verifyPassword')
-const {value: vericode} = useField('vericode')//验证码
+const{value:login_vericode_email} = useField('login_vericode_email')
+const{value: login_vericode} = useField('login_vericode')
 
 //错误提示
 const showErrors = ref(false)
 const ErrorsMessage = ref('')
 const checkErrors = () => {
-    if(RegisterForm.errors.value.email || RegisterForm.errors.value.password || RegisterForm.errors.value.verifyPassword || RegisterForm.errors.value.vericode) {
+    if(RegisterForm.errors.value.register_email || RegisterForm.errors.value.register_password || RegisterForm.errors.value.register_verifyPassword || RegisterForm.errors.value.register_vericode) {
         showErrors.value = true
         ErrorsMessage.value = '请检查输入是否正确'
-    }
-    if(LoginPasswordForm.errors.value.email || LoginPasswordForm.errors.value.password) {
+    }else if(LoginPasswordForm.errors.value.login_password_email || LoginPasswordForm.errors.value.login_password) {
         showErrors.value = true
         ErrorsMessage.value = '请检查输入是否正确'
-    }
-    if(LoginEmailForm.errors.value.email || LoginEmailForm.errors.value.vericode) {
+    }else if(LoginEmailForm.errors.value.login_vericode_email || LoginEmailForm.errors.value.login_vericode) {
         showErrors.value = true
         ErrorsMessage.value = '请检查输入是否正确'
     }
 }
 
+//注册表单提交
 const onRegisterSubmit = () => {
+    LoginEmailForm.resetForm();
+    LoginPasswordForm.resetForm();
     RegisterForm.handleSubmit(() => {
         testcode().then((res) => {
             if(res.code === 200) {
                 register().then((res) => {
                     if(res.code === 200) {
                         console.log('注册成功')
+                        localStorage.setItem('token', res.data.token)
+                        router.push({path:'/personal'})
                     } else {
                         console.log('注册失败')
                     }
@@ -101,31 +121,57 @@ const onRegisterSubmit = () => {
     })();
 }
 
-const chooseLogin = () => {
+//登录表单提交
+const onLoginSubmit = () => { 
     if(!switchLoginMethod.value) {
-        onLoginPasswordSubmit()
-    } else {
-        onLoginEmailSubmit()
-    }
-}
-
-const onLoginPasswordSubmit = () => {
-    LoginPasswordForm.handleSubmit(() => {
+    LoginEmailForm.resetForm();
+    RegisterForm.resetForm();
+    LoginPasswordForm.handleSubmit((values) => {
+        console.log('表单调用成功',values)
+        if(login_password_email.value == testEmail.value && login_password.value == testPassword.value) {
+            console.log('测试登录成功')
+            console.log(router)
+            router.push({name:'Personal'})
+        } else {
         login().then((res) => {
             if(res.code === 200) {
-                console.log('登录成功')
+                console.log('密码登录成功')
+                localStorage.setItem('token', res.data.token)
             } else {
                 console.log('登录失败')
             }
         })
+        }
+    },
+    (errors) => {
+        console.log('密码登录表单调用失败',errors)
     })();
+    }else {
+        LoginPasswordForm.resetForm();
+        RegisterForm.resetForm();
+        LoginEmailForm.handleSubmit(() => {
+            testcode().then((res) => {
+                if(res.code === 200) {
+                    console.log('邮箱登录成功')
+                    localStorage.setItem('token', res.data.token)
+                } else {
+                    console.log('登录失败')
+                }
+            })
+        },
+        (errors)=>{
+            console.log("邮箱登录表单调用失败",errors)
+        })();
+    }
 }
+
 
 const onLoginEmailSubmit = () => {
     LoginEmailForm.handleSubmit(() => {
         testcode().then((res) => {
             if(res.code === 200) {
                 console.log('登录成功')
+                localStorage.setItem('token', res.data.token)
             } else {
                 console.log('登录失败')
             }
@@ -134,6 +180,9 @@ const onLoginEmailSubmit = () => {
 }
 
 //axios接口
+const email = computed(()=>register_email.value ?? login_password_email.value ?? login_vericode_email.value)
+const password = computed(()=>register_password.value ?? login_password.value)
+const vericode = computed(()=>register_vericode.value ?? login_vericode.value)
 //发送邮箱验证码
 async function emailcode(){
     const res = await request.get('/users/code', {
@@ -182,6 +231,7 @@ async function login(){
     })
     return res.data;
 }
+
 </script>
 
 <template>
@@ -203,12 +253,12 @@ async function login(){
             <div class = "register-box" :class = "{hidden: !switchLogin}">
                 <h1>register</h1>
                 <div class="email-vericode">
-                    <input type="text" placeholder="邮箱" v-model="email">
+                    <input type="text" placeholder="邮箱" v-model="register_email">
                     <button class="vericode-btn" @click = "emailcode">获取验证码</button>
                 </div>
-                <input type="password" placeholder="密码" v-model="password">
-                <input type ="password" placeholder = "确认密码" v-model = "verifyPassword">
-                <input type="text" placeholder="验证码" v-model="vericode">
+                <input type="password" placeholder="密码" v-model="register_password">
+                <input type ="password" placeholder = "确认密码" v-model = "register_verifyPassword">
+                <input type="text" placeholder="验证码" v-model="register_vericode">
                 <button @click = "onRegisterSubmit(),checkErrors()">注册</button>   
             </div>
             <!-- 登录表单 -->
@@ -216,19 +266,19 @@ async function login(){
                 <!--密码登录-->
                 <div class = password-method :class="{hidden: switchLoginMethod}">
                     <h1>login</h1>
-                    <input type="text" placeholder="邮箱" v-model="email">
-                    <input type="password" placeholder="密码" v-model="password">
+                    <input type="text" placeholder="邮箱" v-model="login_password_email">
+                    <input type="password" placeholder="密码" v-model="login_password">
                     <button class = "switch-btn" @click="switchLoginMethodEvent">邮箱登录</button>
                 </div>
                 <!--邮箱登录-->
                 <div class = "email-method" :class ="{hidden: !switchLoginMethod}">
                     <h1>login</h1>
-                        <input class ="email-text" type="text" placeholder="邮箱" v-model="email">
+                        <input class ="email-text" type="text" placeholder="邮箱" v-model="login_vericode_email">
                         <button class="email-btn" @click="emailcode">获取验证码</button>
-                        <input type="text" placeholder="验证码" v-model="vericode">
+                        <input type="text" placeholder="验证码" v-model="login_vericode">
                         <button class = "switch-btn" @click="switchLoginMethodEvent">密码登录</button>
                 </div>
-                <button @click="chooseLogin(),checkErrors()">登录</button>
+                <button @click="onLoginSubmit(),checkErrors()">登录</button>
             </div>      
         </div>
     <div>
@@ -280,10 +330,11 @@ async function login(){
     }
 
     .error-msg{
-        width:500px;
+        width:30%;
         position: absolute;
         top:5%;
-        left:30%;
+        left:35%;
+        display: flex;
     }
 
     .form-box{

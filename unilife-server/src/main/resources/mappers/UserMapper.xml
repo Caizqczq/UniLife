@@ -11,6 +11,7 @@
         <result column="role" property="role"/>
         <result column="is_verified" property="isVerified"/>
         <result column="status" property="status"/>
+        <result column="login_ip" property="loginIp"/>
     </resultMap>
     <insert id="insert" parameterType="com.unilife.model.entity.User" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
@@ -37,10 +38,22 @@
     </insert>
 
     <select id="FindByEmail" resultMap="userResultMap">
-        SELECT id, email, password, username, nickname, avatar, role, is_verified, status
+        SELECT id, email, password, username, nickname, avatar, role, is_verified, status,login_ip
         FROM users
         WHERE email = #{email} AND password = #{password}
     </select>
+
+    <select id="FindByOnlyEmail" resultMap="userResultMap">
+        SELECT id, email, password, username, nickname, avatar, role, is_verified, status,login_ip
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <update id="UpdateIPLocation" parameterType="com.unilife.model.entity.User">
+        UPDATE users
+        SET login_ip = #{loginIp}
+        WHERE email = #{email}
+    </update>
 
     <select id="getUserByEmail" resultType="com.unilife.model.entity.User">
         select username,

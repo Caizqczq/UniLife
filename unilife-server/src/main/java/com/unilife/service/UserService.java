@@ -5,12 +5,15 @@ import com.unilife.model.dto.LoginDTO;
 import com.unilife.model.dto.LoginEmailDTO;
 import com.unilife.model.dto.RegisterDTO;
 
+import javax.servlet.http.HttpServletRequest;
+
 
 public interface UserService {
-    Result register(RegisterDTO registerDTO);
-    Result login(LoginDTO loginDTO);
+    Result register(RegisterDTO registerDTO, HttpServletRequest request);
 
-    Result sendVerificationCode(String email);
+    Result login(LoginDTO loginDTO,HttpServletRequest request);
 
-    Result loginWithEmail(LoginEmailDTO loginEmailDTO);
+    Result sendVerificationCode(String email,HttpServletRequest request);
+
+    Result loginWithEmail(LoginEmailDTO loginEmailDTO,HttpServletRequest request);
 }

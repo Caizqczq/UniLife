@@ -11,6 +11,7 @@ import com.unilife.model.dto.RegisterDTO;
 import com.unilife.model.entity.User;
 import com.unilife.model.vo.LoginVO;
 import com.unilife.model.vo.RegisterVO;
+import com.unilife.service.IPLocationService;
 import com.unilife.service.UserService;
 import com.unilife.utils.JwtUtil;
 import com.unilife.utils.RegexUtils;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import javax.servlet.http.HttpServletRequest;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -36,6 +38,9 @@ import static com.unilife.common.constant.RedisConstant.LOGIN_EMAIL_KEY;
 @Component
 @Service
 public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private IPLocationService ipLocationService;
 
     @Autowired
     private UserMapper userMapper;
@@ -56,19 +61,30 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public Result register(RegisterDTO registerDTO) {
+    public Result register(RegisterDTO registerDTO, HttpServletRequest request) {
         if(registerDTO.getEmail().isEmpty() || registerDTO.getPassword().isEmpty()) {
             return Result.error(400,"邮箱或密码不能为空");
         }
+        if(registerDTO.getPassword().length() < 6) {
+            return Result.error(400,"密码长度过短!");
+        }
+        User getuser = userMapper.FindByOnlyEmail(registerDTO.getEmail());
+        if(getuser != null) {
+            return Result.error(400,"用户已存在!");
+        }
         User user = new User();
         BeanUtil.copyProperties(registerDTO,user);
+        String IPAddress = ipLocationService.getClientIP(request);
+        String Location = ipLocationService.getIPLocation(IPAddress);
+        user.setLoginIp(Location);
         userMapper.insert(user);
-        RegisterVO registerVO = new RegisterVO(user.getId(),user.getUsername(),user.getNickname());
+        RegisterVO registerVO = new RegisterVO(user.getId(),user.getUsername()
+                ,user.getNickname(),user.getLoginIp());
         return Result.success(registerVO);
     }
 
     @Override
-    public Result login(LoginDTO loginDTO) {
+    public Result login(LoginDTO loginDTO,HttpServletRequest request) {
         User user = new User();
         BeanUtil.copyProperties(loginDTO,user);//将登录的前端传来的消息拷贝给这个user
         User getuser = userMapper.FindByEmail(user.getEmail(),user.getPassword());
@@ -80,13 +96,17 @@ public class UserServiceImpl implements UserService {
         {
             return Result.error(loginDTO,"密码错误，登录失败!");
         }
-        LoginVO loginVO=new LoginVO();
-        BeanUtil.copyProperties(getuser,loginVO);
-        return Result.success(loginVO);
+        String LastLogIpLocation = getuser.getLoginIp();
+        String IPAddress = ipLocationService.getClientIP(request);
+        String Location = ipLocationService.getIPLocation(IPAddress);
+        getuser.setLoginIp(Location);
+        userMapper.UpdateIPLocation(getuser.getEmail(), getuser.getLoginIp());
+        LoginVO loginVO = new LoginVO();
+        return Result.success(loginVO,"上次登录IP归属地为" + LastLogIpLocation);
     }
 
     @Override
-    public Result sendVerificationCode(String email) {
+    public Result sendVerificationCode(String email,HttpServletRequest request) {
         //1.校验邮箱是否合法
         boolean emailInvalid = RegexUtils.isEmailInvalid(email);
         if(emailInvalid){
@@ -121,9 +141,11 @@ public class UserServiceImpl implements UserService {
             helper.setTo(email);
             helper.setSubject("UniLife - 登录验证码");
 
+            String IPAddress = ipLocationService.getClientIP(request);
+            String Location = ipLocationService.getIPLocation(IPAddress);
             String content = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;\">" +
                     "<h2 style=\"color: #333;\">您好！</h2>" +
-                    "<p>感谢您使用UniLife平台。您的验证码是：</p>" +
+                    "<p>感谢您使用UniLife平台,本次登录地为" + Location + "您的验证码是：</p>" +
                     "<div style=\"background-color: #f5f5f5; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;\">" +
                     code +
                     "</div>" +
@@ -150,7 +172,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result loginWithEmail(LoginEmailDTO loginEmailDTO) {
+    public Result loginWithEmail(LoginEmailDTO loginEmailDTO,HttpServletRequest request) {
         String email=loginEmailDTO.getEmail();
 
         if(RegexUtils.isEmailInvalid(email)){
@@ -174,17 +196,17 @@ public class UserServiceImpl implements UserService {
         // 5. 查询用户是否存在
         User user=userMapper.getUserByEmail(email);
         if(user == null){
-            user=createUserWithEmail(email);
+            user = createUserWithEmail(email,request);
         }
 
         //6.生成登录凭证
-        String token=jwtUtil.generateToken(user.getId());
+        //TODO
 
+        String token = jwtUtil.generateToken(user.getId());
         // 8. 返回用户信息和登录凭证
         Map<String, Object> userInfo = new HashMap<>();
-        //HashMap userInfo.put("token", token);
-        userInfo.put("user", user);
         userInfo.put("token", token);
+        userInfo.put("user", user);
 
         return Result.success(userInfo);
     }
@@ -192,14 +214,16 @@ public class UserServiceImpl implements UserService {
     /**
      * 使用邮箱信息创建新用户
      */
-    private User createUserWithEmail(String email) {
+    private User createUserWithEmail(String email,HttpServletRequest request) {
         User user = new User();
         user.setEmail(email);
         user.setNickname("用户" + RandomUtil.randomString(6)); // 生成随机昵称
         String username = email.split("@")[0]+"_"+ RandomUtil.randomString(4); // 使用@前面的部分作为用户名
         user.setUsername(username);
 
-        String password=RandomUtil.randomString(6);
+        String password = RandomUtil.randomString(6);
+        String IPAddress = ipLocationService.getClientIP(request);
+        String Location = ipLocationService.getIPLocation(IPAddress);
         user.setPassword(password);
 
         user.setRole((byte)0);      // 普通用户角色
@@ -207,7 +231,7 @@ public class UserServiceImpl implements UserService {
         user.setIsVerified((byte)0); // 未验证
         user.setPoints(0);          // 初始积分
         user.setGender((byte)0);
-
+        user.setLoginIp(Location);//注册地IP
         // 保存用户
         try {
             userMapper.insert(user);

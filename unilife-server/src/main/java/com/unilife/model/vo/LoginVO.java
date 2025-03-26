@@ -16,6 +16,6 @@ public class LoginVO {
     private Byte isVerified;
     private Byte status;
     private String token;
-
+    private String LoginIp;
 }
 

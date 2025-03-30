@@ -1,8 +1,10 @@
 import type { RouteRecord, RouteRecordRaw } from 'vue-router';
 import { createWebHashHistory, createRouter,createWebHistory } from 'vue-router';
 import LogPage from './components/LogPage.vue';
-import Personal from './components/Personal.vue';
+import Personal from './components/Personal/Personal.vue'
 import Manager from './components/Personal/AcountManager.vue';
+import PersonalLayout from './components/PersonLayout.vue'
+import PersonalHome from './components/Personal/Home.vue'
 
 const routes:Array<RouteRecordRaw> = [
     {
@@ -16,11 +18,21 @@ const routes:Array<RouteRecordRaw> = [
         component: Personal,
         children: [
             {
+                path:'',
+                name:'Home',
+                component:PersonalHome,
+            },
+            {
                 path:'manager',
                 name: 'Manager',
                 component:Manager,
-            }
+            },
         ]
+    },
+    {
+        path:"/personalLayout",
+        name:'Personallayout',
+        component:PersonalLayout,
     }
 ];
 

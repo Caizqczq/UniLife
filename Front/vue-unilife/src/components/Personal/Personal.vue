@@ -1,5 +1,8 @@
 <script set lang="ts">
 import { defineComponent,ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 export default defineComponent({
   name: 'Personal',
@@ -21,13 +24,14 @@ export default defineComponent({
 </script>
 
 <template>
+  <router-view/>
   <div class = "shell">
     <ul class="nav">
         <li :class="{active: activeIndex == 0}" @click ="setActive(0)" id = "avatar">
-            <router-link :to="{name:'Personal'}">
+            <router-link :to="{name:'Home'}">
                 <div class="icon">
                   <div class="imageBox">
-                    <img src="../../public/images/默认头像.jpg">
+                    <img src="../../../public/images/默认头像.jpg">
                   </div>
                 </div>
                 <div class="text">测试样例</div>
@@ -37,10 +41,40 @@ export default defineComponent({
           <router-link :to="{name:'Manager'}">
             <div class="icon">
               <div class="imageBox">
-              <img src="../../public/images/个人.png">
+              <img src="../../../public/images/个人.png">
               </div>
             </div>
             <div class="text">账号管理</div>
+          </router-link>
+        </li>
+        <li :class="{active:activeIndex === 2}" @click="setActive(2)">
+          <router-link :to="{name:'Manager'}">
+            <div class="icon">
+              <div class="imageBox">
+              <img src="../../../public/images/个人.png">
+              </div>
+            </div>
+            <div class="text">测试样例2</div>
+          </router-link>
+        </li>
+        <li :class="{active:activeIndex === 3}" @click="setActive(3)">
+          <router-link :to="{name:'Manager'}">
+            <div class="icon">
+              <div class="imageBox">
+              <img src="../../../public/images/个人.png">
+              </div>
+            </div>
+            <div class="text">测试样例3</div>
+          </router-link>
+        </li>
+        <li :class="{active:activeIndex === 4}" @click="setActive(4)">
+          <router-link :to="{name:'Manager'}">
+            <div class="icon">
+              <div class="imageBox">
+              <img src="../../../public/images/个人.png">
+              </div>
+            </div>
+            <div class="text">测试样例4</div>
           </router-link>
         </li>
     </ul>

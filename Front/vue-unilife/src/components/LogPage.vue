@@ -137,7 +137,7 @@ const onLoginSubmit = () => {
         if(login_password_email.value == testEmail.value && login_password.value == testPassword.value) {
             console.log('测试登录成功')
             console.log(router)
-            router.push({name:'Personal'})
+            router.push({name:'Home'})
         } else {
         login().then((res) => {
             if(res.code === 200) {
@@ -314,7 +314,7 @@ async function login(){
         padding: 0;
     }
 
-    body{
+    :global(body){
         height: 100vh;;
         /*弹性布局，水平垂直居中*/
         display:flex;

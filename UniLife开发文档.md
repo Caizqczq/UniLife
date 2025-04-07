@@ -66,8 +66,8 @@
 | id          | BIGINT       | PRIMARY KEY, AUTO_INCREMENT                           | 用户ID                               |
 | username    | VARCHAR(50)  | NOT NULL, UNIQUE                                      | 用户名                               |
 | email       | VARCHAR(100) | NOT NULL, UNIQUE                                      | 邮箱地址（学校邮箱）                 |
-| password    | VARCHAR(255) | NOT NULL                                              | 密码（加密存储）                     |
-| nickname    | VARCHAR(50)  | NOT NULL                                              | 昵称                                 |
+| password    | VARCHAR(255) | NOT NULL                                              | 密码（加密存储                       |
+|             |              |                                                       |                                      |
 | avatar      | VARCHAR(255) |                                                       | 头像URL                              |
 | bio         | TEXT         |                                                       | 个人简介                             |
 | gender      | TINYINT      |                                                       | 性别（0-未知, 1-男, 2-女）           |
@@ -256,3 +256,155 @@ CREATE TABLE `users` (
 }
 ```
 
+### 3.2用户信息管理模块
+
+#### 3.2.1获取用户个人信息
+
+#### 请求信息
+
+- **URL**: `/users/profile`
+- **方法**: `GET`
+- **描述**: 获取当前登录用户的个人资料信息
+
+#### 响应结果
+
+```json
+Copy{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": 12345,
+    "username": "student123",
+    "email": "student@school.edu",
+    "nickname": "测试员", 
+    "avatar": "https://example.com/avatars/default.png",
+    "bio": "这是一个个人简介",
+    "gender": 2,
+    "studentId": "20220101001",
+    "department": "计算机学院",
+    "major": "软件工程",
+    "grade": "2023级",
+    "points": 100,
+    "role": 0,
+    "isVerified": 1
+  }
+}
+```
+
+#### 3.2.2 更新用户个人信息
+
+#### 请求信息
+
+- **URL**: `/users/profile`
+- **方法**: `PUT`
+- **描述**: 更新当前登录用户的个人资料
+
+
+
+#### 请求参数
+
+```json
+Copy{
+  "nickname": "新昵称",
+  "bio": "这是更新后的个人简介",
+  "gender": 2,
+  "department": "计算机学院",
+  "major": "软件工程",
+  "grade": "2023级"
+}
+```
+
+#### 响应结果
+
+```json
+Copy{
+  "code": 200,
+  "message": "更新成功",
+  "data": null
+}
+```
+
+#### 3.2.3 修改用户密码
+
+#### 请求信息
+
+- **URL**: `/users/password`
+- **方法**: `PUT`
+- **描述**: 修改当前登录用户的密码
+
+#### 请求参数
+
+```json
+Copy{
+  "oldPassword": "旧密码",
+  "newPassword": "新密码",
+  "confirmPassword": "确认新密码"
+}
+```
+
+#### 响应结果
+
+```json
+Copy{
+  "code": 200,
+  "message": "密码修改成功",
+  "data": null
+}
+```
+
+#### 3.2.4 上传用户头像
+
+#### 请求信息
+
+- **URL**: `/users/avatar`
+- **方法**: `POST`
+- **描述**: 上传或更新用户头像
+
+
+
+#### 请求参数
+
+```
+Copy
+
+file: [图片文件]
+```
+
+#### 响应结果
+
+```json
+Copy{
+  "code": 200,
+  "message": "头像上传成功",
+  "data": {
+    "avatar": "https://example.com/avatars/user_123456.jpg"
+  }
+}
+```
+
+### 2.5 更新用户邮箱
+
+#### 请求信息
+
+- **URL**: `/users/email`
+- **方法**: `PUT`
+- **描述**: 更新用户邮箱地址
+
+#### 请求参数
+
+```json
+Copy{
+  "email": "new_email@school.edu",
+  "code": "123456"  // 邮箱验证码
+}
+```
+
+#### 响应结果
+
+```json
+Copy{
+  "code": 200,
+  "message": "邮箱更新成功",
+  "data": null
+}
+```

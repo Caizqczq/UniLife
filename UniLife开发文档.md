@@ -1,3 +1,5 @@
+[TOC]
+
 ## 一、API规范
 
 ### 1.1 基础信息
@@ -308,9 +310,6 @@ Copy{
   "nickname": "新昵称",
   "bio": "这是更新后的个人简介",
   "gender": 2,
-  "department": "计算机学院",
-  "major": "软件工程",
-  "grade": "2023级"
 }
 ```
 
@@ -336,9 +335,8 @@ Copy{
 
 ```json
 Copy{
-  "oldPassword": "旧密码",
+  "code": "验证码",
   "newPassword": "新密码",
-  "confirmPassword": "确认新密码"
 }
 ```
 

@@ -99,17 +99,17 @@ export default defineComponent({
     justify-content:center;
     align-items:center;
     font:900 100px '';
-    color:rgba(110,90,240,0.3);
+    color:rgba(175, 90, 240, 0.308);
     background-color: #e4e9f5;
   }
 
   .shell{
-    position:absolute;
+    position:fixed;
     top:0%;
     left:0%;
     width:84px;
     height:100%;
-    background-color:#fff;
+    background-color:#ead1fb;
     z-index:9999;
     transition:width 0.5s;
     padding-left:10px;
@@ -145,7 +145,7 @@ export default defineComponent({
   }
 
   .active{
-    background-color: #e4e9f5;
+    background-color: #fff;
     border-top-left-radius: 50px;
     border-bottom-left-radius: 50px;
   }
@@ -158,7 +158,7 @@ export default defineComponent({
     width:30px;
     height:30px;
     border-bottom-right-radius:25px;
-    box-shadow:5px 5px 0 5px #e4e9f5;
+    box-shadow:5px 5px 0 5px #fff;
     background:transparent;
   }
 
@@ -170,7 +170,7 @@ export default defineComponent({
     width:30px;
     height:30px;
     border-top-right-radius: 25px;
-    box-shadow:5px -5px 0 5px #e4e9f5;
+    box-shadow:5px -5px 0 5px #fff;
     background:transparent;
   }
 
@@ -194,7 +194,7 @@ export default defineComponent({
     height:70px;
     color:#333;
     transition:0.5s;
-    color: rgb(110,90,240)
+    color: rgb(153, 109, 240)
   }
 
   .icon i{
@@ -218,7 +218,7 @@ export default defineComponent({
   .shell ul li:hover a .icon,
   .shell ul li:hover a .text
   {
-    color: #ffa117;/*字体和图标被选中后的颜色 */
+    color: #f3e7e9;/*字体和图标被选中后的颜色 */
   }
 
   .active a .icon::before{

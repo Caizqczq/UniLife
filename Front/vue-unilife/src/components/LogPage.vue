@@ -314,7 +314,7 @@ async function login(){
         padding: 0;
     }
 
-    :global(body){
+    body{
         height: 100vh;;
         /*弹性布局，水平垂直居中*/
         display:flex;
@@ -554,7 +554,8 @@ async function login(){
 
 <style>
     body{
-        height: 100vh;
+        height: 100%;
+        width:100%;
         /*弹性布局，水平垂直居中*/
         display:flex;
         justify-content: center;

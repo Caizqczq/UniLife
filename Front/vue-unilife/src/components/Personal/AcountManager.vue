@@ -1,47 +1,177 @@
 <script set lang="ts">
 import { defineComponent, ref } from 'vue';
+import{useForm,useField,Form} from 'vee-validate';
+import * as yup from 'yup';
+import { useGetDerivedNamespace } from 'element-plus';
 
 export default defineComponent({
   name: 'Manager',
+  //这个是个人信息的展示和修改界面
+  //需要展示的信息有 username，gender，introduction，birthday，email,password(不直接展示，只能看出密码位数，只作为标记作用)
+  //其中除了email以外，其他的都可以修改
+  //修改username，gender，introduction，birthday，不需要邮箱验证
+  //修改密码则需要新密码，确认密码和验证码三个变量
+  //现在使用struct orignData{username,gender,introduction,birthday,email,password}来存储原始数据
+
+  //错误信息使用ToolTip显示
   setup() {
-    const email = ref('test@example.com');
-    const username = ref('测试员');
-    return{
-      email,
-      username
+    const originData = ref({
+      username:"测试员",
+      gender:2,
+      introduction:'测试员的个人简介，只要不出bug一切都好',
+      birthday:'2023-10-01',
+      email:"test@example.com",
+      password:'123456',
+    })
+
+    const formData = ref({...originData.value});//修改后的数据
+    //个人信息变量
+    const isEditable = ref(false);
+
+    //修改密码变量
+    const showErrors = ref(false);
+    const PasswordEdit = ref(false);
+    const newpassword = ref('');
+    const newpasswordConfirm = ref('');
+    const emailCode = ref(''); //验证码
+
+    const toggleEdit = () => {
+      isEditable.value = !isEditable.value;
+    };
+
+    const togglePasswordEdit = () => {
+      PasswordEdit.value = !PasswordEdit.value;
+    };
+
+    //表单验证规则
+    //个人信息修改表单
+    const ProfileScheme = useForm({
+        initialValues:formData.value,
+        validationSchema:yup.object(
+          {
+            username:yup.string().required('昵称不能为空'),
+            introduction:yup.string().required("自我介绍不能为空"),
+          }
+        )
+    })
+    const{errors} = ProfileScheme;
+
+    //密码修改表单
+    const PasswordSheme = useForm({
+      initialValues:{
+        newpassword:newpassword.value,
+        newpasswordConfirm:newpasswordConfirm.value,
+        emailCode:emailCode.value
+      },
+      validationSchema:yup.object(
+        {
+          newpassword:yup.string().required('新密码不能为空').min(6,'密码至少6位'),
+          newpasswordConfirm:yup.string().required('确认密码不能为空').oneOf([yup.ref('newpassword')],'两次输入的密码不一致'),
+          emailCode:yup.string().required('验证码不能为空')
+        }
+      )
+    })
+
+
+    //表单提交函数
+    const onProfileSubmit = () =>{
+      console.log("调用个人信息提交函数");
+      ProfileScheme.resetForm({values:{...formData.value}});
+      ProfileScheme.handleSubmit((values)=>{
+        console.log("表单调用成功",values);
+        console.log("保存成功");
+        isEditable.value = false;
+      },(err) =>{
+      console.log("表单调用失败",err);
+      showErrors.value = true;
+      formData.value = {...originData.value};
+    })();
     }
+
+    const onPasswordSubmit = ()=>
+    {
+      console.log("调用密码提交函数");
+      PasswordSheme.resetForm({values:{
+        newpassword:newpassword.value,
+        newpasswordConfirm:newpasswordConfirm.value,
+        emailCode:emailCode.value
+      }});
+      PasswordSheme.handleSubmit((values)=>{
+        console.log("表单调用成功",values);
+        console.log("修改成功");
+        PasswordEdit.value = false;
+      },(err) =>{
+      console.log("表单调用失败",err);
+      showErrors.value = true;
+    })();
+    }
+
+    //错误信息显示
+
+    return {
+      originData,
+      formData,
+      isEditable,
+
+      newpassword,
+      newpasswordConfirm,
+      emailCode,
+      PasswordEdit,
+      toggleEdit,
+      togglePasswordEdit,
+      ProfileScheme,
+      PasswordSheme,
+      onProfileSubmit,
+      errors,
+      showErrors,
+      onPasswordSubmit
+    };
   }
 });
 </script>
 
 <template>
+  <transition name = "fade-up">
+  <el-alert
+        class = "error-msg"
+        v-if="showErrors"
+        :title= errors.username
+        type="error"
+        effect="dark"
+        :closable="true"
+        @close="showErrors = false"
+        show-icon = "true"
+        center/>
+    </transition>
+
     <div class = "container">
     <div class="main-content">
       <!-- 左侧信息设置区 -->
       <div class="card profile-info-card">
         <!-- 个人信息部分 -->
-        <div class="form-section">
+        <Form :validation-schema="ProfileScheme">
+        <div class="form-section">          
           <h2 class="section-title">个人信息</h2>
           
           <div class="form-group">
-            <label class="form-label">昵称</label>
-            <input type="text" class="form-input" :placeholder="username" readonly>
+            <label class="form-label">昵称</label>          
+            <input type="text" class="form-input" v-model="formData.username" :readonly="!isEditable"/>
           </div>
           
           <div class="form-group">
             <label class="form-label">个人简介</label>
-            <input type="text" class="form-input" placeholder="这是一个个人简介">
+            <input type="text" class="form-input" v-model="formData.introduction" :readonly="!isEditable">
           </div>
           
           <div class="form-group">
             <label class="form-label">性别</label>
             <div class="radio-group">
               <label class="radio-label">
-                <input type="radio" name="gender" class="radio-input" checked>
+                <input type="radio" name="gender" class="radio-input" v-model = "formData.gender" :value="2" :disabled="!isEditable">
                 <span>女</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="gender" class="radio-input">
+                <input type="radio" name="gender" class="radio-input" v-model = "formData.gender" :value="1" :disabled="!isEditable">
                 <span>男</span>
               </label>
             </div>
@@ -49,38 +179,52 @@ export default defineComponent({
           
           <div class="form-group">
             <label class="form-label">生日</label>
-            <input type="date" class="date-input">
+            <input type="date" class="date-input" v-model = "formData.birthday" :readonly="!isEditable">
           </div>
         </div>
         
+        <div class="btn-save-container">
+          <button type = "submit" class="btn btn-primary" @click.prevent="onProfileSubmit()" :disabled = "!isEditable">保 存</button>
+          <button type = "button"class="btn btn-secondary" @click="toggleEdit">{{ isEditable ? '取消修改' : '修 改' }}</button>
+        </div>
+      </Form>
         <div class="divider"></div>
+
         
         <!-- 账号信息部分 -->
+         <Form :validation-schema="PasswordSheme">
         <div class="form-section">
           <h2 class="section-title">账号信息</h2>
           
+          <!--展示邮箱，同时提供发送验证码的按钮-->
           <div class="form-group">
-            <label class="form-label">绑定邮箱</label>
-            <input type="email" class="form-input" :placeholder="email"  readonly>
+          <label class="form-label">绑定邮箱</label>
+          <input type="email" class="form-input" v-model="formData.email" readonly>
+          <button class="btn btn-primary" v-if="PasswordEdit">发送验证码</button>
           </div>
           
           <div class="form-group">
-            <label class="form-label">修改密码</label>
-            <div class="password-inputs">
-              <input type="password" class="form-input" placeholder="xxxxxx旧密码">
-              <input type="password" class="form-input" placeholder="xxxxxx新密码">
+             <label class="form-label">修改密码</label>
+            <div class="password-inputs" v-if = "!PasswordEdit">
+              <input type="password" class="form-input" v-model = "formData.password" readonly>
             </div>
-            <button class="btn btn-primary btn-password">确认修改</button>
+            <div class = "password-inputs" v-if = "PasswordEdit">
+              <input type="password" class="form-input" v-model = "newpassword" placeholder="新密码"/>
+              <input type="password" class="form-input" v-model = "newpasswordConfirm" placeholder="确认新密码"/>
+              <input type="email-code" class="form-input" v-model="emailCode" placeholder="验证码">
+            </div>
+            <button type ="button" class="btn btn-primary btn-password" @click = "togglePasswordEdit()">
+              {{ PasswordEdit ? '取消' : '修改' }}
+            </button>
+            <button type = "submit" class="btn btn-secondary btn-password" v-if="PasswordEdit" @click.prevent="onPasswordSubmit()">
+              保存
+            </button>
           </div>
           <p class="form-hint">* 密码至少包含6个字符，建议使用字母、数字和符号的组合</p>
         </div>
+
+        </Form>
         
-        <div class="divider"></div>
-        
-        <!-- 保存按钮 -->
-        <div class="btn-save-container">
-          <button class="btn btn-primary">保 存</button>
-        </div>
       </div>
       
       <!-- 右侧预览区 -->
@@ -90,12 +234,12 @@ export default defineComponent({
             <img src="../../../public/images/默认头像.jpg" alt="用户头像">
           </div>
           
-          <h3>{{ username }}</h3>
+          <h3>{{ formData.username }}</h3>
           
-          <p class="preview-email">{{ email }}</p>
+          <p class="preview-email">{{ formData.email }}</p>
           
           <div class="preview-bio">
-            这是一个个人简介
+            {{ formData.introduction }}
           </div>
         </div>
         
@@ -119,6 +263,39 @@ export default defineComponent({
   margin: 0;
 }
 
+.error-msg{
+        z-index: 1000;
+        height:50px;
+        width:30%;
+        position: absolute;
+        top:8%;
+        left:20%;
+        display: flex;
+        transition:2s;
+    }
+
+/*错误信息提示*/
+.fade-up-enter-active,
+.fade-up-leave-active{
+  transition: all 0.4s ease;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to{
+  opacity:0;
+  transform:translateY(10px);
+}
+
+.fade-up-enter-to,
+.fade-up-leave-from{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.hidden
+{
+  display: none;
+}
   /* 主容器 */
 .container {
     position:absolute;  
@@ -166,7 +343,7 @@ export default defineComponent({
 /* 主内容区 */
 .main-content {
   flex: 1;
-  height:90%;
+  height:94%;
   padding: 30px;
   display: flex;
   gap: 20px;
@@ -307,6 +484,7 @@ export default defineComponent({
 .btn {
   outline:none;
   padding: 10px 24px;
+  margin:10px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
@@ -332,6 +510,18 @@ export default defineComponent({
   display: flex;
   justify-content: center;
   margin-top: 20px;
+}
+
+.btn-secondary {
+  background-color: #e6e6fa;
+  color: #666;
+  box-shadow: 0 4px 10px rgba(230, 230, 250, 0.3);
+}
+
+.btn-secondary:hover {
+  background-color: #dcdcdc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(230, 230, 250, 0.4);
 }
 
 /* 预览区样式 */

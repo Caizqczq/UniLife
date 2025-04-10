@@ -10,5 +10,12 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": [
+    "src/**/*_test.vue",
+    "src/**/*.test.vue",
+    "src/**/*.spec.vue",
+    "src/**/__tests__/*",
+    "src/components/Personal/AcountManager_test.vue"
+  ]
 }

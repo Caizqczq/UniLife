@@ -1,5 +1,5 @@
 <script set lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, nextTick ,watch} from 'vue';
 import{useForm,useField,Form} from 'vee-validate';
 import * as yup from 'yup';
 import { useGetDerivedNamespace } from 'element-plus';
@@ -43,6 +43,9 @@ export default defineComponent({
       PasswordEdit.value = !PasswordEdit.value;
     };
 
+    const errorsMeg = ref('');
+    
+
     //表单验证规则
     //个人信息修改表单
     const ProfileScheme = useForm({
@@ -54,7 +57,6 @@ export default defineComponent({
           }
         )
     })
-    const{errors} = ProfileScheme;
 
     //密码修改表单
     const PasswordSheme = useForm({
@@ -72,37 +74,40 @@ export default defineComponent({
       )
     })
 
-
     //表单提交函数
-    const onProfileSubmit = () =>{
+    //个人信息提交表单
+    const onProfileSubmit = async() =>{
       console.log("调用个人信息提交函数");
-      ProfileScheme.resetForm({values:{...formData.value}});
+      ProfileScheme.resetForm({values:{...formData.value},
+      errors:{}});
+      PasswordSheme.resetForm({errors:{}});   
       ProfileScheme.handleSubmit((values)=>{
         console.log("表单调用成功",values);
         console.log("保存成功");
         isEditable.value = false;
-      },(err) =>{
-      console.log("表单调用失败",err);
-      showErrors.value = true;
-      formData.value = {...originData.value};
-    })();
+      },(errors) => {
+      console.log("表单调用失败", errors);
+      formData.value = { ...originData.value }; // 恢复原始数据 
+    }
+    )();
     }
 
-    const onPasswordSubmit = ()=>
+    //密码修改提交表单
+    const onPasswordSubmit = async()=>
     {
       console.log("调用密码提交函数");
       PasswordSheme.resetForm({values:{
         newpassword:newpassword.value,
         newpasswordConfirm:newpasswordConfirm.value,
         emailCode:emailCode.value
-      }});
+      },errors:{}});
+      ProfileScheme.resetForm({errors:{}});
       PasswordSheme.handleSubmit((values)=>{
         console.log("表单调用成功",values);
         console.log("修改成功");
         PasswordEdit.value = false;
       },(err) =>{
       console.log("表单调用失败",err);
-      showErrors.value = true;
     })();
     }
 
@@ -122,9 +127,9 @@ export default defineComponent({
       ProfileScheme,
       PasswordSheme,
       onProfileSubmit,
-      errors,
       showErrors,
-      onPasswordSubmit
+      onPasswordSubmit,
+      errorsMeg,
     };
   }
 });
@@ -135,7 +140,7 @@ export default defineComponent({
   <el-alert
         class = "error-msg"
         v-if="showErrors"
-        :title= errors.username
+        :title= "errorsMeg"
         type="error"
         effect="dark"
         :closable="true"

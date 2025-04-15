@@ -242,7 +242,7 @@ async function login(){
 
 <template>
     <title>登录</title>
-    <!-- 错误信息显示，但是有bug无法显示 -->
+    <!-- 错误信息显示，现在无法做到精确显示 -->
     <el-alert
         class = "error-msg"
         v-if="showErrors"

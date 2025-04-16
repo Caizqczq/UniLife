@@ -7,7 +7,7 @@ const service = axios.create({
 
 service.interceptors.request.use(
   config => {
-    console.log(1);
+    console.log("前端发送信息");
     return config;
   },
   error => {
@@ -18,7 +18,7 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   response => {
-    console.log(2);
+    console.log("后端返回信息");
     return response.data;
   },
   error => {

@@ -1,8 +1,10 @@
 <script set lang="ts">
-import { defineComponent, ref, nextTick ,watch} from 'vue';
+import { defineComponent, ref, nextTick ,watch,onMounted} from 'vue';
 import{useForm,useField,Form} from 'vee-validate';
 import * as yup from 'yup';
-import { useGetDerivedNamespace } from 'element-plus';
+import request from '../../utils/request';
+import { useGetDerivedNamespace ,ElMessage} from 'element-plus';
+import { useEmailCode } from '../useEmailCode';
 
 export default defineComponent({
   name: 'Manager',
@@ -17,8 +19,9 @@ export default defineComponent({
   setup() {
     const originData = ref({
       username:"测试员",
+      avatarUrl:'/images/默认头像.jpg',
       gender:2,
-      introduction:'测试员的个人简介，只要不出bug一切都好',
+      introduction:'只要不出bug一切都好QAQ',
       birthday:'2023-10-01',
       email:"test@example.com",
       password:'123456',
@@ -43,6 +46,75 @@ export default defineComponent({
       PasswordEdit.value = !PasswordEdit.value;
     };
 
+    //头像相关变量
+    const hover = ref(false)
+    const dialogVisible = ref(false);
+    const previewUrl = ref<string>('');
+    const selectedFile = ref<File | null>(null)
+
+    const handleAvatarClick = ()=>
+    {
+      dialogVisible.value = true;
+    }
+
+    const beforeAvatarUpload = (file:File)=>
+    {
+      const isImage = file.type.startsWith('image/');
+      if(!isImage){
+        ElMessage.error('只能上传图片文件')
+      }
+      const isLt2M = file.size / 1024 / 1024 <2
+      if(!isLt2M)
+      {
+        ElMessage.error('图片大小不能超过2MB')
+      }
+
+      if(isImage && isLt2M)
+      {
+        selectedFile.value = file;
+        previewUrl.value = URL.createObjectURL(file)
+      }
+      return false
+    }
+
+    const uploadAvatar = async() =>
+    {
+      if(!selectedFile.value) return 
+
+      const formData = new FormData();
+      formData.append('file',selectedFile.value);
+
+      try{
+        const res = await request.post('/users/avatar',
+          {
+            data:{
+              file:formData,
+            }
+          })
+          
+          if(res.data.code === 200)
+          {
+            ElMessage.success('头像上传成功')
+            previewUrl.value = URL.createObjectURL(selectedFile.value)
+          }
+          else
+          {
+            ElMessage.error('头像上传失败')
+          }
+          
+      }catch(error){
+        console.error(error)
+        ElMessage.error('头像上传失败')
+      }
+    }
+
+    const submitAvatar = () =>
+    {
+      uploadAvatar();
+    }
+
+
+    //与alert连接的错误信息，相关的函数已经被我删掉了，因为出现的错误信息滞后显示的bug
     const errorsMeg = ref('');
     
 
@@ -80,11 +152,21 @@ export default defineComponent({
       console.log("调用个人信息提交函数");
       ProfileScheme.resetForm({values:{...formData.value},
       errors:{}});
-      PasswordSheme.resetForm({errors:{}});   
+      PasswordSheme.resetForm({errors:{}});
+      //提交表单   
       ProfileScheme.handleSubmit((values)=>{
         console.log("表单调用成功",values);
-        console.log("保存成功");
-        isEditable.value = false;
+        updataUserInfo().then((res)=>
+      {
+        if(res.code == 200){
+          console.log("个人信息保存成功");
+          isEditable.value = !isEditable;
+        }
+        else
+        {
+          console.log("个人信息保存失败")
+        }
+      })
       },(errors) => {
       console.log("表单调用失败", errors);
       formData.value = { ...originData.value }; // 恢复原始数据 
@@ -102,16 +184,92 @@ export default defineComponent({
         emailCode:emailCode.value
       },errors:{}});
       ProfileScheme.resetForm({errors:{}});
+
       PasswordSheme.handleSubmit((values)=>{
         console.log("表单调用成功",values);
-        console.log("修改成功");
-        PasswordEdit.value = false;
+        
+        modifyPassword().then((res)=>{
+        if(res != 200){
+          ElMessage.error("验证码错误");
+        }
+        else{
+          console.log("修改成功");
+          PasswordEdit.value = false;
+        }
+      })
+        
       },(err) =>{
       console.log("表单调用失败",err);
     })();
     }
 
     //错误信息显示
+
+
+    //axios接口
+    //从后台获取用户信息
+    async function getUserInfo() {
+      try {
+        const response = await request.get('/user/info');
+        console.log('获取用户信息成功:', response.data);
+
+        //从后端获取用户信息
+        originData.value.avatarUrl = response.data.avatar;
+        originData.value.gender = response.data.gender;
+        originData.value.email = response.data.email;
+        originData.value.introduction = response.data.bio;
+        originData.value.password = "123456";
+        originData.value.username = response.data.username;
+        originData.value.birthday = response.data.birthday;
+
+        formData.value = { ...originData.value };
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    }
+
+    //更新用户信息
+    async function updataUserInfo(){
+      try{
+        const res = request.put('/users/profile',{
+          data:{
+            username:formData.value.username,
+            bio:formData.value.introduction,
+            gender:formData.value.gender,
+            birthday:formData.value.birthday,
+          }
+        })
+        console.log("向后端发送数据成功：",formData.value);
+        return (await res).data;
+      }
+      catch(error)
+      {
+        console.log("发送数据失败",error);
+      }
+    }
+
+    //修改用户密码
+    const {sendEmailCode} = useEmailCode()
+    async function modifyPassword()
+    {
+      try{
+        const res = await request.put('/users/password',{
+          data:{
+            code:emailCode,
+            newPassword:newpassword
+          }
+        })
+        if(res.data.code == 200) console.log("新密码修改成功")
+        else console.log("验证码错误");
+        return res.data
+      } catch (error) {
+        console.error('Password modification failed:', error);
+      }
+    }
+
+    onMounted(()=>{
+      getUserInfo();
+    })
 
     return {
       originData,
@@ -121,21 +279,40 @@ export default defineComponent({
       newpassword,
       newpasswordConfirm,
       emailCode,
+      sendEmailCode,
+      
       PasswordEdit,
       toggleEdit,
       togglePasswordEdit,
+
+      //表单相关变量
       ProfileScheme,
       PasswordSheme,
       onProfileSubmit,
-      showErrors,
       onPasswordSubmit,
+
+      //错误信息相关变量
+      showErrors,
       errorsMeg,
+
+      //头像相关
+      hover,
+      dialogVisible,
+      previewUrl,
+      selectedFile,
+      handleAvatarClick,
+      beforeAvatarUpload,
+      uploadAvatar,
+      submitAvatar
     };
   }
 });
+
+
 </script>
 
 <template>
+  <!--错误信息显示的地方-->
   <transition name = "fade-up">
   <el-alert
         class = "error-msg"
@@ -205,7 +382,7 @@ export default defineComponent({
           <div class="form-group">
           <label class="form-label">绑定邮箱</label>
           <input type="email" class="form-input" v-model="formData.email" readonly>
-          <button class="btn btn-primary" v-if="PasswordEdit">发送验证码</button>
+          <button class="btn btn-primary" v-if="PasswordEdit" @click = "sendEmailCode(formData.email)">发送验证码</button>
           </div>
           
           <div class="form-group">
@@ -235,9 +412,30 @@ export default defineComponent({
       <!-- 右侧预览区 -->
       <div class="card profile-preview-card">
         <div class="preview-section">
-          <div class="preview-avatar">
-            <img src="../../../public/images/默认头像.jpg" alt="用户头像">
+          <div class="avatar-wrapper" @click = "handleAvatarClick" @mouseenter = "hover = true" @mouseleave = "hover = false">
+            <img :src="originData.avatarUrl" alt="用户头像" class = "avatar-image">
+            <div v-if = "hover" class = "avatar-hover-mask">更换头像</div>
           </div>
+
+          <el-dialog 
+          v-model = "dialogVisible" 
+          title = "更换头像" 
+          width="70%" 
+          :show-close="false">
+            <el-upload
+                class="avatar-uploader"
+                :http-request = "uploadAvatar"
+                :show-file-list="false"
+                :before-upload = "beforeAvatarUpload"
+              >
+                <img v-if="previewUrl" :src="previewUrl" class="avatar-preview"/>
+                <el-icon size = 30px v-else><Plus/></el-icon>
+            </el-upload>
+            <template #footer>
+              <el-button class = "btn btn-secondary"@click = "dialogVisible = false;previewUrl = ''">取消</el-button>
+              <el-button class = "btn btn-primary" type="primary" @click="submitAvatar">确认</el-button>
+            </template>
+          </el-dialog>
           
           <h3>{{ formData.username }}</h3>
           
@@ -253,7 +451,7 @@ export default defineComponent({
         <div class="cute-decoration star-2">✨</div>
         <div class="cute-decoration heart">💜</div>
         <div class="cute-decoration cat">🐱</div>
-        <div class="cute-decoration cake">🍰</div>
+        <div class="cute-decoration cake">🥰🍰</div>
       </div>
     </div>
     </div>
@@ -320,27 +518,50 @@ export default defineComponent({
   margin: 20px 0 30px;
 }
 
-.avatar-circle {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  background-color: #fff;
+.avatar-wrapper{
+  position:relative;
+  width: 200px;
+  height:200px;
+  cursor:pointer;
+  border-radius:50%;
+  overflow:hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-image{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.avatar-hover-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.avatar-uploader {
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 3px solid #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: transform 0.3s ease;
+  height: 150px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-.avatar-circle:hover {
-  transform: scale(1.05);
-}
-
-.avatar-circle img {
-  width: 100%;
-  height: 100%;
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
   object-fit: cover;
 }
 
@@ -375,7 +596,7 @@ export default defineComponent({
 
 /* 右侧内容卡片 */
 .profile-preview-card {
-  padding-top:70px;
+  padding-top:90px;
   flex: 1;
 }
 

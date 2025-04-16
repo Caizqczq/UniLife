@@ -172,19 +172,6 @@ const onLoginSubmit = () => {
 }
 
 
-const onLoginEmailSubmit = () => {
-    LoginEmailForm.handleSubmit(() => {
-        testcode().then((res) => {
-            if(res.code === 200) {
-                console.log('登录成功')
-                localStorage.setItem('token', res.data.token)
-            } else {
-                console.log('登录失败')
-            }
-        })
-    })();
-}
-
 //axios接口
 const email = computed(()=>register_email.value ?? login_password_email.value ?? login_vericode_email.value)
 const password = computed(()=>register_password.value ?? login_password.value)

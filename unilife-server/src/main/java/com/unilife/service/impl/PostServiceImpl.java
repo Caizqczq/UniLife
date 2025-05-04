@@ -5,12 +5,12 @@ import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.unilife.common.result.Result;
-// import com.unilife.mapper.CategoryMapper;
+import com.unilife.mapper.CategoryMapper;
+import com.unilife.mapper.PostLikeMapper;
 import com.unilife.mapper.PostMapper;
 import com.unilife.mapper.UserMapper;
 import com.unilife.model.dto.CreatePostDTO;
 import com.unilife.model.dto.UpdatePostDTO;
-// import com.unilife.model.entity.Category;
 import com.unilife.model.entity.Post;
 import com.unilife.model.entity.User;
 import com.unilife.model.vo.PostListVO;
@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +35,11 @@ public class PostServiceImpl implements PostService {
     @Autowired
     private UserMapper userMapper;
 
-    // @Autowired
-    // private CategoryMapper categoryMapper;
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Autowired
+    private PostLikeMapper postLikeMapper;
 
     @Override
     public Result createPost(Long userId, CreatePostDTO createPostDTO) {
@@ -216,17 +218,16 @@ public class PostServiceImpl implements PostService {
         }
 
         // 检查用户是否已点赞
-        // 注意：这里需要创建一个点赞表和相应的Mapper，实际开发中需要先创建
-        boolean isLiked = false; // postLikeMapper.isLiked(postId, userId);
+        Boolean isLiked = postLikeMapper.isLiked(postId, userId);
 
-        if (isLiked) {
+        if (Boolean.TRUE.equals(isLiked)) {
             // 取消点赞
-            // postLikeMapper.delete(postId, userId);
+            postLikeMapper.delete(postId, userId);
             postMapper.decrementLikeCount(postId);
             return Result.success(null, "取消点赞成功");
         } else {
             // 添加点赞
-            // postLikeMapper.insert(postId, userId);
+            postLikeMapper.insert(postId, userId);
             postMapper.incrementLikeCount(postId);
             return Result.success(null, "点赞成功");
         }

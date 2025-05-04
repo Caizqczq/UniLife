@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.unilife.mapper.ResourceMapper">
+    <resultMap id="resourceResultMap" type="com.unilife.model.entity.Resource">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="file_url" property="fileUrl"/>
+        <result column="file_size" property="fileSize"/>
+        <result column="file_type" property="fileType"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="download_count" property="downloadCount"/>
+        <result column="like_count" property="likeCount"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+    
+    <insert id="insert" parameterType="com.unilife.model.entity.Resource" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO resources (
+            user_id, title, description, file_url, file_size, file_type, category_id, 
+            download_count, like_count, status, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{title}, #{description}, #{fileUrl}, #{fileSize}, #{fileType}, #{categoryId}, 
+            #{downloadCount}, #{likeCount}, #{status}, NOW(), NOW()
+        )
+    </insert>
+    
+    <select id="getById" resultMap="resourceResultMap">
+        SELECT id, user_id, title, description, file_url, file_size, file_type, category_id, 
+               download_count, like_count, status, created_at, updated_at
+        FROM resources
+        WHERE id = #{id} AND status != 0
+    </select>
+    
+    <select id="getList" resultMap="resourceResultMap">
+        SELECT id, user_id, title, description, file_url, file_size, file_type, category_id, 
+               download_count, like_count, status, created_at, updated_at
+        FROM resources
+        <where>
+            status != 0
+            <if test="categoryId != null">
+                AND category_id = #{categoryId}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+    
+    <select id="getCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM resources
+        <where>
+            status != 0
+            <if test="categoryId != null">
+                AND category_id = #{categoryId}
+            </if>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+    
+    <update id="update" parameterType="com.unilife.model.entity.Resource">
+        UPDATE resources
+        SET title = #{title},
+            description = #{description},
+            category_id = #{categoryId},
+            status = #{status},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <update id="delete">
+        UPDATE resources
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <update id="incrementDownloadCount">
+        UPDATE resources
+        SET download_count = download_count + 1
+        WHERE id = #{id}
+    </update>
+    
+    <update id="incrementLikeCount">
+        UPDATE resources
+        SET like_count = like_count + 1
+        WHERE id = #{id}
+    </update>
+    
+    <update id="decrementLikeCount">
+        UPDATE resources
+        SET like_count = GREATEST(like_count - 1, 0)
+        WHERE id = #{id}
+    </update>
+    
+    <select id="getCountByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM resources
+        WHERE user_id = #{userId} AND status != 0
+    </select>
+    
+    <select id="getCountByCategoryId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM resources
+        WHERE category_id = #{categoryId} AND status != 0
+    </select>
+</mapper>

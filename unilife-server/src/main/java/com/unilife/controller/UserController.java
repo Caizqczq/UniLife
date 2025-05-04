@@ -5,6 +5,9 @@ import com.unilife.model.dto.EmailDTO;
 import com.unilife.model.dto.LoginDTO;
 import com.unilife.model.dto.LoginEmailDTO;
 import com.unilife.model.dto.RegisterDTO;
+import com.unilife.model.dto.UpdateEmailDTO;
+import com.unilife.model.dto.UpdatePasswordDTO;
+import com.unilife.model.dto.UpdateProfileDTO;
 import com.unilife.model.vo.LoginVO;
 import com.unilife.service.UserService;
 import com.unilife.utils.BaseContext;
@@ -13,10 +16,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -63,7 +71,72 @@ public class UserController {
     @Operation(summary = "邮箱验证码登录")
     @PostMapping("login/code")
     public Result<?> loginWithEmailCode(@RequestBody LoginEmailDTO loginEmailDTO, HttpServletRequest request) {
-        return userService.loginWithEmail(loginEmailDTO, request);
+        Result<?> login = userService.loginWithEmail(loginEmailDTO, request);
+        LoginVO vo = (LoginVO) login.getData();
+        if (vo == null) {
+            return login;
+        }
+        Long id = vo.getId();
+        String token = jwtUtil.generateToken(id);
+        vo.setToken(token);
+        BaseContext.setId(id);
+        return Result.success(vo);
     }
 
+    // 用户信息管理相关API
+
+    @Operation(summary = "获取用户个人信息")
+    @GetMapping("profile")
+    public Result<?> getUserProfile() {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.getUserProfile(userId);
+    }
+
+    @Operation(summary = "更新用户个人信息")
+    @PutMapping("profile")
+    public Result<?> updateUserProfile(@RequestBody UpdateProfileDTO profileDTO) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.updateUserProfile(userId, profileDTO);
+    }
+
+    @Operation(summary = "修改用户密码")
+    @PutMapping("password")
+    public Result<?> updatePassword(@RequestBody UpdatePasswordDTO passwordDTO) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.updatePassword(userId, passwordDTO);
+    }
+
+    @Operation(summary = "上传用户头像")
+    @PostMapping("avatar")
+    public Result<?> updateAvatar(@RequestParam("file") MultipartFile file) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.updateAvatar(userId, file);
+    }
+
+    @Operation(summary = "更新用户邮箱")
+    @PutMapping("email")
+    public Result<?> updateEmail(@RequestBody UpdateEmailDTO emailDTO) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.updateEmail(userId, emailDTO);
+    }
 }

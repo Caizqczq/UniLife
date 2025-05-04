@@ -37,17 +37,21 @@
                  )
     </insert>
 
-    <select id="FindByEmail" resultMap="userResultMap">
-        SELECT id, email, password, username, nickname, avatar, role, is_verified, status,login_ip
-        FROM users
-        WHERE email = #{email} AND password = #{password}
-    </select>
-
-    <select id="FindByOnlyEmail" resultMap="userResultMap">
+    <select id="findByEmail" resultMap="userResultMap">
         SELECT id, email, password, username, nickname, avatar, role, is_verified, status,login_ip
         FROM users
         WHERE email = #{email}
     </select>
+
+    <update id="updateLoginInfo">
+        UPDATE users
+        SET login_ip = #{ipLocation},
+            login_time = #{loginTime},
+            updated_at = NOW()
+        WHERE id = #{userId}
+    </update>
+
+
 
     <update id="UpdateIPLocation" parameterType="com.unilife.model.entity.User">
         UPDATE users
@@ -75,4 +79,62 @@
                login_time
         from users where email=#{email};
     </select>
+
+    <!-- 用户信息管理相关SQL -->
+    <select id="getUserById" resultType="com.unilife.model.entity.User">
+        SELECT id,
+               username,
+               email,
+               nickname,
+               avatar,
+               bio,
+               gender,
+               student_id as studentId,
+               department,
+               major,
+               grade,
+               points,
+               role,
+               status,
+               is_verified as isVerified,
+               login_ip as loginIp,
+               login_time as loginTime,
+               created_at as createdAt,
+               updated_at as updatedAt
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <update id="updateUserProfile" parameterType="com.unilife.model.entity.User">
+        UPDATE users
+        SET nickname = #{nickname},
+            bio = #{bio},
+            gender = #{gender},
+            department = #{department},
+            major = #{major},
+            grade = #{grade},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE users
+        SET password = #{newPassword},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAvatar">
+        UPDATE users
+        SET avatar = #{avatar},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateEmail">
+        UPDATE users
+        SET email = #{email},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
 </mapper>

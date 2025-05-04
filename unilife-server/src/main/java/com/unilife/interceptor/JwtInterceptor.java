@@ -25,14 +25,21 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-
         log.info("JwtInterceptor preHandle");
-        String token = request.getHeader("Authorization");
 
-        if(StrUtil.isBlank(token)){
+        String authHeader = request.getHeader("Authorization");
+
+        if(StrUtil.isBlank(authHeader)){
             response.setStatus(401);
             return false;
         }
+
+        // 处理Bearer token格式
+        String token = authHeader;
+        if(authHeader.startsWith("Bearer ")){
+            token = authHeader.substring(7);
+        }
+        log.info("Extracted token:{}", token);
 
         boolean verified = jwtUtil.verifyToken(token);
         if (!verified) {
@@ -42,9 +49,11 @@ public class JwtInterceptor implements HandlerInterceptor {
 
         //从token中获取userid并存入threadlocal
         Long userId = jwtUtil.getUserIdFromToken(token);
+        if(userId == null) {
+            response.setStatus(401);
+            return false;
+        }
         BaseContext.setId(userId);
-
-
         return true;
     }
 

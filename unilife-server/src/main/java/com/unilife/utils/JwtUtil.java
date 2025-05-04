@@ -2,6 +2,7 @@ package com.unilife.utils;
 
 import cn.hutool.core.date.DateTime;
 import cn.hutool.jwt.JWTUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
@@ -36,7 +38,7 @@ public class JwtUtil {
     }
     public Long getUserIdFromToken(String token) {
         try {
-            return (Long)JWTUtil.parseToken(token).getPayload("userId");
+            return Long.valueOf(JWTUtil.parseToken(token).getPayload("userId").toString());
         }catch (Exception e){
             return null;
         }

@@ -40,7 +40,7 @@ public class Result<T>{
     }
 
     public static <T> Result<T> success(T data, String message) {
-        return new Result<>(200, message, null);
+        return new Result<>(200, message, data);
     }
 
     /**

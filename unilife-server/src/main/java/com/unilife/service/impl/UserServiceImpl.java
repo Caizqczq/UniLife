@@ -60,36 +60,92 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Value("${spring.mail.username}")
     private String from;
 
     final int CODE_EXPIRE_MINUTES = 10;
     final int LIMIT_SECONDS=60;
-    @Autowired
-    private JwtUtil jwtUtil;
 
 
     @Override
     public Result register(RegisterDTO registerDTO, HttpServletRequest request) {
-        if(registerDTO.getEmail().isEmpty() || registerDTO.getPassword().isEmpty()) {
-            return Result.error(400,"邮箱或密码不能为空");
+        String email=registerDTO.getEmail();
+        String password=registerDTO.getPassword();
+        String code=registerDTO.getCode();
+
+        if (StringUtils.isAnyEmpty(email, password, code)) {
+            return Result.error(400, "邮箱、密码和验证码不能为空");
         }
-        if(registerDTO.getPassword().length() < 6) {
-            return Result.error(400,"密码长度过短!");
+        if (password.length() < 6) {
+            return Result.error(400, "密码长度至少为6位");
+        }
+        if (RegexUtils.isEmailInvalid(email)) { // 假设你有这个正则工具类
+            return Result.error(400, "邮箱格式不正确");
+        }
+
+        String cacheCodeKey=RedisConstant.LOGIN_EMAIL_KEY + email;
+        String cacheCode=stringRedisTemplate.opsForValue().get(cacheCodeKey);
+
+        if(cacheCode==null){
+            return Result.error(400,"验证码已过期或未发送，请重新获取");
+        }
+        if(!cacheCode.equals(code)){
+            return Result.error(400,"验证码错误");
         }
         User getuser = userMapper.findByEmail(registerDTO.getEmail());
         if(getuser != null) {
-            return Result.error(400,"用户已存在!");
+            return Result.error(400,"该邮箱已被注册");
         }
-        User user = new User();
-        BeanUtil.copyProperties(registerDTO,user);
-        String IPAddress = ipLocationService.getClientIP(request);
-        String Location = ipLocationService.getIPLocation(IPAddress);
-        user.setLoginIp(Location);
-        userMapper.insert(user);
-        RegisterVO registerVO = new RegisterVO(user.getId(),user.getUsername()
-                ,user.getNickname(),user.getLoginIp());
-        return Result.success(registerVO);
+
+        stringRedisTemplate.delete(cacheCodeKey);
+
+
+        User user=new User();
+        user.setEmail(email);
+        user.setPassword(registerDTO.getPassword());
+        // 设置昵称、用户名 (可以提供默认值)
+        String nickname = StringUtils.isNotEmpty(registerDTO.getNickname()) ? registerDTO.getNickname() : "用户" + RandomUtil.randomString(6);
+        user.setNickname(nickname);
+        // 避免用户名太长，或者你可以让用户在 DTO 中提供
+        String username = StringUtils.isNotEmpty(registerDTO.getUsername()) ? registerDTO.getUsername() : email.substring(0, Math.min(email.indexOf('@'), 10)) + "_" + RandomUtil.randomString(4);
+        user.setUsername(username);
+
+        // 设置其他默认值
+        user.setRole((byte) 0);      // 普通用户
+        user.setStatus((byte) 1);    // 启用状态
+        user.setIsVerified((byte) 1); // 邮箱已通过验证码验证
+        user.setPoints(0);
+        user.setGender((byte) 0);    // 默认性别，或从 DTO 获取
+
+        // 记录注册IP
+        String currentIp = ipLocationService.getClientIP(request);
+        String ipLocation = ipLocationService.getIPLocation(currentIp);
+        user.setLoginIp(ipLocation);    // 首次登录IP设为注册IP
+        user.setLoginTime(LocalDateTime.now()); // 记录首次登录时间
+        // 插入数据库
+        try {
+            userMapper.insert(user); // user 对象现在应该有 id 了 (如果配置了主键返回)
+            log.info("新用户注册成功: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("数据库插入用户失败: {}", email, e);
+            return Result.error(500, "注册失败，服务器内部错误");
+        }
+        // 注册成功后直接登录：生成 Token 并返回 LoginVO
+        LoginVO loginVO = new LoginVO();
+        BeanUtil.copyProperties(user, loginVO); // 复制基本信息
+        // 确保 user.getId() 能获取到刚插入的 ID
+        if (user.getId() == null) {
+            log.error("无法获取新注册用户的 ID: {}", email);
+            return Result.error(500, "注册成功但登录失败，请稍后重试");
+        }
+        String token = jwtUtil.generateToken(user.getId());
+        loginVO.setToken(token);
+        loginVO.setId(user.getId());
+
+        return Result.success(loginVO, "注册成功并已登录");
     }
 
     @Override

@@ -16,4 +16,5 @@ public class RegisterDTO {
     private String department;
     private String major;
     private String grade;
+    private String code;
 }

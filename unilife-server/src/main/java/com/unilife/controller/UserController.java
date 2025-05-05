@@ -86,7 +86,7 @@ public class UserController {
     // 用户信息管理相关API
 
     @Operation(summary = "获取用户个人信息")
-    @GetMapping("profile")
+    @GetMapping("info")
     public Result<?> getUserProfile() {
         // 从当前上下文获取用户ID
         Long userId = BaseContext.getId();

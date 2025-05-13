@@ -1,12 +1,21 @@
 import type { RouteRecord, RouteRecordRaw } from 'vue-router';
 import { createWebHashHistory, createRouter,createWebHistory } from 'vue-router';
-import LogPage from './components/LogPage.vue';
-import Personal from './components/Personal/Personal.vue'
-import Manager from './components/Personal/AcountManager.vue';
-import PersonalLayout from './components/PersonLayout.vue'
-import PersonalHome from './components/Personal/Home.vue'
+import LogPage from '../views/LogPage.vue';
+import Personal from '@/components/Personal.vue';
+import Manager from '@/views/AcountManager.vue';
+import PersonalHome from '@/views/Home.vue';
+import ForumHome from '@/views/ForumHome.vue';
 
 const routes:Array<RouteRecordRaw> = [
+    {
+        path: '/',
+        redirect: '/log',
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: () => import('@/views/404.vue'),
+    },
     {
         path:'/log',
         name: 'LogPage',
@@ -27,12 +36,16 @@ const routes:Array<RouteRecordRaw> = [
                 name: 'Manager',
                 component:Manager,
             },
+            {
+                path:'ai',
+                redirect: '/personal',
+            },
         ]
     },
     {
-        path:"/personalLayout",
-        name:'Personallayout',
-        component:PersonalLayout,
+        path:'/uniLifeHome',
+        name: 'ForumHome',
+        component: ForumHome,
     }
 ];
 

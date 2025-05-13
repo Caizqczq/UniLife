@@ -2,9 +2,9 @@
 import { defineComponent, ref, nextTick ,watch,onMounted} from 'vue';
 import{useForm,useField,Form} from 'vee-validate';
 import * as yup from 'yup';
-import request from '../../utils/request';
+import request from '@/utils/request';
 import { useGetDerivedNamespace ,ElMessage} from 'element-plus';
-import { useEmailCode } from '../useEmailCode';
+import { useEmailCode } from '@/components/useEmailCode';
 
 export default defineComponent({
   name: 'Manager',
@@ -19,7 +19,7 @@ export default defineComponent({
   setup() {
     const originData = ref({
       username:"测试员",
-      avatarUrl:'/images/默认头像.jpg',
+      avatarUrl:'@/assets/images/默认头像.jpg',
       gender:2,
       introduction:'只要不出bug一切都好QAQ',
       birthday:'2023-10-01',
@@ -459,13 +459,6 @@ export default defineComponent({
 
 <style scoped>
 
-#app {
-  width: 100%;
-  max-width: none;
-  padding: 0;
-  margin: 0;
-}
-
 .error-msg{
         z-index: 1000;
         height:50px;
@@ -575,19 +568,6 @@ export default defineComponent({
   gap: 20px;
 }
 
-/* 信息卡片通用样式 */
-.card {
-  background-color: #fff;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
 
 /* 左侧内容卡片 */
 .profile-info-card {
@@ -707,48 +687,7 @@ export default defineComponent({
 }
 
 /* 按钮样式 */
-.btn {
-  outline:none;
-  padding: 10px 24px;
-  margin:10px;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  background-color: #fff;
-}
 
-.btn-primary {
-  background-color: #9370DB;
-  color: white;
-  box-shadow: 0 4px 10px rgba(147, 112, 219, 0.3);
-}
-
-.btn-primary:hover {
-  background-color: #8a63d2;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(147, 112, 219, 0.4);
-}
-
-.btn-save-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.btn-secondary {
-  background-color: #e6e6fa;
-  color: #666;
-  box-shadow: 0 4px 10px rgba(230, 230, 250, 0.3);
-}
-
-.btn-secondary:hover {
-  background-color: #dcdcdc;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(230, 230, 250, 0.4);
-}
 
 /* 预览区样式 */
 .preview-section {

@@ -86,6 +86,7 @@ const{value: login_vericode} = useField('login_vericode')
 //错误提示
 const showErrors = ref(false)
 const ErrorsMessage = ref('')
+//调用代码检查表单是否有错误信息提示
 const checkErrors = () => {
     if(RegisterForm.errors.value.register_email || RegisterForm.errors.value.register_password || RegisterForm.errors.value.register_verifyPassword || RegisterForm.errors.value.register_vericode) {
         showErrors.value = true
@@ -173,6 +174,7 @@ const onLoginSubmit = () => {
 
 
 //axios接口
+//多合一哈多合一
 const email = computed(()=>register_email.value ?? login_password_email.value ?? login_vericode_email.value)
 const password = computed(()=>register_password.value ?? login_password.value)
 const vericode = computed(()=>register_vericode.value ?? login_vericode.value)
@@ -239,6 +241,7 @@ async function login(){
         @close="showErrors = false"
         show-icon = "true"
         center/>
+        
     <!-- 登录注册表单 -->
     <div class = "container">
         <div ref = "form_box" class = "form-box">
@@ -304,7 +307,6 @@ async function login(){
     body{
         height: 100vh;;
         /*弹性布局，水平垂直居中*/
-        display:flex;
         justify-content: center;
         align-items: center;
         /*渐变背景*/
@@ -537,17 +539,4 @@ async function login(){
     
 
    
-</style>
-
-<style>
-    body{
-        height: 100%;
-        width:100%;
-        /*弹性布局，水平垂直居中*/
-        display:flex;
-        justify-content: center;
-        align-items: center;
-        /*渐变背景*/
-        background: linear-gradient(200deg, #f3e7e9, #e3eeff);
-    }
 </style>

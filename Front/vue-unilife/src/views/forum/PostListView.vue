@@ -71,11 +71,13 @@
     <div class="pagination-container" v-if="postStore.totalPages > 1">
       <el-pagination
         background
-        layout="prev, pager, next, jumper, ->, total"
+        layout="sizes, prev, pager, next, jumper, ->, total"
         :total="postStore.totalPosts"
         :page-size="postStore.pageSize"
+        :page-sizes="[5, 10, 20, 50]"
         :current-page="postStore.currentPage"
         @current-change="handleCurrentChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
@@ -136,6 +138,10 @@ const createNewPost = () => {
 
 const handleCurrentChange = (page: number) => {
   postStore.fetchPosts({ pageNum: page });
+};
+
+const handleSizeChange = (size: number) => {
+  postStore.fetchPosts({ pageNum: 1, pageSize: size });
 };
 
 onMounted(async () => {

@@ -102,7 +102,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'posts',       // URL: /personal/posts
         name: 'MyPosts',
-        component: () => import('../views/NotFound.vue'), // 占位符
+        component: () => import('../views/forum/MyPostsView.vue'),
         meta: { title: '我的帖子 - UniLife' }
       },
       {

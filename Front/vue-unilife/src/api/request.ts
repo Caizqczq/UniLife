@@ -45,7 +45,9 @@ service.interceptors.response.use(
       if (res.code === 401) {
         // 未授权，清除token并重定向到登录页
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        const currentPath = window.location.pathname;
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+        return Promise.reject(new Error('未登录或登录已过期'));
       }
 
       return Promise.reject(new Error(res.message || '请求失败'));
@@ -56,7 +58,23 @@ service.interceptors.response.use(
   (error) => {
     console.error('响应错误:', error);
 
-    // 显示错误信息
+    // 处理HTTP 401错误
+    if (error.response && error.response.status === 401) {
+      ElMessage({
+        message: '未登录或登录已过期，请重新登录',
+        type: 'warning',
+        duration: 3000
+      });
+
+      // 清除token
+      localStorage.removeItem('token');
+
+      // 获取当前页面路径，并重定向到登录页面
+      const currentPath = window.location.pathname;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      return Promise.reject(error);
+    }
+
     ElMessage({
       message: error.message || '请求失败',
       type: 'error',

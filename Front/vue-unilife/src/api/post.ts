@@ -35,7 +35,19 @@ export interface CreatePostParams {
 export default {
   // 获取帖子列表
   getPosts(params: { pageNum?: number; pageSize?: number; categoryId?: number; sort?: string }) {
-    return get<{ code: number; data: { total: number; list: PostItem[]; pages: number; pageNum: number; pageSize: number } }>('/posts', params);
+    // 将前端参数名转换为后端参数名
+    const serverParams: any = {
+      page: params.pageNum,
+      size: params.pageSize,
+      sort: params.sort
+    };
+    
+    // 保留categoryId参数
+    if (params.categoryId !== undefined) {
+      serverParams.categoryId = params.categoryId;
+    }
+    
+    return get<{ code: number; data: { total: number; list: PostItem[]; pages: number; pageNum: number; pageSize: number } }>('/posts', serverParams);
   },
   
   // 获取帖子详情

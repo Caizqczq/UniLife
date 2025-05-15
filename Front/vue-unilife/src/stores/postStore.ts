@@ -93,9 +93,19 @@ export const usePostStore = defineStore('post', {
           throw new Error(errorMessage);
         }
       } catch (error: any) {
-        // Ensure this.error is set from error.message, and ElMessage shows this.error or a default.
-        this.error = error.message || '加载帖子详情时发生未知错误'; 
-        ElMessage.error(this.error);
+        // 检查是否是未登录错误
+        if (error.response && error.response.status === 401) {
+          this.error = '您需要登录后才能查看帖子详情';
+          ElMessage.warning(this.error);
+          // 将用户重定向到登录页面，并记录需要返回的帖子详情页面
+          const currentPath = `/post/${id}`;
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+          return;
+        } else {
+          // 处理其他错误
+          this.error = error.message || '加载帖子详情时发生未知错误';
+          ElMessage.error(this.error);
+        }
       } finally {
         this.loading = false;
       }

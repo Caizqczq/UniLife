@@ -11,6 +11,7 @@ import com.unilife.mapper.PostMapper;
 import com.unilife.mapper.UserMapper;
 import com.unilife.model.dto.CreatePostDTO;
 import com.unilife.model.dto.UpdatePostDTO;
+import com.unilife.model.entity.Category;
 import com.unilife.model.entity.Post;
 import com.unilife.model.entity.User;
 import com.unilife.model.vo.PostListVO;
@@ -91,8 +92,15 @@ public class PostServiceImpl implements PostService {
         User user = userMapper.getUserById(post.getUserId());
 
         // 获取分类信息
-        // 注意：这里假设已经创建了CategoryMapper接口，实际开发中需要先创建
-        // Category category = categoryMapper.getById(post.getCategoryId());
+        Category category = categoryMapper.getById(post.getCategoryId());
+        String categoryName = category != null ? category.getName() : "未知分类";
+
+        // 查询用户是否点赞过该帖子
+        boolean isLiked = false;
+        if (userId != null) {
+            Boolean liked = postLikeMapper.isLiked(postId, userId);
+            isLiked = liked != null && liked;
+        }
 
         // 构建返回数据
         PostVO postVO = PostVO.builder()
@@ -103,11 +111,11 @@ public class PostServiceImpl implements PostService {
                 .nickname(user != null ? user.getNickname() : "未知用户")
                 .avatar(user != null ? user.getAvatar() : null)
                 .categoryId(post.getCategoryId())
-                .categoryName("未知分类") // 实际开发中应该从category对象获取
+                .categoryName(categoryName) // 使用从数据库查询到的真实分类名称
                 .viewCount(post.getViewCount() + 1) // 已经增加了浏览次数
                 .likeCount(post.getLikeCount())
                 .commentCount(post.getCommentCount())
-                .isLiked(false) // 实际开发中应该查询用户是否点赞
+                .isLiked(isLiked) // 设置已查询的点赞状态
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();
@@ -130,6 +138,21 @@ public class PostServiceImpl implements PostService {
 
         // 获取分页信息
         PageInfo<Post> pageInfo = new PageInfo<>(posts);
+        
+        // 收集所有帖子的分类 ID
+        List<Long> categoryIds = posts.stream()
+                .map(Post::getCategoryId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        // 批量获取分类信息
+        Map<Long, String> categoryMap = new HashMap<>();
+        if (!categoryIds.isEmpty()) {
+            categoryIds.forEach(id -> {
+                Category category = categoryMapper.getById(id);
+                categoryMap.put(id, category != null ? category.getName() : "未知分类");
+            });
+        }
 
         // 转换为VO
         List<PostListVO> postListVOs = posts.stream().map(post -> {
@@ -142,7 +165,7 @@ public class PostServiceImpl implements PostService {
                     .nickname(user != null ? user.getNickname() : "未知用户")
                     .avatar(user != null ? user.getAvatar() : null)
                     .categoryId(post.getCategoryId())
-                    .categoryName("未知分类")
+                    .categoryName(categoryMap.getOrDefault(post.getCategoryId(), "未知分类"))
                     .viewCount(post.getViewCount())
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())

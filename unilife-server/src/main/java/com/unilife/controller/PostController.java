@@ -42,7 +42,7 @@ public class PostController {
     @Operation(summary = "获取帖子列表")
     @GetMapping
     public Result<?> getPostList(
-            @RequestParam(value = "category", required = false) Long categoryId,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
             @RequestParam(value = "sort", defaultValue = "latest") String sort) {

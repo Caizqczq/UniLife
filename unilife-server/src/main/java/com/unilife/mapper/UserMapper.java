@@ -10,6 +10,7 @@ import java.util.Date;
 public interface UserMapper {
     void insert(User user);
     User findByEmail(String email);
+    User findByUsername(String username);
     void updateLoginInfo(@Param("userId") Long userId,
                          @Param("ipLocation") String ipLocation,
                          @Param("loginTime") Date loginTime);

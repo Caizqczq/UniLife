@@ -11,7 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateProfileDTO {
-    private String nickname;
+    private String username; // Added back to allow username updates
+    // private String nickname; // Removed as per user request and frontend changes
     private String bio;
     private Byte gender;
     private String department;

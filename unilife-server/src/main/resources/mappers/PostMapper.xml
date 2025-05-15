@@ -32,8 +32,9 @@
     <select id="getListByCategory" resultType="com.unilife.model.entity.Post">
         SELECT * FROM posts
         <where>
+            status != 0 <!-- 始终只获取未删除的帖子 -->
             <if test="categoryId != null">
-                category_id = #{categoryId}
+                AND category_id = #{categoryId}
             </if>
         </where>
         <choose>

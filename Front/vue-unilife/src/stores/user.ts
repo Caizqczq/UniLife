@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import userApi from '../api/user';
-import type { UserInfo } from '../api/user';
+import type { UserInfo, UpdatePasswordParams } from '../api/user';
 import { ElMessage } from 'element-plus';
 
 export const useUserStore = defineStore('user', () => {
@@ -123,19 +123,31 @@ export const useUserStore = defineStore('user', () => {
     username?: string;
     bio?: string;
     gender?: number;
-    birthday?: string;
+    department?: string;
+    major?: string;
+    grade?: string;
   }) => {
     try {
       loading.value = true;
-      const res = await userApi.updateProfile(data);
+      const params: any = {};
+      if (data.username !== undefined) params.username = data.username;
+      if (data.bio !== undefined) params.bio = data.bio;
+      if (data.gender !== undefined) params.gender = data.gender;
+      if (data.department !== undefined) params.department = data.department;
+      if (data.major !== undefined) params.major = data.major;
+      if (data.grade !== undefined) params.grade = data.grade;
+
+      const res = await userApi.updateProfile(params);
 
       if (res.code === 200) {
         // 更新本地用户信息
         if (userInfo.value) {
-          userInfo.value = {
-            ...userInfo.value,
-            ...data
-          };
+          if (data.username !== undefined) userInfo.value.username = data.username;
+          if (data.bio !== undefined) userInfo.value.bio = data.bio;
+          if (data.gender !== undefined) userInfo.value.gender = data.gender;
+          if (data.department !== undefined) userInfo.value.department = data.department;
+          if (data.major !== undefined) userInfo.value.major = data.major;
+          if (data.grade !== undefined) userInfo.value.grade = data.grade;
         }
 
         ElMessage.success('个人资料更新成功');
@@ -151,11 +163,18 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  // 更新密码
-  const updatePassword = async (code: string, newPassword: string) => {
+  // 更新用户密码
+  const updatePassword = async (data: {
+    newPassword?: string;
+    code?: string;
+  }) => {
     try {
       loading.value = true;
-      const res = await userApi.updatePassword({ code, newPassword });
+      const params: UpdatePasswordParams = {};
+      if (data.newPassword) params.newPassword = data.newPassword;
+      if (data.code) params.code = data.code;
+
+      const res = await userApi.updatePassword(params);
 
       if (res.code === 200) {
         ElMessage.success('密码修改成功');

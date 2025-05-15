@@ -2,16 +2,20 @@ import { get, post, put } from './request';
 
 // 用户接口类型定义
 export interface UserInfo {
+  id: number;
   username: string;
   email: string;
   avatar?: string;
-  gender?: number;
   bio?: string;
+  gender?: number;
   birthday?: string;
   studentId?: string;
   department?: string;
   major?: string;
   grade?: string;
+  points?: number;
+  role?: number;
+  isVerified?: number;
 }
 
 export interface LoginParams {
@@ -23,7 +27,6 @@ export interface RegisterParams {
   email: string;
   password: string;
   username?: string;
-  nickname?: string;
   studentId?: string;
   department?: string;
   major?: string;
@@ -44,7 +47,9 @@ export interface UpdateProfileParams {
   username?: string;
   bio?: string;
   gender?: number;
-  birthday?: string;
+  department?: string;
+  major?: string;
+  grade?: string;
 }
 
 export interface UpdatePasswordParams {

@@ -4,7 +4,8 @@ import { get, post as httpPost, put, del } from './request';
 export interface PostItem {
   id: number;
   title: string;
-  content: string;
+  summary?: string; // Added: for post list item summary
+  content: string;   // Existing: for post detail content
   userId: number;
   nickname: string;
   avatar: string;
@@ -15,6 +16,13 @@ export interface PostItem {
   commentCount: number;
   createdAt: string;
   updatedAt: string;
+  isLiked?: boolean; // Added: for post detail, if current user liked it
+}
+
+export interface CategoryItem {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 export interface CreatePostParams {
@@ -26,8 +34,8 @@ export interface CreatePostParams {
 // API方法
 export default {
   // 获取帖子列表
-  getPosts(params: { page?: number; size?: number; category?: number; sort?: string }) {
-    return get<{ code: number; data: { total: number; list: PostItem[]; pages: number } }>('/posts', params);
+  getPosts(params: { pageNum?: number; pageSize?: number; categoryId?: number; sort?: string }) {
+    return get<{ code: number; data: { total: number; list: PostItem[]; pages: number; pageNum: number; pageSize: number } }>('/posts', params);
   },
   
   // 获取帖子详情
@@ -59,5 +67,10 @@ export default {
   getUserPosts(userId?: number) {
     const params = userId ? { userId } : {};
     return get<{ code: number; data: { total: number; list: PostItem[]; pages: number } }>('/posts', params);
+  },
+  
+  // 获取所有帖子分类
+  getCategories() {
+    return get<{ code: number; message: string; data: { list: CategoryItem[], total: number } }>('/categories');
   }
 };

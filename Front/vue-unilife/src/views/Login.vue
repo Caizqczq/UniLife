@@ -49,7 +49,9 @@ const handlePasswordLogin = async () => {
     if (success) {
       // 只有当 store 返回 true 时才视为成功
       ElMessage.success('登录成功'); // 统一在组件中提示
-      router.push('/personal');
+      // 获取重定向URL，如果有的话跳转到这个URL，否则跳转到论坛首页
+      const redirectUrl = router.currentRoute.value.query.redirect as string || '/';
+      router.push(redirectUrl);
     } else {
     }
   } catch (error: any) {
@@ -67,7 +69,9 @@ const handleCodeLogin = async () => {
 
     if (success) {
       ElMessage.success('登录成功'); // 统一在组件中提示
-      router.push('/personal');
+      // 获取重定向URL，如果有的话跳转到这个URL，否则跳转到论坛首页
+      const redirectUrl = router.currentRoute.value.query.redirect as string || '/';
+      router.push(redirectUrl);
     } else {
       // 依赖拦截器或 store 显示具体失败信息
       // ElMessage.error('验证码错误或登录失败');
@@ -90,7 +94,8 @@ const handleRegister = async () => {
 
     if (success) {
       ElMessage.success('注册成功，已自动登录'); // 统一在组件中提示
-      router.push('/personal');
+      // 注册成功后跳转到论坛首页
+      router.push('/');
     } else {
     }
   } catch (error: any) {

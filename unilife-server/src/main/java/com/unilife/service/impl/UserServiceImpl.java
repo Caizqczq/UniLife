@@ -33,8 +33,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -339,24 +337,49 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result updateUserProfile(Long userId, UpdateProfileDTO profileDTO) {
-        // 检查用户是否存在
-        User user = userMapper.getUserById(userId);
-        if (user == null) {
+        User currentUser = userMapper.getUserById(userId); // Changed from findById to getUserById based on UserMapper.java
+        if (currentUser == null) {
             return Result.error(404, "用户不存在");
         }
 
+        // 检查用户名是否更改以及是否重复
+        if (StringUtils.isNotEmpty(profileDTO.getUsername()) && !profileDTO.getUsername().equals(currentUser.getUsername())) {
+            User existingUserWithNewUsername = userMapper.findByUsername(profileDTO.getUsername());
+            if (existingUserWithNewUsername != null) {
+                return Result.error(409, "用户名已被占用，请选择其他用户名"); // 409 Conflict
+            }
+            currentUser.setUsername(profileDTO.getUsername());
+        }
+
         // 更新用户信息
-        user.setNickname(profileDTO.getNickname());
-        user.setBio(profileDTO.getBio());
-        user.setGender(profileDTO.getGender());
-        user.setDepartment(profileDTO.getDepartment());
-        user.setMajor(profileDTO.getMajor());
-        user.setGrade(profileDTO.getGrade());
+        // 注意：这里应该只更新profileDTO中存在的字段，且要考虑空值情况
+        // if (StringUtils.isNotEmpty(profileDTO.getNickname())) { // Commented out as nickname is removed from DTO
+        //     user.setNickname(profileDTO.getNickname());
+        // }
+        if (StringUtils.isNotEmpty(profileDTO.getBio())) {
+            currentUser.setBio(profileDTO.getBio()); // Changed user to currentUser
+        }
+        if (profileDTO.getGender() != null) {
+            currentUser.setGender(profileDTO.getGender()); // Changed user to currentUser
+        }
+        if (StringUtils.isNotEmpty(profileDTO.getDepartment())) {
+            currentUser.setDepartment(profileDTO.getDepartment()); // Changed user to currentUser
+        }
+        if (StringUtils.isNotEmpty(profileDTO.getMajor())) {
+            currentUser.setMajor(profileDTO.getMajor()); // Changed user to currentUser
+        }
+        if (StringUtils.isNotEmpty(profileDTO.getGrade())) {
+            currentUser.setGrade(profileDTO.getGrade()); // Changed user to currentUser
+        }
 
-        // 保存更新
-        userMapper.updateUserProfile(user);
-
-        return Result.success(null, "个人资料更新成功");
+        try {
+            userMapper.updateUserProfile(currentUser); // Call void method
+            log.info("用户 {} 的个人资料更新成功", userId);
+            return Result.success("个人资料更新成功");
+        } catch (Exception e) {
+            log.error("用户 {} 的个人资料更新时发生数据库错误: {}", userId, e.getMessage());
+            return Result.error(500, "个人资料更新失败，服务器内部错误");
+        }
     }
 
     @Override

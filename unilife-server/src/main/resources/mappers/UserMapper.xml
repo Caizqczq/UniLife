@@ -43,6 +43,12 @@
         WHERE email = #{email}
     </select>
 
+    <select id="findByUsername" resultMap="userResultMap">
+        SELECT id, email, password, username, nickname, avatar, role, is_verified, status, login_ip
+        FROM users
+        WHERE username = #{username}
+    </select>
+
     <update id="updateLoginInfo">
         UPDATE users
         SET login_ip = #{ipLocation},
@@ -107,13 +113,13 @@
 
     <update id="updateUserProfile" parameterType="com.unilife.model.entity.User">
         UPDATE users
-        SET nickname = #{nickname},
+        SET username = #{username},
+            nickname = #{nickname},
             bio = #{bio},
             gender = #{gender},
             department = #{department},
             major = #{major},
-            grade = #{grade},
-            updated_at = NOW()
+            grade = #{grade}
         WHERE id = #{id}
     </update>
 

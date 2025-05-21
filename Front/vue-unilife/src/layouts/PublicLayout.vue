@@ -11,9 +11,10 @@
         </div>
         
         <nav class="main-nav">
-          <router-link to="/" class="nav-item">论坛广场</router-link>
-          <router-link to="/resources" class="nav-item">学习资源</router-link>
-          <router-link to="/courses" class="nav-item">课程表</router-link>
+          <router-link to="/" class="nav-item">Forum</router-link> <!-- English consistency -->
+          <router-link to="/resources" class="nav-item">Resources</router-link>
+          <router-link to="/schedule/timetable" class="nav-item">Timetable</router-link>
+          <router-link to="/schedule/manage" class="nav-item">Schedules</router-link>
         </nav>
         
         <div class="user-area">
@@ -26,20 +27,20 @@
               </div>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item @click="router.push('/personal/home')">
-                    <el-icon><User /></el-icon>个人主页
+                  <el-dropdown-item @click="router.push('/personal/profile')"> <!-- Changed from /personal/home -->
+                    <el-icon><User /></el-icon>My Profile
                   </el-dropdown-item>
-                  <el-dropdown-item @click="router.push('/personal/account')">
-                    <el-icon><Setting /></el-icon>账号管理
+                  <el-dropdown-item @click="router.push('/personal/settings')"> <!-- Changed from /personal/account -->
+                    <el-icon><Setting /></el-icon>Settings
                   </el-dropdown-item>
                   <el-dropdown-item @click="router.push('/personal/posts')">
-                    <el-icon><Document /></el-icon>我的帖子
+                    <el-icon><Document /></el-icon>My Posts
                   </el-dropdown-item>
-                  <el-dropdown-item @click="router.push('/personal/messages')">
-                    <el-icon><Message /></el-icon>消息中心
+                  <el-dropdown-item @click="router.push('/personal/messages')"> <!-- Placeholder, link is fine -->
+                    <el-icon><Message /></el-icon>Messages 
                   </el-dropdown-item>
                   <el-dropdown-item divided @click="logout">
-                    <el-icon><SwitchButton /></el-icon>退出登录
+                    <el-icon><SwitchButton /></el-icon>Logout
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>

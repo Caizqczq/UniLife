@@ -10,11 +10,12 @@ const userStore = useUserStore();
 
 // 侧边栏菜单项 - 个人中心相关
 const menuItems = [
-  { name: 'PersonalHome', title: '个人主页', icon: HomeFilled, path: '/personal/home' },
-  { name: 'AccountManager', title: '账号管理', icon: User, path: '/personal/account' },
-  { name: 'MyPosts', title: '我的帖子', icon: Document, path: '/personal/posts' },
-  { name: 'Messages', title: '消息中心', icon: Message, path: '/personal/messages' },
-  { name: 'Settings', title: '设置', icon: Setting, path: '/personal/settings' }
+  // { name: 'PersonalHome', title: '个人主页', icon: HomeFilled, path: '/personal/home' }, // Replaced by CurrentUserProfile
+  { name: 'CurrentUserProfile', title: 'My Profile', icon: User, path: '/personal/profile' }, // Updated from AccountManager
+  { name: 'MyPosts', title: 'My Posts', icon: Document, path: '/personal/posts' },
+  { name: 'MyResources', title: 'My Resources', icon: Document, path: '/personal/resources' }, // Added MyResources
+  { name: 'Messages', title: 'Messages', icon: Message, path: '/personal/messages' }, // Placeholder
+  { name: 'UserSettings', title: 'Settings', icon: Setting, path: '/personal/settings' } // Ensured consistency
 ];
 
 // 当前激活的菜单项
@@ -57,7 +58,7 @@ onMounted(() => {
         <el-icon><ArrowLeft /></el-icon>
         <span>返回论坛</span>
       </button>
-      <h1 class="page-title">个人中心</h1>
+      <h1 class="page-title">Personal Center</h1> <!-- Changed to English -->
     </div>
     
     <div class="layout-container">
@@ -65,10 +66,10 @@ onMounted(() => {
       <div class="sidebar">
         <div class="sidebar-header">
           <div class="avatar">
-            <img :src="userStore.userInfo?.avatar || '/images/默认头像.jpg'" alt="用户头像">
+            <img :src="userStore.userInfo?.avatar || '/images/默认头像.jpg'" alt="User Avatar"> <!-- Alt text updated -->
           </div>
           <div class="user-info">
-            <div class="nickname">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || '用户' }}</div>
+            <div class="nickname">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || 'User' }}</div> <!-- Default text updated -->
             <div class="username">{{ userStore.userInfo?.username }}</div>
           </div>
         </div>

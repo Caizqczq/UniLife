@@ -108,7 +108,6 @@ public class PostServiceImpl implements PostService {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .userId(post.getUserId())
-                .nickname(user != null ? user.getNickname() : "未知用户")
                 .avatar(user != null ? user.getAvatar() : null)
                 .categoryId(post.getCategoryId())
                 .categoryName(categoryName) // 使用从数据库查询到的真实分类名称
@@ -231,7 +230,7 @@ public class PostServiceImpl implements PostService {
 
         return Result.success(null, "删除成功");
     }
-
+    
     @Override
     public Result likePost(Long postId, Long userId) {
         // 获取帖子
@@ -254,6 +253,83 @@ public class PostServiceImpl implements PostService {
             postMapper.incrementLikeCount(postId);
             return Result.success(null, "点赞成功");
         }
+    }
+    @Override
+    public Result getUserPosts(Long userId, Integer page, Integer size, String sort) {
+        // 参数校验
+        if (userId == null) {
+            return Result.error(400, "用户ID不能为空");
+        }
+        
+        // 检查用户是否存在
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        
+        // 分页查询
+        PageHelper.startPage(page, size);
+        List<Post> posts = postMapper.getListByUserId(userId, sort);
+        PageInfo<Post> pageInfo = new PageInfo<>(posts);
+        
+        // 获取分类信息
+        List<Long> categoryIds = posts.stream()
+                .map(Post::getCategoryId)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        // 获取分类名称映射
+        Map<Long, String> categoryMap;
+        if (!categoryIds.isEmpty()) {
+            // 获取所有分类，然后过滤出需要的分类
+            List<Category> allCategories = categoryMapper.getList(null);
+            
+            // 过滤出匹配的分类
+            List<Category> filteredCategories = allCategories.stream()
+                    .filter(category -> categoryIds.contains(category.getId()))
+                    .collect(Collectors.toList());
+            
+            // 构建分类ID到名称的映射
+            categoryMap = filteredCategories.stream()
+                    .collect(Collectors.toMap(Category::getId, Category::getName));
+        } else {
+            categoryMap = new HashMap<>();
+        }
+
+        // 转换为VO
+        List<PostListVO> postVOs = posts.stream().map(post -> {
+            PostListVO vo = new PostListVO();
+            BeanUtil.copyProperties(post, vo);
+            
+            // 填充分类名称
+            String categoryName = categoryMap.getOrDefault(post.getCategoryId(), "未知分类");
+            vo.setCategoryName(categoryName);
+            
+            // 获取作者信息
+            User author = userMapper.getUserById(post.getUserId());
+            if (author != null) {
+                vo.setNickname(author.getNickname());
+                vo.setAvatar(author.getAvatar());
+            }
+            
+            // 内容摘要
+            if (StrUtil.isNotBlank(post.getContent())) {
+                String content = post.getContent()
+                        .replaceAll("<[^>]*>", "") // 去除HTML标签
+                        .replaceAll("&[^;]+;", ""); // 去除HTML实体
+                vo.setSummary(StrUtil.maxLength(content, 100));
+            }
+            
+            return vo;
+        }).collect(Collectors.toList());
+        
+        // 构建返回数据
+        Map<String, Object> data = new HashMap<>();
+        data.put("total", pageInfo.getTotal());
+        data.put("pages", pageInfo.getPages());
+        data.put("list", postVOs);
+        
+        return Result.success(data);
     }
 
     /**

@@ -83,4 +83,14 @@ public class PostController {
         }
         return postService.likePost(postId, userId);
     }
+    
+    @Operation(summary = "获取用户的帖子列表")
+    @GetMapping("/user/{userId}")
+    public Result<?> getUserPosts(
+            @PathVariable("userId") Long userId,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "sort", defaultValue = "latest") String sort) {
+        return postService.getUserPosts(userId, page, size, sort);
+    }
 }

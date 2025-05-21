@@ -58,4 +58,14 @@ public interface PostService {
      * @return 结果
      */
     Result likePost(Long postId, Long userId);
+    
+    /**
+     * 获取用户的帖子列表
+     * @param userId 用户ID
+     * @param page 页码
+     * @param size 每页大小
+     * @param sort 排序方式（latest-最新，hot-热门）
+     * @return 结果
+     */
+    Result getUserPosts(Long userId, Integer page, Integer size, String sort);
 }

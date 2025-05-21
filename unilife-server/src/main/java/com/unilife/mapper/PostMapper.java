@@ -79,4 +79,19 @@ public interface PostMapper {
      * @param id 帖子ID
      */
     void decrementCommentCount(Long id);
+    
+    /**
+     * 获取指定用户的帖子列表
+     * @param userId 用户ID
+     * @param sort 排序方式
+     * @return 帖子列表
+     */
+    List<Post> getListByUserId(@Param("userId") Long userId, @Param("sort") String sort);
+    
+    /**
+     * 获取指定用户的帖子总数
+     * @param userId 用户ID
+     * @return 帖子总数
+     */
+    Integer getCountByUserId(@Param("userId") Long userId);
 }

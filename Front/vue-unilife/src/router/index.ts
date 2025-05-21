@@ -54,15 +54,30 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'resources',  // URL: /resources
         name: 'Resources',
-        component: () => import('../views/NotFound.vue'), // 占位符
+        component: () => import('../views/resource/ResourceListView.vue'),
         meta: { title: '学习资源 - UniLife', requiresAuth: false }
+      },
+      // 资源详情 - 无需登录
+      {
+        path: 'resource/:id',  // URL: /resource/123
+        name: 'ResourceDetail',
+        component: () => import('../views/resource/ResourceDetailView.vue'),
+        props: true,
+        meta: { title: '资源详情 - UniLife', requiresAuth: false }
       },
       // 课程表 - 无需登录
       {
         path: 'courses',    // URL: /courses
         name: 'Courses',
-        component: () => import('../views/NotFound.vue'), // 占位符
+        component: () => import('../views/schedule/CourseTableView.vue'),
         meta: { title: '课程表 - UniLife', requiresAuth: false }
+      },
+      // 日程管理 - 需要登录
+      {
+        path: 'schedule',   // URL: /schedule
+        name: 'Schedule',
+        component: () => import('../views/schedule/ScheduleView.vue'),
+        meta: { title: '日程管理 - UniLife', requiresAuth: true }
       }
     ]
   },
@@ -104,6 +119,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'MyPosts',
         component: () => import('../views/forum/MyPostsView.vue'),
         meta: { title: '我的帖子 - UniLife' }
+      },
+      {
+        path: 'resources',   // URL: /personal/resources
+        name: 'MyResources',
+        component: () => import('../views/resource/MyResourcesView.vue'),
+        meta: { title: '我的资源 - UniLife' }
       },
       {
         path: 'messages',    // URL: /personal/messages

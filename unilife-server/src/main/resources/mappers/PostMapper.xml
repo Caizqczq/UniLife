@@ -108,4 +108,29 @@
         SET comment_count = GREATEST(comment_count - 1, 0)
         WHERE id = #{id}
     </update>
+    
+    <select id="getListByUserId" resultType="com.unilife.model.entity.Post">
+        SELECT * FROM posts
+        WHERE user_id = #{userId} AND status != 0
+        <choose>
+            <when test="sort == 'hot'">
+                ORDER BY view_count DESC
+            </when>
+            <when test="sort == 'likes'">
+                ORDER BY like_count DESC
+            </when>
+            <when test="sort == 'comments'">
+                ORDER BY comment_count DESC
+            </when>
+            <otherwise>
+                ORDER BY created_at DESC
+            </otherwise>
+        </choose>
+    </select>
+    
+    <select id="getCountByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM posts
+        WHERE user_id = #{userId} AND status != 0
+    </select>
 </mapper>

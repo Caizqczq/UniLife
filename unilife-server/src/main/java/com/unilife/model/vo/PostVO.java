@@ -34,11 +34,7 @@ public class PostVO {
      * 发布用户ID
      */
     private Long userId;
-    
-    /**
-     * 发布用户昵称
-     */
-    private String nickname;
+
     
     /**
      * 发布用户头像

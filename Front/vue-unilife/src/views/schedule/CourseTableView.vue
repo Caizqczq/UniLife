@@ -14,7 +14,7 @@
         <div class="filter-row">
           <div class="semester-selector">
             <span class="filter-label">学期：</span>
-            <el-select v-model="currentSemester" placeholder="选择学期">
+            <el-select v-model="currentSemester" placeholder="选择学期" style="min-width: 220px;">
               <el-option label="2023-2024学年第一学期" value="2023-1"></el-option>
               <el-option label="2023-2024学年第二学期" value="2023-2"></el-option>
             </el-select>
@@ -217,7 +217,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox, FormInstance } from 'element-plus';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { scheduleApi } from '@/api';
 import { useUserStore } from '@/stores';
 import { Plus, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
@@ -280,8 +280,8 @@ const courseRules = {
 const courseDetailVisible = ref(false);
 const selectedCourse = ref<any>(null);
 const isOwner = computed(() => {
-  if (!selectedCourse.value || !userStore.user) return false;
-  return selectedCourse.value.userId === userStore.user.id;
+  if (!selectedCourse.value || !userStore.userInfo) return false;
+  return selectedCourse.value.userId === userStore.userInfo.id;
 });
 
 // 初始化

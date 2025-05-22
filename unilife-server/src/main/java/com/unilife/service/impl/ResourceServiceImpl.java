@@ -12,6 +12,7 @@ import com.unilife.model.entity.Resource;
 import com.unilife.model.entity.User;
 import com.unilife.model.vo.ResourceVO;
 import com.unilife.service.ResourceService;
+import com.unilife.utils.OssService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,9 +43,14 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Autowired
     private CategoryMapper categoryMapper;
+    
+    @Autowired
+    private OssService ossService;
 
     // 文件存储路径，实际项目中应该配置在application.yml中
     private static final String UPLOAD_DIR = "uploads/resources/";
+    // OSS存储目录
+    private static final String OSS_DIR = "resources";
 
     @Override
     @Transactional
@@ -67,28 +73,15 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         try {
-            // 创建上传目录（如果不存在）
-            File uploadDir = new File(UPLOAD_DIR);
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
-            }
-
-            // 生成唯一文件名
-            String originalFilename = file.getOriginalFilename();
-            String fileExtension = originalFilename != null ? originalFilename.substring(originalFilename.lastIndexOf(".")) : "";
-            String newFilename = UUID.randomUUID().toString() + fileExtension;
-            String filePath = UPLOAD_DIR + newFilename;
-
-            // 保存文件
-            Path path = Paths.get(filePath);
-            Files.write(path, file.getBytes());
-
+            // 将文件上传到阿里云OSS
+            String fileUrl = ossService.uploadFile(file, OSS_DIR);
+            
             // 创建资源记录
             Resource resource = new Resource();
             resource.setUserId(userId);
             resource.setTitle(createResourceDTO.getTitle());
             resource.setDescription(createResourceDTO.getDescription());
-            resource.setFileUrl(filePath);
+            resource.setFileUrl(fileUrl); // 存储OSS文件URL
             resource.setFileSize(file.getSize());
             resource.setFileType(file.getContentType());
             resource.setCategoryId(createResourceDTO.getCategoryId());
@@ -103,7 +96,7 @@ public class ResourceServiceImpl implements ResourceService {
             data.put("resourceId", resource.getId());
 
             return Result.success(data, "资源上传成功");
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("文件上传失败", e);
             return Result.error(500, "文件上传失败");
         }
@@ -128,7 +121,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .id(resource.getId())
                 .title(resource.getTitle())
                 .description(resource.getDescription())
-                .fileUrl(resource.getFileUrl())
+                .fileUrl(resource.getFileUrl()) // 直接返回OSS URL
                 .fileSize(resource.getFileSize())
                 .fileType(resource.getFileType())
                 .userId(resource.getUserId())
@@ -239,6 +232,17 @@ public class ResourceServiceImpl implements ResourceService {
             return Result.error(403, "无权限删除此资源");
         }
 
+        // 删除OSS中的文件
+        try {
+            String fileUrl = resource.getFileUrl();
+            if (fileUrl != null && fileUrl.startsWith("http")) {
+                ossService.deleteFile(fileUrl);
+            }
+        } catch (Exception e) {
+            log.error("删除OSS文件失败", e);
+            // 继续执行，不影响数据库记录的删除
+        }
+
         // 删除资源（逻辑删除）
         resourceMapper.delete(resourceId);
 
@@ -256,14 +260,32 @@ public class ResourceServiceImpl implements ResourceService {
 
         // 增加下载次数
         resourceMapper.incrementDownloadCount(resourceId);
+        
+        // 处理文件URL，生成临时访问链接
+        String fileUrl = resource.getFileUrl();
+        // 提取对象名称并生成临时访问URL（有效期1小时）
+        String objectName = ossService.getObjectNameFromUrl(fileUrl);
+        if (objectName != null) {
+            // 生成有效期为1小时的临时访问URL
+            fileUrl = ossService.generatePresignedUrl(objectName, 3600 * 1000);
+        }
 
-        // 返回文件URL
+        // 返回文件URL和文件名
         Map<String, Object> data = new HashMap<>();
-        data.put("fileUrl", resource.getFileUrl());
-        data.put("fileName", resource.getTitle());
+        data.put("fileUrl", fileUrl);
+        data.put("fileName", resource.getTitle() + getFileExtension(fileUrl));
         data.put("fileType", resource.getFileType());
 
         return Result.success(data, "获取下载链接成功");
+    }
+    
+    // 获取文件扩展名
+    private String getFileExtension(String filePath) {
+        int lastDot = filePath.lastIndexOf(".");
+        if (lastDot > 0) {
+            return filePath.substring(lastDot);
+        }
+        return "";
     }
 
     @Override

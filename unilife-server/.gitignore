@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 敏感配置文件 ###
+application-local.yml
+application-dev.yml
+application-prod.yml
+.env
+*.env
+config/application-local.yml
+src/main/resources/application-local.yml
+src/main/resources/application-dev.yml
+src/main/resources/application-prod.yml

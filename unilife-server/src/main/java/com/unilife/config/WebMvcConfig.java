@@ -5,7 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -28,6 +31,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/posts/{id}",           // 帖子详情（另一种匹配方式）
                         "/categories",           // 分类列表
                         
+                        // 静态资源访问
+                        "/api/files/**",
+                        
                         // Swagger文档相关
                         "/swagger-resources/**",
                         "/v3/api-docs/**",
@@ -36,6 +42,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/favicon.ico",
                         "/knife4j/**"
                         );
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 配置上传文件的访问路径
+        String uploadPath = new File("uploads").getAbsolutePath();
+        registry.addResourceHandler("/api/files/**")
+                .addResourceLocations("file:" + uploadPath + File.separator);
+        
+        // 直接映射到uploads/resources目录
+        registry.addResourceHandler("/api/resources/**")
+                .addResourceLocations("file:" + new File("uploads/resources").getAbsolutePath() + File.separator);
     }
 
     @Override

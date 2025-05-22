@@ -162,7 +162,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox, FormInstance } from 'element-plus';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { resourceApi } from '@/api';
 import { Upload, Document, Picture, Files, Folder, Grid, Reading, Promotion } from '@element-plus/icons-vue';
 
@@ -345,10 +345,7 @@ const submitEdit = async () => {
     if (valid) {
       submitting.value = true;
 
-      try {
-        const res = await resourceApi.updateResource(currentEditId.value, editForm);
-
-        if (res.code === 200) {
+                try {          const res = await resourceApi.updateResource(currentEditId.value!, editForm);          if (res.code === 200) {
           ElMessage.success('资源信息更新成功');
           editDialogVisible.value = false;
           fetchMyResources();

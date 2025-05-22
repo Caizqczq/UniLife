@@ -24,8 +24,6 @@ spring:
     redis:
       port: 6379
       host: 127.0.0.1
-  profiles:
-    active: local
 knife4j:
   enable: true
   openapi:
@@ -61,4 +59,4 @@ aliyun:
     accessKeyId: ${ALIYUN_OSS_ACCESS_KEY_ID:your-access-key-id}
     accessKeySecret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:your-access-key-secret}
     bucketName: ${ALIYUN_OSS_BUCKET_NAME:your-bucket-name}
-    urlPrefix: ${ALIYUN_OSS_URL_PREFIX:https://your-bucket-name.oss-region.aliyuncs.com/}
+    urlPrefix: ${ALIYUN_OSS_URL_PREFIX:https://your-bucket-name.oss-region.aliyuncs.com/}spring.profiles.active=local

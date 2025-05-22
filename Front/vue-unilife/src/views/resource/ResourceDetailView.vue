@@ -132,7 +132,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox, FormInstance } from 'element-plus';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { resourceApi } from '@/api';
 import { useUserStore } from '@/stores';
 import { Download, Star, More, View, Files, Document } from '@element-plus/icons-vue';
@@ -163,10 +163,7 @@ const editRules = {
 };
 
 // 计算属性
-const isOwner = computed(() => {
-  if (!resource.value || !userStore.user) return false;
-  return resource.value.userId === userStore.user.id;
-});
+const isOwner = computed(() => {  if (!resource.value || !userStore.userInfo) return false;  return resource.value.userId === userStore.userInfo.id;});
 
 const isImage = computed(() => {
   if (!resource.value) return false;

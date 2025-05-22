@@ -63,6 +63,27 @@ const posts = [
     tags: ['Ant Design', '设计语言', '蚂蚁金服'],
     excerpt: '段落示意：这是帖子的部分具体内容……',
     link: '/post/2'
+  },
+  {
+    id: 3,
+    title: '蚂蚁金服设计平台简介',
+    tags: ['Ant Design', '设计语言', '蚂蚁金服'],
+    excerpt: '段落示意：这是帖子的部分具体内容……',
+    link: '/post/3'
+  },
+  {
+    id: 4,
+    title: '蚂蚁金服设计平台简介',
+    tags: ['Ant Design', '设计语言', '蚂蚁金服'],
+    excerpt: '段落示意：这是帖子的部分具体内容……',
+    link: '/post/4'
+  },
+  {
+    id: 5,
+    title: '蚂蚁金服设计平台简介',
+    tags: ['Ant Design', '设计语言', '蚂蚁金服'],
+    excerpt: '段落示意：这是帖子的部分具体内容……',
+    link: '/post/5'
   }
 ]
 </script>
@@ -71,8 +92,7 @@ const posts = [
 .forum-home {
   display: flex;
   width:92%;
-  height:98%;
-  padding-top:75px;
+  padding-top:750px;
   gap: 40px; // 🔧 左右两栏之间间距
   
 
@@ -80,6 +100,7 @@ const posts = [
     flex: 3;
     display: flex;
     flex-direction: column;
+    margin-right: 350px;
     gap: 30px; // 🔧 帖子区块和上半部分间隔加大
     background: linear-gradient(to bottom right, #f7f1ff, #ffffff);
   }
@@ -120,7 +141,10 @@ const posts = [
 
   .right-section {
     flex: 1;
-    min-width: 240px;
+    position:fixed;
+    margin-left:75%;
+    height: 830px;
+    min-width: 350px;
     padding: 16px;
     background-color: #f9f7ff;
     border-radius: 8px;

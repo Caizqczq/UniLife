@@ -46,6 +46,11 @@ const routes:Array<RouteRecordRaw> = [
         path:'/uniLifeHome',
         name: 'ForumHome',
         component: ForumHome,
+    },
+    {
+        path:'/post/:id',
+        name:'PostDetail',
+        component: () => import('@/views/PostDetailPage.vue'),
     }
 ];
 

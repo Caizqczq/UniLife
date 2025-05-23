@@ -139,4 +139,26 @@ public class UserController {
         }
         return userService.updateEmail(userId, emailDTO);
     }
+
+    @Operation(summary = "获取用户统计数据")
+    @GetMapping("stats")
+    public Result<?> getUserStats() {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.getUserStats(userId);
+    }
+
+    @Operation(summary = "获取用户最近帖子")
+    @GetMapping("recent-posts")
+    public Result<?> getUserRecentPosts(@RequestParam(value = "limit", defaultValue = "5") Integer limit) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return userService.getUserRecentPosts(userId, limit);
+    }
 }

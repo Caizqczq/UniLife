@@ -136,13 +136,13 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'messages',    // URL: /personal/messages
         name: 'Messages',
-        component: () => import('../views/NotFound.vue'), // 占位符
+        component: () => import('../views/MessagesView.vue'),
         meta: { title: '消息中心 - UniLife' }
       },
       {
         path: 'settings',    // URL: /personal/settings
         name: 'Settings',
-        component: () => import('../views/NotFound.vue'), // 占位符
+        component: () => import('../views/SettingsView.vue'),
         meta: { title: '设置 - UniLife' }
       },
       // 默认重定向到个人主页

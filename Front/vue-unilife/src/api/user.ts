@@ -5,6 +5,7 @@ export interface UserInfo {
   id: number;
   username: string;
   email: string;
+  nickname?: string;
   avatar?: string;
   bio?: string;
   gender?: number;
@@ -55,6 +56,13 @@ export interface UpdateProfileParams {
 export interface UpdatePasswordParams {
   code: string;
   newPassword: string;
+}
+
+export interface UserStats {
+  totalPosts: number;
+  totalLikes: number;
+  totalComments: number;
+  totalViews: number;
 }
 
 // 用户API
@@ -111,6 +119,20 @@ export default {
     return put<{code: number; message: string}>(
       '/users/password', 
       data
+    );
+  },
+  
+  // 获取用户统计数据
+  getUserStats() {
+    return get<{code: number; data: UserStats}>(
+      '/users/stats'
+    );
+  },
+
+  // 获取用户最近帖子
+  getUserRecentPosts(limit: number = 5) {
+    return get<{code: number; data: {list: any[]}}>(
+      `/users/recent-posts?limit=${limit}`
     );
   },
   

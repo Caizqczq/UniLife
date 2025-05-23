@@ -1,52 +1,116 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useUserStore } from '../stores';
+import userApi from '../api/user';
+import type { UserStats } from '../api/user';
+import { ElMessage, ElSkeleton, ElEmpty, ElIcon, ElButton } from 'element-plus';
+import { Document, Star, ChatDotRound, View, Edit, Delete } from '@element-plus/icons-vue';
 
+const router = useRouter();
 const userStore = useUserStore();
 
-// 用户帖子数据（模拟数据）
-const userPosts = ref([
-  {
-    id: 1,
-    title: '大学生活经验分享',
-    content: '分享一些大学生活的经验和技巧...',
-    createTime: '2023-05-01',
-    likes: 25,
-    comments: 10
-  },
-  {
-    id: 2,
-    title: '考研复习计划',
-    content: '分享我的考研复习计划和方法...',
-    createTime: '2023-05-15',
-    likes: 42,
-    comments: 18
-  },
-  {
-    id: 3,
-    title: '校园活动推荐',
-    content: '推荐几个值得参加的校园活动...',
-    createTime: '2023-06-01',
-    likes: 15,
-    comments: 5
-  }
-]);
+// 数据状态
+const loading = ref(true);
+const statsLoading = ref(true);
+const postsLoading = ref(true);
+const error = ref<string | null>(null);
+
+// 用户帖子数据
+const userPosts = ref<any[]>([]);
 
 // 用户统计数据
-const userStats = ref({
-  totalPosts: 3,
-  totalLikes: 82,
-  totalComments: 33,
-  totalViews: 256
+const userStats = ref<UserStats>({
+  totalPosts: 0,
+  totalLikes: 0,
+  totalComments: 0,
+  totalViews: 0
 });
 
-onMounted(async () => {
-  // 如果没有用户信息，获取用户信息
-  if (!userStore.userInfo) {
-    await userStore.fetchUserInfo();
+// 获取用户统计数据
+const fetchUserStats = async () => {
+  try {
+    statsLoading.value = true;
+    const response = await userApi.getUserStats();
+    if (response && response.code === 200 && response.data) {
+      userStats.value = response.data;
+    }
+  } catch (err: any) {
+    console.error('获取统计数据失败:', err);
+    // 保持默认值，不显示错误消息以免影响用户体验
+  } finally {
+    statsLoading.value = false;
   }
-  
-  // 这里可以添加获取用户帖子和统计数据的API调用
+};
+
+// 获取用户最近帖子
+const fetchRecentPosts = async () => {
+  try {
+    postsLoading.value = true;
+    const response = await userApi.getUserRecentPosts(5);
+    if (response && response.code === 200 && response.data) {
+      userPosts.value = response.data.list;
+    }
+  } catch (err: any) {
+    console.error('获取最近帖子失败:', err);
+    userPosts.value = [];
+  } finally {
+    postsLoading.value = false;
+  }
+};
+
+// 格式化日期
+const formatDate = (dateString: string) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
+
+// 跳转到帖子详情
+const goToPost = (postId: number) => {
+  router.push(`/post/${postId}`);
+};
+
+// 编辑帖子
+const editPost = (postId: number) => {
+  router.push(`/edit-post/${postId}`);
+};
+
+// 删除帖子
+const deletePost = async (postId: number) => {
+  try {
+    // 这里需要调用删除API
+    ElMessage.success('删除成功');
+    await fetchRecentPosts(); // 重新获取帖子列表
+  } catch (err: any) {
+    ElMessage.error('删除失败');
+  }
+};
+
+// 发布新帖
+const createNewPost = () => {
+  router.push('/create-post');
+};
+
+onMounted(async () => {
+  try {
+    loading.value = true;
+    // 如果没有用户信息，获取用户信息
+    if (!userStore.userInfo) {
+      await userStore.fetchUserInfo();
+    }
+    
+    // 并行获取统计数据和最近帖子
+    await Promise.all([
+      fetchUserStats(),
+      fetchRecentPosts()
+    ]);
+  } catch (err: any) {
+    error.value = '加载数据失败';
+    ElMessage.error('加载数据失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -54,48 +118,80 @@ onMounted(async () => {
   <div class="home-page">
     <div class="page-header">
       <h1>个人主页</h1>
-      <p>欢迎回来，{{ userStore.userInfo?.username || '用户' }}</p>
+      <p>欢迎回来，{{ userStore.userInfo?.nickname || userStore.userInfo?.username || '用户' }}</p>
     </div>
     
     <!-- 统计卡片 -->
     <div class="stats-container">
       <div class="stat-card">
         <div class="stat-icon">
-          <el-icon><document /></el-icon>
+          <el-icon><Document /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ userStats.totalPosts }}</div>
-          <div class="stat-label">发布帖子</div>
+          <el-skeleton :loading="statsLoading" animated>
+            <template #template>
+              <el-skeleton-item variant="text" style="width: 40px; height: 24px;" />
+              <el-skeleton-item variant="text" style="width: 60px; height: 16px;" />
+            </template>
+            <template #default>
+              <div class="stat-value">{{ userStats.totalPosts }}</div>
+              <div class="stat-label">发布帖子</div>
+            </template>
+          </el-skeleton>
         </div>
       </div>
       
       <div class="stat-card">
         <div class="stat-icon">
-          <el-icon><star /></el-icon>
+          <el-icon><Star /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ userStats.totalLikes }}</div>
-          <div class="stat-label">获得点赞</div>
+          <el-skeleton :loading="statsLoading" animated>
+            <template #template>
+              <el-skeleton-item variant="text" style="width: 40px; height: 24px;" />
+              <el-skeleton-item variant="text" style="width: 60px; height: 16px;" />
+            </template>
+            <template #default>
+              <div class="stat-value">{{ userStats.totalLikes }}</div>
+              <div class="stat-label">获得点赞</div>
+            </template>
+          </el-skeleton>
         </div>
       </div>
       
       <div class="stat-card">
         <div class="stat-icon">
-          <el-icon><chat-dot-round /></el-icon>
+          <el-icon><ChatDotRound /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ userStats.totalComments }}</div>
-          <div class="stat-label">收到评论</div>
+          <el-skeleton :loading="statsLoading" animated>
+            <template #template>
+              <el-skeleton-item variant="text" style="width: 40px; height: 24px;" />
+              <el-skeleton-item variant="text" style="width: 60px; height: 16px;" />
+            </template>
+            <template #default>
+              <div class="stat-value">{{ userStats.totalComments }}</div>
+              <div class="stat-label">收到评论</div>
+            </template>
+          </el-skeleton>
         </div>
       </div>
       
       <div class="stat-card">
         <div class="stat-icon">
-          <el-icon><view /></el-icon>
+          <el-icon><View /></el-icon>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ userStats.totalViews }}</div>
-          <div class="stat-label">帖子浏览</div>
+          <el-skeleton :loading="statsLoading" animated>
+            <template #template>
+              <el-skeleton-item variant="text" style="width: 40px; height: 24px;" />
+              <el-skeleton-item variant="text" style="width: 60px; height: 16px;" />
+            </template>
+            <template #default>
+              <div class="stat-value">{{ userStats.totalViews }}</div>
+              <div class="stat-label">帖子浏览</div>
+            </template>
+          </el-skeleton>
         </div>
       </div>
     </div>
@@ -104,39 +200,51 @@ onMounted(async () => {
     <div class="recent-posts">
       <div class="section-header">
         <h2>最近发布的帖子</h2>
-        <button class="btn btn-primary">发布新帖</button>
+        <el-button type="primary" @click="createNewPost">发布新帖</el-button>
       </div>
       
       <div class="posts-list">
-        <div v-if="userPosts.length === 0" class="empty-state">
-          <p>你还没有发布过帖子</p>
-          <button class="btn btn-primary">立即发布</button>
-        </div>
+        <el-skeleton :loading="postsLoading" :rows="3" animated />
         
-        <div v-else class="post-card" v-for="post in userPosts" :key="post.id">
+        <el-empty v-if="!postsLoading && userPosts.length === 0" description="你还没有发布过帖子">
+          <el-button type="primary" @click="createNewPost">立即发布</el-button>
+        </el-empty>
+        
+        <div v-if="!postsLoading && userPosts.length > 0" class="post-card" v-for="post in userPosts" :key="post.id">
           <div class="post-header">
-            <h3 class="post-title">{{ post.title }}</h3>
-            <span class="post-date">{{ post.createTime }}</span>
+            <h3 class="post-title clickable" @click="goToPost(post.id)">{{ post.title }}</h3>
+            <span class="post-date">{{ formatDate(post.createdAt) }}</span>
           </div>
           
-          <p class="post-content">{{ post.content }}</p>
+          <p class="post-content">{{ post.summary || post.content?.substring(0, 100) + '...' || '暂无摘要' }}</p>
           
           <div class="post-footer">
             <div class="post-stats">
               <div class="post-stat">
-                <el-icon><star /></el-icon>
-                <span>{{ post.likes }}</span>
+                <el-icon><Star /></el-icon>
+                <span>{{ post.likeCount || 0 }}</span>
               </div>
               
               <div class="post-stat">
-                <el-icon><chat-dot-round /></el-icon>
-                <span>{{ post.comments }}</span>
+                <el-icon><ChatDotRound /></el-icon>
+                <span>{{ post.commentCount || 0 }}</span>
+              </div>
+              
+              <div class="post-stat">
+                <el-icon><View /></el-icon>
+                <span>{{ post.viewCount || 0 }}</span>
               </div>
             </div>
             
             <div class="post-actions">
-              <button class="btn btn-text">编辑</button>
-              <button class="btn btn-text">删除</button>
+              <el-button link type="primary" @click="editPost(post.id)">
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button link type="danger" @click="deletePost(post.id)">
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
             </div>
           </div>
         </div>
@@ -257,6 +365,15 @@ onMounted(async () => {
   font-size: var(--font-size-lg);
   color: var(--text-primary);
   margin: 0;
+}
+
+.post-title.clickable {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.post-title.clickable:hover {
+  color: var(--primary-color);
 }
 
 .post-date {

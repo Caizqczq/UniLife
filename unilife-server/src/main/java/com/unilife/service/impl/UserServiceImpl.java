@@ -5,6 +5,9 @@ import cn.hutool.core.util.RandomUtil;
 import com.unilife.common.constant.RedisConstant;
 import com.unilife.common.result.Result;
 import com.unilife.mapper.UserMapper;
+import com.unilife.mapper.PostMapper;
+import com.unilife.mapper.CommentMapper;
+import com.unilife.mapper.PostLikeMapper;
 import com.unilife.model.dto.LoginDTO;
 import com.unilife.model.dto.LoginEmailDTO;
 import com.unilife.model.dto.RegisterDTO;
@@ -12,6 +15,7 @@ import com.unilife.model.dto.UpdateEmailDTO;
 import com.unilife.model.dto.UpdatePasswordDTO;
 import com.unilife.model.dto.UpdateProfileDTO;
 import com.unilife.model.entity.User;
+import com.unilife.model.entity.Post;
 import com.unilife.model.vo.LoginVO;
 import com.unilife.model.vo.RegisterVO;
 import com.unilife.service.IPLocationService;
@@ -37,6 +41,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.unilife.common.constant.RedisConstant.LOGIN_EMAIL_KEY;
@@ -51,6 +56,15 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private PostMapper postMapper;
+
+    @Autowired
+    private CommentMapper commentMapper;
+
+    @Autowired
+    private PostLikeMapper postLikeMapper;
 
     @Autowired
     private JavaMailSender mailSender;
@@ -488,5 +502,73 @@ public class UserServiceImpl implements UserService {
         userMapper.updateEmail(userId, email);
 
         return Result.success(null, "邮箱更新成功");
+    }
+
+    @Override
+    public Result getUserStats(Long userId) {
+        // 检查用户是否存在
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+
+        // 获取用户统计数据
+        Integer totalPosts = postMapper.getCountByUserId(userId);
+        
+        // 获取用户所有帖子的总点赞数
+        List<Post> userPosts = postMapper.getListByUserId(userId, "latest");
+        Integer totalLikes = userPosts.stream()
+                .mapToInt(post -> post.getLikeCount() != null ? post.getLikeCount() : 0)
+                .sum();
+        
+        // 获取用户所有帖子的总评论数
+        Integer totalComments = userPosts.stream()
+                .mapToInt(post -> post.getCommentCount() != null ? post.getCommentCount() : 0)
+                .sum();
+        
+        // 获取用户所有帖子的总浏览数
+        Integer totalViews = userPosts.stream()
+                .mapToInt(post -> post.getViewCount() != null ? post.getViewCount() : 0)
+                .sum();
+
+        // 构建统计数据
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalPosts", totalPosts != null ? totalPosts : 0);
+        stats.put("totalLikes", totalLikes);
+        stats.put("totalComments", totalComments);
+        stats.put("totalViews", totalViews);
+
+        return Result.success(stats);
+    }
+
+    @Override
+    public Result getUserRecentPosts(Long userId, Integer limit) {
+        // 检查用户是否存在
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+
+        // 参数校验
+        if (limit == null || limit <= 0) {
+            limit = 5;
+        }
+        if (limit > 20) {
+            limit = 20; // 限制最大数量
+        }
+
+        // 获取用户最近的帖子
+        List<Post> recentPosts = postMapper.getListByUserId(userId, "latest");
+        
+        // 限制数量
+        if (recentPosts.size() > limit) {
+            recentPosts = recentPosts.subList(0, limit);
+        }
+
+        // 返回结果
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", recentPosts);
+
+        return Result.success(data);
     }
 }

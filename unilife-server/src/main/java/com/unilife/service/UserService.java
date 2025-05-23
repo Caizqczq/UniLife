@@ -30,4 +30,10 @@ public interface UserService {
     Result updateAvatar(Long userId, MultipartFile file);
 
     Result updateEmail(Long userId, UpdateEmailDTO emailDTO);
+
+    // 用户统计数据
+    Result getUserStats(Long userId);
+
+    // 用户最近帖子
+    Result getUserRecentPosts(Long userId, Integer limit);
 }

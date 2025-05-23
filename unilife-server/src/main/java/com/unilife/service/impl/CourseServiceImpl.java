@@ -42,11 +42,20 @@ public class CourseServiceImpl implements CourseService {
             return Result.error(404, "用户不存在");
         }
 
+        // 解析时间字符串为LocalTime
+        LocalTime startTime;
+        LocalTime endTime;
+        try {
+            startTime = LocalTime.parse(createCourseDTO.getStartTime(), TIME_FORMATTER);
+            endTime = LocalTime.parse(createCourseDTO.getEndTime(), TIME_FORMATTER);
+        } catch (Exception e) {
+            log.error("时间格式解析失败: {}", e.getMessage());
+            return Result.error(400, "时间格式错误，请使用HH:mm:ss格式");
+        }
+
         // 检查课程时间冲突
-        String startTimeStr = createCourseDTO.getStartTime().format(TIME_FORMATTER);
-        String endTimeStr = createCourseDTO.getEndTime().format(TIME_FORMATTER);
         Integer conflictCount = courseMapper.checkConflict(userId, createCourseDTO.getDayOfWeek(), 
-                startTimeStr, endTimeStr, null);
+                createCourseDTO.getStartTime(), createCourseDTO.getEndTime(), null);
         if (conflictCount > 0) {
             return Result.error(400, "课程时间冲突，该时间段已有其他课程");
         }
@@ -54,6 +63,8 @@ public class CourseServiceImpl implements CourseService {
         // 创建课程
         Course course = new Course();
         BeanUtil.copyProperties(createCourseDTO, course);
+        course.setStartTime(startTime);
+        course.setEndTime(endTime);
         course.setUserId(userId);
         course.setStatus((byte) 1);
 
@@ -140,17 +151,28 @@ public class CourseServiceImpl implements CourseService {
             return Result.error(403, "无权限更新此课程");
         }
 
+        // 解析时间字符串为LocalTime
+        LocalTime startTime;
+        LocalTime endTime;
+        try {
+            startTime = LocalTime.parse(createCourseDTO.getStartTime(), TIME_FORMATTER);
+            endTime = LocalTime.parse(createCourseDTO.getEndTime(), TIME_FORMATTER);
+        } catch (Exception e) {
+            log.error("时间格式解析失败: {}", e.getMessage());
+            return Result.error(400, "时间格式错误，请使用HH:mm:ss格式");
+        }
+
         // 检查课程时间冲突
-        String startTimeStr = createCourseDTO.getStartTime().format(TIME_FORMATTER);
-        String endTimeStr = createCourseDTO.getEndTime().format(TIME_FORMATTER);
         Integer conflictCount = courseMapper.checkConflict(userId, createCourseDTO.getDayOfWeek(), 
-                startTimeStr, endTimeStr, courseId);
+                createCourseDTO.getStartTime(), createCourseDTO.getEndTime(), courseId);
         if (conflictCount > 0) {
             return Result.error(400, "课程时间冲突，该时间段已有其他课程");
         }
 
         // 更新课程
         BeanUtil.copyProperties(createCourseDTO, course);
+        course.setStartTime(startTime);
+        course.setEndTime(endTime);
 
         // 保存更新
         courseMapper.update(course);

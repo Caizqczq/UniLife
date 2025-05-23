@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalTime;
-
 /**
  * 创建课程的数据传输对象
  */
@@ -34,14 +32,14 @@ public class CreateCourseDTO {
     private Byte dayOfWeek;
     
     /**
-     * 开始时间
+     * 开始时间 (格式: "HH:mm:ss")
      */
-    private LocalTime startTime;
+    private String startTime;
     
     /**
-     * 结束时间
+     * 结束时间 (格式: "HH:mm:ss")
      */
-    private LocalTime endTime;
+    private String endTime;
     
     /**
      * 开始周次

@@ -3,26 +3,31 @@ import type { RouteRecordRaw } from 'vue-router';
 import { useUserStore } from '../stores';
 
 // 布局
+import MainLayout from '../layouts/MainLayout.vue';
 import BaseLayout from '../layouts/BaseLayout.vue';
-import PersonalLayout from '../layouts/PersonalLayout.vue';
-import PublicLayout from '../layouts/PublicLayout.vue';
 
 // 页面
 import Login from '../views/Login.vue';
 import Home from '../views/Home.vue';
-import AccountManager from '../views/AccountManager.vue';
 import NotFound from '../views/NotFound.vue';
 
 // 路由配置
 const routes: Array<RouteRecordRaw> = [
-  // 公共页面 - 使用PublicLayout布局
+  // 主应用布局 - 使用MainLayout
   {
     path: '/',
-    component: PublicLayout,
+    component: MainLayout,
     children: [
+      // 个人主页 - 需要登录
+      {
+        path: 'home',      // URL: /home
+        name: 'Home',
+        component: Home,
+        meta: { title: '个人主页 - UniLife', requiresAuth: true }
+      },
       // 论坛首页 - 无需登录
       {
-        path: '',  // 网站根路径 /
+        path: 'forum',     // URL: /forum  
         name: 'Forum',
         component: () => import('../views/forum/PostListView.vue'),
         meta: { title: '论坛广场 - UniLife', requiresAuth: false }
@@ -50,9 +55,16 @@ const routes: Array<RouteRecordRaw> = [
         props: true,
         meta: { title: '编辑帖子 - UniLife', requiresAuth: true }
       },
+      // 我的帖子 - 需要登录
+      {
+        path: 'my-posts',       // URL: /my-posts
+        name: 'MyPosts',
+        component: () => import('../views/forum/MyPostsView.vue'),
+        meta: { title: '我的帖子 - UniLife', requiresAuth: true }
+      },
       // 学习资源 - 无需登录
       {
-        path: 'resources',  // URL: /resources
+        path: 'resource',  // URL: /resource
         name: 'Resources',
         component: () => import('../views/resource/ResourceListView.vue'),
         meta: { title: '学习资源 - UniLife', requiresAuth: false }
@@ -65,12 +77,12 @@ const routes: Array<RouteRecordRaw> = [
         props: true,
         meta: { title: '资源详情 - UniLife', requiresAuth: false }
       },
-      // 课程表 - 无需登录
+      // 课程表管理 - 需要登录
       {
-        path: 'courses',    // URL: /courses
-        name: 'Courses',
+        path: 'course-table',   // URL: /course-table
+        name: 'CourseTable',
         component: () => import('../views/schedule/CourseTableView.vue'),
-        meta: { title: '课程表 - UniLife', requiresAuth: false }
+        meta: { title: '课程表 - UniLife', requiresAuth: true }
       },
       // 日程管理 - 需要登录
       {
@@ -85,6 +97,42 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Search',
         component: () => import('../views/SearchView.vue'),
         meta: { title: '搜索 - UniLife', requiresAuth: false }
+      },
+      // 个人资料 - 需要登录
+      {
+        path: 'profile',     // URL: /profile
+        name: 'Profile',
+        component: () => import('../views/AccountManager.vue'),
+        meta: { title: '个人资料 - UniLife', requiresAuth: true }
+      },
+      // 消息中心 - 需要登录
+      {
+        path: 'messages',    // URL: /messages
+        name: 'Messages',
+        component: () => import('../views/MessagesView.vue'),
+        meta: { title: '消息中心 - UniLife', requiresAuth: true }
+      },
+      // 设置页面 - 需要登录
+      {
+        path: 'settings',    // URL: /settings
+        name: 'Settings',
+        component: () => import('../views/SettingsView.vue'),
+        meta: { title: '设置 - UniLife', requiresAuth: true }
+      },
+      // 通知页面 - 需要登录
+      {
+        path: 'notifications',    // URL: /notifications
+        name: 'Notifications',
+        component: () => import('../views/NotFound.vue'), // 临时使用NotFound页面
+        meta: { title: '通知 - UniLife', requiresAuth: true }
+      },
+      // 根路径重定向
+      {
+        path: '',  // 网站根路径 /
+        redirect: (to) => {
+          const userStore = useUserStore();
+          return userStore.isLoggedIn ? '/home' : '/forum';
+        }
       }
     ]
   },
@@ -99,56 +147,6 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Login',
         component: Login,
         meta: { title: '登录/注册 - UniLife', requiresAuth: false }
-      }
-    ]
-  },
-
-  // 个人中心页面 - 使用PersonalLayout布局
-  {
-    path: '/personal',
-    component: PersonalLayout,
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: 'home',        // URL: /personal/home
-        name: 'PersonalHome',
-        component: Home,
-        meta: { title: '个人主页 - UniLife' }
-      },
-      {
-        path: 'account',     // URL: /personal/account
-        name: 'AccountManager',
-        component: AccountManager,
-        meta: { title: '账号管理 - UniLife' }
-      },
-      {
-        path: 'posts',       // URL: /personal/posts
-        name: 'MyPosts',
-        component: () => import('../views/forum/MyPostsView.vue'),
-        meta: { title: '我的帖子 - UniLife' }
-      },
-      {
-        path: 'resources',   // URL: /personal/resources
-        name: 'MyResources',
-        component: () => import('../views/resource/MyResourcesView.vue'),
-        meta: { title: '我的资源 - UniLife' }
-      },
-      {
-        path: 'messages',    // URL: /personal/messages
-        name: 'Messages',
-        component: () => import('../views/MessagesView.vue'),
-        meta: { title: '消息中心 - UniLife' }
-      },
-      {
-        path: 'settings',    // URL: /personal/settings
-        name: 'Settings',
-        component: () => import('../views/SettingsView.vue'),
-        meta: { title: '设置 - UniLife' }
-      },
-      // 默认重定向到个人主页
-      {
-        path: '',
-        redirect: '/personal/home'
       }
     ]
   },
@@ -180,8 +178,8 @@ router.beforeEach((to, from, next) => {
       query: { redirect: to.fullPath } // 保存原始路径用于登录后重定向
     });
   } else if ((to.name === 'Login') && isLoggedIn) {
-    // 如果用户已登录但尝试访问登录页面，重定向到论坛首页
-    next({ name: 'Forum' });
+    // 如果用户已登录但尝试访问登录页面，重定向到首页
+    next({ path: '/home' });
   } else {
     // 正常导航
     next();

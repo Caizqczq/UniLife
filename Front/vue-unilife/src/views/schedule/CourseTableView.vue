@@ -456,11 +456,54 @@ const submitCourse = async () => {
       submitting.value = true;
       
       try {
+        // 格式化时间为 HH:mm:ss 格式
+        const formatTime = (time: string) => {
+          if (!time) return '';
+          
+          // 处理各种时间格式
+          let formattedTime = time.trim();
+          
+          // 如果已经是 HH:mm:ss 格式，直接返回
+          if (/^\d{2}:\d{2}:\d{2}$/.test(formattedTime)) {
+            return formattedTime;
+          }
+          
+          // 如果是 H:mm 或 HH:mm 格式，补充秒数
+          if (/^\d{1,2}:\d{2}$/.test(formattedTime)) {
+            const parts = formattedTime.split(':');
+            const hours = parts[0].padStart(2, '0'); // 确保小时是两位数
+            const minutes = parts[1];
+            return `${hours}:${minutes}:00`;
+          }
+          
+          // 如果是 H:mm:ss 格式，补充小时前导零
+          if (/^\d{1}:\d{2}:\d{2}$/.test(formattedTime)) {
+            const parts = formattedTime.split(':');
+            const hours = parts[0].padStart(2, '0');
+            return `${hours}:${parts[1]}:${parts[2]}`;
+          }
+          
+          // 其他情况，尝试解析
+          try {
+            const parts = formattedTime.split(':');
+            if (parts.length >= 2) {
+              const hours = parts[0].padStart(2, '0');
+              const minutes = parts[1].padStart(2, '0');
+              const seconds = parts[2] ? parts[2].padStart(2, '0') : '00';
+              return `${hours}:${minutes}:${seconds}`;
+            }
+          } catch (e) {
+            console.error('时间格式化失败:', time, e);
+          }
+          
+          return time; // 如果无法格式化，返回原值
+        };
+
         // 检查时间冲突
         const conflictParams = {
           dayOfWeek: courseForm.dayOfWeek,
-          startTime: courseForm.startTime,
-          endTime: courseForm.endTime,
+          startTime: formatTime(courseForm.startTime),
+          endTime: formatTime(courseForm.endTime),
           excludeCourseId: courseForm.id
         };
         
@@ -495,33 +538,88 @@ const submitCourse = async () => {
 // 保存课程
 const saveCourse = async () => {
   try {
+    // 格式化时间为 HH:mm:ss 格式
+    const formatTime = (time: string) => {
+      if (!time) return '';
+      
+      // 处理各种时间格式
+      let formattedTime = time.trim();
+      
+      // 如果已经是 HH:mm:ss 格式，直接返回
+      if (/^\d{2}:\d{2}:\d{2}$/.test(formattedTime)) {
+        return formattedTime;
+      }
+      
+      // 如果是 H:mm 或 HH:mm 格式，补充秒数
+      if (/^\d{1,2}:\d{2}$/.test(formattedTime)) {
+        const parts = formattedTime.split(':');
+        const hours = parts[0].padStart(2, '0'); // 确保小时是两位数
+        const minutes = parts[1];
+        return `${hours}:${minutes}:00`;
+      }
+      
+      // 如果是 H:mm:ss 格式，补充小时前导零
+      if (/^\d{1}:\d{2}:\d{2}$/.test(formattedTime)) {
+        const parts = formattedTime.split(':');
+        const hours = parts[0].padStart(2, '0');
+        return `${hours}:${parts[1]}:${parts[2]}`;
+      }
+      
+      // 其他情况，尝试解析
+      try {
+        const parts = formattedTime.split(':');
+        if (parts.length >= 2) {
+          const hours = parts[0].padStart(2, '0');
+          const minutes = parts[1].padStart(2, '0');
+          const seconds = parts[2] ? parts[2].padStart(2, '0') : '00';
+          return `${hours}:${minutes}:${seconds}`;
+        }
+      } catch (e) {
+        console.error('时间格式化失败:', time, e);
+      }
+      
+      return time; // 如果无法格式化，返回原值
+    };
+
+    // 准备请求数据
+    const courseData = {
+      name: courseForm.name,
+      teacher: courseForm.teacher || undefined,
+      location: courseForm.location || undefined,
+      dayOfWeek: courseForm.dayOfWeek,
+      startTime: formatTime(courseForm.startTime),
+      endTime: formatTime(courseForm.endTime),
+      startWeek: courseForm.startWeek,
+      endWeek: courseForm.endWeek,
+      color: courseForm.color || '#409EFF'
+    };
+
+    // 调试日志
+    console.log('原始时间数据:', {
+      startTime: courseForm.startTime,
+      endTime: courseForm.endTime
+    });
+    console.log('格式化后时间:', {
+      startTime: courseData.startTime,
+      endTime: courseData.endTime
+    });
+    console.log('完整发送数据:', courseData);
+
+    // 如果是空字符串，则完全移除这些字段
+    if (!courseForm.teacher) {
+      delete (courseData as any).teacher;
+    }
+    if (!courseForm.location) {
+      delete (courseData as any).location;
+    }
+
     let res;
     if (isEditing.value && courseForm.id) {
       // 更新课程
-      res = await scheduleApi.updateCourse(courseForm.id, {
-        name: courseForm.name,
-        teacher: courseForm.teacher,
-        location: courseForm.location,
-        dayOfWeek: courseForm.dayOfWeek,
-        startTime: courseForm.startTime,
-        endTime: courseForm.endTime,
-        startWeek: courseForm.startWeek,
-        endWeek: courseForm.endWeek,
-        color: courseForm.color
-      });
+      res = await scheduleApi.updateCourse(courseForm.id, courseData);
     } else {
       // 创建课程
-      res = await scheduleApi.createCourse({
-        name: courseForm.name,
-        teacher: courseForm.teacher,
-        location: courseForm.location,
-        dayOfWeek: courseForm.dayOfWeek,
-        startTime: courseForm.startTime,
-        endTime: courseForm.endTime,
-        startWeek: courseForm.startWeek,
-        endWeek: courseForm.endWeek,
-        color: courseForm.color
-      });
+      res = await scheduleApi.createCourse(courseData);
     }
     
     if (res.code === 200) {

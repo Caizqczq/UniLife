@@ -44,6 +44,7 @@ export interface CreateCourseParams {
   endTime: string;
   startWeek: number;
   endWeek: number;
+  semester?: string;
   color?: string;
 }
 
@@ -89,6 +90,11 @@ export default {
   // 获取用户在指定星期几的课程
   getCoursesByDay(dayOfWeek: number) {
     return get<{ code: number; data: { total: number; list: CourseItem[] } }>(`/courses/day/${dayOfWeek}`);
+  },
+  
+  // 获取用户在指定学期的课程
+  getCoursesBySemester(semester: string) {
+    return get<{ code: number; data: { total: number; list: CourseItem[] } }>(`/courses/semester/${semester}`);
   },
   
   // 更新课程

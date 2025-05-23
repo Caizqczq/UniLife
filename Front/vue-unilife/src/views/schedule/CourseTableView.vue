@@ -14,7 +14,7 @@
         <div class="filter-row">
           <div class="semester-selector">
             <span class="filter-label">学期：</span>
-            <el-select v-model="currentSemester" placeholder="选择学期" style="min-width: 220px;">
+            <el-select v-model="currentSemester" placeholder="选择学期" style="min-width: 220px;" @change="handleSemesterChange">
               <el-option label="2023-2024学年第一学期" value="2023-1"></el-option>
               <el-option label="2023-2024学年第二学期" value="2023-2"></el-option>
             </el-select>
@@ -264,6 +264,7 @@ const courseForm = reactive({
   endTime: '',
   startWeek: 1,
   endWeek: 16,
+  semester: '2023-1', // 默认学期
   color: '#409EFF'
 });
 
@@ -293,7 +294,15 @@ onMounted(async () => {
 const fetchCourses = async () => {
   loading.value = true;
   try {
-    const res = await scheduleApi.getAllCourses();
+    let res;
+    if (currentSemester.value) {
+      // 按学期查询
+      res = await scheduleApi.getCoursesBySemester(currentSemester.value);
+    } else {
+      // 查询所有课程
+      res = await scheduleApi.getAllCourses();
+    }
+    
     if (res.code === 200) {
       courses.value = res.data.list;
     }
@@ -364,6 +373,7 @@ const handleCellClick = (day: number, timeSlotId: number) => {
   
   courseForm.startWeek = currentWeek.value;
   courseForm.endWeek = currentWeek.value + 15 > 20 ? 20 : currentWeek.value + 15;
+  courseForm.semester = currentSemester.value; // 设置当前学期
   courseForm.color = getRandomColor();
   
   courseDialogVisible.value = true;
@@ -392,6 +402,7 @@ const handleAddCourse = () => {
   courseForm.endTime = '09:40';
   courseForm.startWeek = 1;
   courseForm.endWeek = 16;
+  courseForm.semester = currentSemester.value; // 设置当前学期
   courseForm.color = getRandomColor();
   
   courseDialogVisible.value = true;
@@ -591,6 +602,7 @@ const saveCourse = async () => {
       endTime: formatTime(courseForm.endTime),
       startWeek: courseForm.startWeek,
       endWeek: courseForm.endWeek,
+      semester: courseForm.semester,
       color: courseForm.color || '#409EFF'
     };
 
@@ -666,6 +678,11 @@ const getRandomColor = () => {
     '#ECAD9E'  // 浅红
   ];
   return colors[Math.floor(Math.random() * colors.length)];
+};
+
+// 学期选择变化处理
+const handleSemesterChange = () => {
+  fetchCourses();
 };
 </script>
 

@@ -138,6 +138,26 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public Result getCourseListBySemester(Long userId, String semester) {
+        // 获取用户在指定学期的课程
+        List<Course> courses = courseMapper.getListByUserIdAndSemester(userId, semester);
+
+        // 转换为VO
+        List<CourseVO> courseVOs = courses.stream().map(course -> {
+            CourseVO courseVO = new CourseVO();
+            BeanUtil.copyProperties(course, courseVO);
+            return courseVO;
+        }).collect(Collectors.toList());
+
+        // 返回结果
+        Map<String, Object> data = new HashMap<>();
+        data.put("total", courseVOs.size());
+        data.put("list", courseVOs);
+
+        return Result.success(data);
+    }
+
+    @Override
     @Transactional
     public Result updateCourse(Long courseId, Long userId, CreateCourseDTO createCourseDTO) {
         // 获取课程

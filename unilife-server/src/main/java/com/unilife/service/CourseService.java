@@ -39,6 +39,14 @@ public interface CourseService {
     Result getCourseListByDayOfWeek(Long userId, Byte dayOfWeek);
     
     /**
+     * 获取用户在指定学期的课程
+     * @param userId 用户ID
+     * @param semester 学期（如：2023-1）
+     * @return 结果
+     */
+    Result getCourseListBySemester(Long userId, String semester);
+    
+    /**
      * 更新课程
      * @param courseId 课程ID
      * @param userId 用户ID

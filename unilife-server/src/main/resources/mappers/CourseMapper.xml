@@ -12,6 +12,7 @@
         <result column="end_time" property="endTime"/>
         <result column="start_week" property="startWeek"/>
         <result column="end_week" property="endWeek"/>
+        <result column="semester" property="semester"/>
         <result column="color" property="color"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
@@ -21,23 +22,23 @@
     <insert id="insert" parameterType="com.unilife.model.entity.Course" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO courses (
             user_id, name, teacher, location, day_of_week, start_time, end_time, 
-            start_week, end_week, color, status, created_at, updated_at
+            start_week, end_week, semester, color, status, created_at, updated_at
         ) VALUES (
             #{userId}, #{name}, #{teacher}, #{location}, #{dayOfWeek}, #{startTime}, #{endTime}, 
-            #{startWeek}, #{endWeek}, #{color}, #{status}, NOW(), NOW()
+            #{startWeek}, #{endWeek}, #{semester}, #{color}, #{status}, NOW(), NOW()
         )
     </insert>
     
     <select id="getById" resultMap="courseResultMap">
         SELECT id, user_id, name, teacher, location, day_of_week, start_time, end_time, 
-               start_week, end_week, color, status, created_at, updated_at
+               start_week, end_week, semester, color, status, created_at, updated_at
         FROM courses
         WHERE id = #{id} AND status != 0
     </select>
     
     <select id="getListByUserId" resultMap="courseResultMap">
         SELECT id, user_id, name, teacher, location, day_of_week, start_time, end_time, 
-               start_week, end_week, color, status, created_at, updated_at
+               start_week, end_week, semester, color, status, created_at, updated_at
         FROM courses
         WHERE user_id = #{userId} AND status != 0
         ORDER BY day_of_week ASC, start_time ASC
@@ -53,6 +54,7 @@
             end_time = #{endTime},
             start_week = #{startWeek},
             end_week = #{endWeek},
+            semester = #{semester},
             color = #{color},
             updated_at = NOW()
         WHERE id = #{id} AND user_id = #{userId}
@@ -67,10 +69,18 @@
     
     <select id="getListByUserIdAndDayOfWeek" resultMap="courseResultMap">
         SELECT id, user_id, name, teacher, location, day_of_week, start_time, end_time, 
-               start_week, end_week, color, status, created_at, updated_at
+               start_week, end_week, semester, color, status, created_at, updated_at
         FROM courses
         WHERE user_id = #{userId} AND day_of_week = #{dayOfWeek} AND status != 0
         ORDER BY start_time ASC
+    </select>
+    
+    <select id="getListByUserIdAndSemester" resultMap="courseResultMap">
+        SELECT id, user_id, name, teacher, location, day_of_week, start_time, end_time, 
+               start_week, end_week, semester, color, status, created_at, updated_at
+        FROM courses
+        WHERE user_id = #{userId} AND semester = #{semester} AND status != 0
+        ORDER BY day_of_week ASC, start_time ASC
     </select>
     
     <select id="checkConflict" resultType="java.lang.Integer">

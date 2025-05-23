@@ -63,6 +63,17 @@ public class CourseController {
         return courseService.getCourseListByDayOfWeek(userId, dayOfWeek);
     }
 
+    @Operation(summary = "获取用户在指定学期的课程")
+    @GetMapping("/semester/{semester}")
+    public Result<?> getCourseListBySemester(@PathVariable("semester") String semester) {
+        // 从当前上下文获取用户ID
+        Long userId = BaseContext.getId();
+        if (userId == null) {
+            return Result.error(401, "未登录");
+        }
+        return courseService.getCourseListBySemester(userId, semester);
+    }
+
     @Operation(summary = "更新课程")
     @PutMapping("/{id}")
     public Result<?> updateCourse(

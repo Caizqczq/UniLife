@@ -146,11 +146,13 @@ CREATE TABLE IF NOT EXISTS `courses` (
   `end_time` TIME NOT NULL COMMENT '结束时间',
   `start_week` TINYINT NOT NULL COMMENT '开始周次',
   `end_week` TINYINT NOT NULL COMMENT '结束周次',
+  `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2023-1）',
   `color` VARCHAR(20) DEFAULT NULL COMMENT '显示颜色',
   `status` TINYINT DEFAULT 1 COMMENT '状态（0-删除, 1-正常）',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_semester` (`semester`),
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程表';
 
@@ -185,3 +187,7 @@ INSERT INTO `categories` (`name`, `description`, `icon`, `sort`, `status`) VALUE
 -- 初始化管理员账号
 INSERT INTO `users` (`username`, `email`, `password`, `nickname`, `role`, `status`, `is_verified`) VALUES
 ('admin', 'admin@unilife.com', '123456', '系统管理员', 2, 1, 1);
+
+-- 数据库迁移：为现有courses表添加semester字段
+ALTER TABLE `courses` ADD COLUMN `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2023-1）' AFTER `end_week`;
+ALTER TABLE `courses` ADD INDEX `idx_semester` (`semester`);

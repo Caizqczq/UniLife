@@ -52,6 +52,11 @@ public class CreateCourseDTO {
     private Byte endWeek;
     
     /**
+     * 学期（如：2023-1）
+     */
+    private String semester;
+    
+    /**
      * 显示颜色
      */
     private String color;

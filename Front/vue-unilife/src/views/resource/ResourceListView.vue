@@ -151,7 +151,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox, FormInstance } from 'element-plus';
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { resourceApi } from '@/api';
 import { useUserStore } from '@/stores';
 import { Document, Picture, Reading, Grid, Promotion, Folder, Files, Upload, Download, Star, Search } from '@element-plus/icons-vue';
@@ -203,11 +203,22 @@ onMounted(async () => {
 const fetchResources = async () => {
   loading.value = true;
   try {
-    const params = {
+    const params: any = {
       page: currentPage.value,
-      size: pageSize.value,
-      ...filters
+      size: pageSize.value
     };
+    
+    // 只有当categoryId不为null时才添加到参数中
+    if (filters.categoryId !== null) {
+      params.category = filters.categoryId;  // 后端期望category参数
+    }
+    
+    // 只有当keyword不为空时才添加到参数中
+    if (filters.keyword && filters.keyword.trim()) {
+      params.keyword = filters.keyword.trim();
+    }
+
+    console.log('请求参数:', params); // 调试用
 
     const res = await resourceApi.getResources(params);
     if (res.code === 200) {

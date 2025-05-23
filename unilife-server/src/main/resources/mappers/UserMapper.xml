@@ -143,4 +143,20 @@
             updated_at = NOW()
         WHERE id = #{id}
     </update>
+    
+    <select id="searchUsers" resultType="com.unilife.model.entity.User">
+        SELECT id, username, email, nickname, avatar, bio, gender, 
+               student_id as studentId, department, major, grade, points, 
+               role, status, is_verified as isVerified, 
+               created_at as createdAt, updated_at as updatedAt
+        FROM users
+        WHERE status != 0
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%') 
+                 OR nickname LIKE CONCAT('%', #{keyword}, '%') 
+                 OR department LIKE CONCAT('%', #{keyword}, '%')
+                 OR major LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY created_at DESC
+    </select>
 </mapper>

@@ -170,11 +170,11 @@ export const useUserStore = defineStore('user', () => {
   }) => {
     try {
       loading.value = true;
-      const params: UpdatePasswordParams = {};
+      const params: Partial<UpdatePasswordParams> = {};
       if (data.newPassword) params.newPassword = data.newPassword;
       if (data.code) params.code = data.code;
 
-      const res = await userApi.updatePassword(params);
+      const res = await userApi.updatePassword(params as UpdatePasswordParams);
 
       if (res.code === 200) {
         ElMessage.success('密码修改成功');

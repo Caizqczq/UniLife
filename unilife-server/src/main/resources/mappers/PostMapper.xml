@@ -133,4 +133,26 @@
         FROM posts
         WHERE user_id = #{userId} AND status != 0
     </select>
+    
+    <select id="searchPosts" resultType="com.unilife.model.entity.Post">
+        SELECT * FROM posts
+        WHERE status != 0
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%') OR content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+        <choose>
+            <when test="sortBy == 'time'">
+                ORDER BY created_at DESC
+            </when>
+            <when test="sortBy == 'popularity'">
+                ORDER BY like_count DESC, view_count DESC
+            </when>
+            <otherwise>
+                ORDER BY created_at DESC
+            </otherwise>
+        </choose>
+    </select>
 </mapper>

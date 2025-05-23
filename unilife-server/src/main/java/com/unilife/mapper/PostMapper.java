@@ -94,4 +94,15 @@ public interface PostMapper {
      * @return 帖子总数
      */
     Integer getCountByUserId(@Param("userId") Long userId);
+    
+    /**
+     * 搜索帖子
+     * @param keyword 搜索关键词
+     * @param categoryId 分类ID，可为null
+     * @param sortBy 排序方式
+     * @return 帖子列表
+     */
+    List<Post> searchPosts(@Param("keyword") String keyword, 
+                          @Param("categoryId") Long categoryId, 
+                          @Param("sortBy") String sortBy);
 }

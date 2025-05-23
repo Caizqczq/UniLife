@@ -3,6 +3,21 @@
     <el-card class="filter-card" shadow="never">
       <div class="filter-controls">
         <div class="filter-left">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索帖子标题或内容..."
+            @keyup.enter="handleSearch"
+            @clear="clearSearch"
+            clearable
+            style="width: 300px;"
+          >
+            <template #append>
+              <el-button @click="handleSearch" :loading="searchLoading">
+                <el-icon><Search /></el-icon>
+              </el-button>
+            </template>
+          </el-input>
+          
           <el-select 
             v-model="selectedCategoryComputed" 
             placeholder="选择分类" 
@@ -10,7 +25,7 @@
             @clear="clearCategorySelection"
             style="width: 240px;"
           >
-            <el-option label="全部分类" :value="null"></el-option>
+            <el-option label="全部分类" value=""></el-option>
             <el-option
               v-for="category in postStore.categories"
               :key="category.id"
@@ -64,6 +79,22 @@
             <span><el-icon><ChatDotRound /></el-icon> {{ post.commentCount }}</span>
             <span><el-icon><Clock /></el-icon> {{ formatDate(post.createdAt) }}</span>
           </div>
+          <div class="post-actions">
+            <el-button 
+              v-if="userStore.isLoggedIn"
+              size="small"
+              :type="post.isLiked ? 'primary' : ''"
+              :loading="likingPostId === post.id"
+              @click.stop="toggleLike(post)"
+            >
+              <el-icon><Pointer /></el-icon>
+              {{ post.isLiked ? '已点赞' : '点赞' }}
+            </el-button>
+            <el-button v-else size="small" @click.stop="goLogin">
+              <el-icon><Pointer /></el-icon>
+              点赞
+            </el-button>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -84,27 +115,58 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePostStore } from '@/stores/postStore';
 import { useUserStore } from '@/stores';
-import { ElMessage, ElIcon, ElCard, ElSkeleton, ElAlert, ElRow, ElCol, ElDivider, ElPagination, ElEmpty, ElSelect, ElOption, ElButton } from 'element-plus';
-import { User, FolderOpened, View, Pointer, ChatDotRound, Clock, Edit } from '@element-plus/icons-vue';
+import { ElMessage, ElIcon, ElCard, ElSkeleton, ElAlert, ElRow, ElCol, ElDivider, ElPagination, ElEmpty, ElSelect, ElOption, ElButton, ElInput } from 'element-plus';
+import { User, FolderOpened, View, Pointer, ChatDotRound, Clock, Edit, Search } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const postStore = usePostStore();
 const userStore = useUserStore();
 
+// 搜索相关变量
+const searchKeyword = ref('');
+const searchLoading = ref(false);
+
+// 点赞状态
+const likingPostId = ref<number | null>(null);
+
 // Computed property to two-way bind el-select with store's selectedCategoryId
 // and trigger store action on change.
 const selectedCategoryComputed = computed({
-  get: () => postStore.selectedCategoryId,
+  get: () => postStore.selectedCategoryId ?? "",
   set: (value) => {
     // 将分类值传递给store的selectCategory方法
     console.log('选择分类:', value);
-    postStore.selectCategory(value);
+    postStore.selectCategory(value === "" ? null : value);
   }
 });
+
+// 搜索帖子
+const handleSearch = async () => {
+  if (!searchKeyword.value.trim()) {
+    ElMessage.warning('请输入搜索关键词');
+    return;
+  }
+  
+  searchLoading.value = true;
+  try {
+    // 直接使用路径跳转，避免路由名称问题
+    router.push(`/search?keyword=${encodeURIComponent(searchKeyword.value)}&type=post`);
+  } catch (error) {
+    console.error('搜索失败:', error);
+    ElMessage.error('搜索失败，请稍后重试');
+  } finally {
+    searchLoading.value = false;
+  }
+};
+
+// 清除搜索
+const clearSearch = () => {
+  searchKeyword.value = '';
+};
 
 const clearCategorySelection = () => {
   // 手动强制清除分类并重新获取帖子
@@ -132,6 +194,29 @@ const createNewPost = () => {
     router.push({
       path: '/login',
       query: { redirect: '/create-post' }
+    });
+  }
+};
+
+// 点赞/取消点赞帖子
+const toggleLike = async (post: any) => {
+  likingPostId.value = post.id;
+  try {
+    await postStore.likePost(post.id);
+  } finally {
+    likingPostId.value = null;
+  }
+};
+
+// 跳转到登录页面
+const goLogin = () => {
+  if (userStore.isLoggedIn) {
+    router.push({ name: 'CreatePost' });
+  } else {
+    ElMessage.warning('请先登录');
+    router.push({
+      path: '/login',
+      query: { redirect: router.currentRoute.value.fullPath }
     });
   }
 };
@@ -230,6 +315,12 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.post-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .pagination-container {

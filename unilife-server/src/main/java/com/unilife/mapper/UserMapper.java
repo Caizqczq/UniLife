@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Date;
+import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -22,4 +23,11 @@ public interface UserMapper {
     void updatePassword(@Param("id") Long id, @Param("newPassword") String newPassword);
     void updateAvatar(@Param("id") Long id, @Param("avatar") String avatarUrl);
     void updateEmail(@Param("id") Long id, @Param("email") String email);
+    
+    /**
+     * 搜索用户
+     * @param keyword 搜索关键词
+     * @return 用户列表
+     */
+    List<User> searchUsers(@Param("keyword") String keyword);
 }

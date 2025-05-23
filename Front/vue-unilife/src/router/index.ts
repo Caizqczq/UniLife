@@ -78,6 +78,13 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Schedule',
         component: () => import('../views/schedule/ScheduleView.vue'),
         meta: { title: '日程管理 - UniLife', requiresAuth: true }
+      },
+      // 搜索页面 - 无需登录
+      {
+        path: 'search',     // URL: /search
+        name: 'Search',
+        component: () => import('../views/SearchView.vue'),
+        meta: { title: '搜索 - UniLife', requiresAuth: false }
       }
     ]
   },

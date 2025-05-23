@@ -28,36 +28,54 @@
       <div class="post-body" v-html="postStore.currentPost.content"></div>
 
       <el-divider />
-      <div class="post-stats">
-        <span><el-icon><View /></el-icon> {{ postStore.currentPost.viewCount }} 次浏览</span>
-        <span><el-icon><Pointer /></el-icon> {{ postStore.currentPost.likeCount }} 个点赞</span>
-        <span><el-icon><ChatDotRound /></el-icon> {{ postStore.currentPost.commentCount }} 条评论</span>
-        <el-tag v-if="postStore.currentPost.isLiked" type="success" effect="light">已点赞</el-tag>
+      <div class="post-stats-actions">
+        <div class="post-stats">
+          <span><el-icon><View /></el-icon> {{ postStore.currentPost.viewCount }} 次浏览</span>
+          <span><el-icon><Pointer /></el-icon> {{ postStore.currentPost.likeCount }} 个点赞</span>
+          <span><el-icon><ChatDotRound /></el-icon> {{ postStore.currentPost.commentCount }} 条评论</span>
+        </div>
+        <div class="post-actions">
+          <el-button 
+            v-if="userStore.isLoggedIn"
+            :type="postStore.currentPost.isLiked ? 'primary' : ''"
+            :loading="likingPost"
+            @click="toggleLike"
+          >
+            <el-icon><Pointer /></el-icon>
+            {{ postStore.currentPost.isLiked ? '已点赞' : '点赞' }}
+          </el-button>
+          <el-button v-else @click="goLogin">
+            <el-icon><Pointer /></el-icon>
+            点赞
+          </el-button>
+        </div>
       </div>
     </el-card>
 
-    <!-- Placeholder for comments section -->
+    <!-- 评论区组件 -->
     <el-card class="comments-section" v-if="postStore.currentPost">
-        <template #header>
-            <h3>评论区</h3>
-        </template>
-        <el-empty description="暂无评论，敬请期待！"></el-empty>
-        <!-- Actual comments list and form will go here later -->
+      <CommentSection :post-id="postStore.currentPost.id" />
     </el-card>
 
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { usePostStore } from '@/stores/postStore';
-import { ElMessage, ElIcon, ElButton, ElCard, ElSkeleton, ElAlert, ElDivider, ElTag, ElEmpty } from 'element-plus';
+import { useUserStore } from '@/stores';
+import { ElMessage, ElIcon, ElButton, ElCard, ElSkeleton, ElAlert, ElDivider } from 'element-plus';
 import { View, Pointer, ChatDotRound, ArrowLeft } from '@element-plus/icons-vue';
+import CommentSection from '@/components/CommentSection.vue';
 
 const route = useRoute();
 const router = useRouter();
 const postStore = usePostStore();
+const userStore = useUserStore();
+
+// 点赞状态
+const likingPost = ref(false);
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return '';
@@ -67,6 +85,26 @@ const formatDate = (dateString?: string) => {
 
 const goBack = () => {
   router.push('/'); // 返回到论坛首页
+};
+
+// 点赞/取消点赞帖子
+const toggleLike = async () => {
+  if (!postStore.currentPost) return;
+  
+  likingPost.value = true;
+  try {
+    await postStore.likePost(postStore.currentPost.id);
+  } finally {
+    likingPost.value = false;
+  }
+};
+
+// 跳转到登录页面
+const goLogin = () => {
+  router.push({
+    path: '/login',
+    query: { redirect: route.fullPath }
+  });
 };
 
 const loadPostDetails = (id: string | number) => {
@@ -138,13 +176,19 @@ h1 {
   border-radius: 4px;
 }
 
+.post-stats-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .post-stats {
   display: flex;
   gap: 20px;
   align-items: center;
   font-size: 0.9em;
   color: var(--el-text-color-secondary);
-  margin-top: 10px;
 }
 
 .post-stats span {
@@ -153,7 +197,12 @@ h1 {
   gap: 5px;
 }
 
+.post-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .comments-section {
-    margin-top: 30px;
+  margin-top: 30px;
 }
 </style>

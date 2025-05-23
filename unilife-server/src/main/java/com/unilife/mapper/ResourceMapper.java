@@ -89,4 +89,15 @@ public interface ResourceMapper {
      * @return 资源数量
      */
     Integer getCountByCategoryId(Long categoryId);
+    
+    /**
+     * 搜索资源
+     * @param keyword 搜索关键词
+     * @param categoryId 分类ID，可为null
+     * @param sortBy 排序方式
+     * @return 资源列表
+     */
+    List<Resource> searchResources(@Param("keyword") String keyword, 
+                                  @Param("categoryId") Long categoryId, 
+                                  @Param("sortBy") String sortBy);
 }

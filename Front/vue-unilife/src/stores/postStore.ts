@@ -16,7 +16,11 @@ export interface PostState {
   categories: CategoryItem[];
   loadingCategories: boolean;
   errorCategories: string | null;
-  selectedCategoryId: number | null; 
+  selectedCategoryId: number | null;
+  
+  // 搜索相关状态
+  searchKeyword: string | null;
+  isSearching: boolean;
 }
 
 export const usePostStore = defineStore('post', {
@@ -34,6 +38,10 @@ export const usePostStore = defineStore('post', {
     loadingCategories: false,
     errorCategories: null,
     selectedCategoryId: null,
+
+    // 搜索相关状态
+    searchKeyword: null,
+    isSearching: false,
   }),
   actions: {
     async fetchPosts(params: { pageNum?: number; pageSize?: number } = {}) {
@@ -182,6 +190,54 @@ export const usePostStore = defineStore('post', {
           ElMessage.error(error.message || '操作失败，请稍后重试');
         }
       }
+    },
+
+    // 搜索帖子
+    async searchPosts(params: { keyword: string; categoryId?: number | null; pageNum?: number; pageSize?: number }) {
+      this.loading = true;
+      this.error = null;
+      this.searchKeyword = params.keyword;
+      this.isSearching = true;
+      
+      try {
+        const pageNum = params.pageNum || 1;
+        const pageSize = params.pageSize || this.pageSize;
+        
+        // 调用搜索API
+        const response = await postApi.searchPosts({
+          keyword: params.keyword,
+          categoryId: params.categoryId,
+          pageNum,
+          pageSize
+        });
+
+        if (response && response.data && Array.isArray(response.data.list)) {
+          this.posts = response.data.list;
+          this.totalPosts = response.data.total;
+          this.totalPages = response.data.pages;
+          this.currentPage = pageNum;
+          this.pageSize = pageSize;
+        } else {
+          console.error('Unexpected response structure for search:', response);
+          this.posts = [];
+          this.totalPosts = 0;
+          this.totalPages = 0;
+          throw new Error('搜索结果数据格式不正确');
+        }
+      } catch (error: any) {
+        this.error = error.message || '搜索失败';
+        this.posts = [];
+        this.totalPosts = 0;
+        this.totalPages = 0;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // 清除搜索状态
+    clearSearch() {
+      this.searchKeyword = null;
+      this.isSearching = false;
     }
   }
 });

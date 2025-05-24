@@ -123,7 +123,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Result getPostList(Long categoryId, Integer page, Integer size, String sort) {
+    public Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort) {
         // 参数校验
         if (page == null || page < 1) page = 1;
         if (size == null || size < 1 || size > 50) size = 10;
@@ -132,8 +132,15 @@ public class PostServiceImpl implements PostService {
         // 只使用PageHelper进行分页，不设置排序
         PageHelper.startPage(page, size);
 
-        // 调用mapper方法，传入排序参数
-        List<Post> posts = postMapper.getListByCategory(categoryId, sort);
+        // 根据是否有关键词选择不同的查询方法
+        List<Post> posts;
+        if (StrUtil.isNotBlank(keyword)) {
+            // 有关键词，使用搜索方法
+            posts = postMapper.searchPosts(keyword, categoryId, sort);
+        } else {
+            // 无关键词，使用普通列表查询
+            posts = postMapper.getListByCategory(categoryId, sort);
+        }
 
         // 获取分页信息
         PageInfo<Post> pageInfo = new PageInfo<>(posts);

@@ -107,6 +107,20 @@
 
     <!-- 帖子列表区域 -->
     <section class="posts-section">
+      <!-- 搜索状态提示 -->
+      <div v-if="postStore.isSearching" class="search-status">
+        <el-alert 
+          :title="`搜索 '${postStore.searchKeyword}' 的结果 (共 ${postStore.totalPosts} 个帖子)`" 
+          type="info" 
+          show-icon 
+          :closable="false"
+        >
+          <template #default>
+            <el-button size="small" @click="clearSearch">清除搜索</el-button>
+          </template>
+        </el-alert>
+      </div>
+
       <!-- 加载状态 -->
       <div v-if="postStore.loading && postStore.posts.length === 0" class="loading-container">
         <div class="posts-skeleton">
@@ -275,13 +289,20 @@ const selectedCategoryComputed = computed({
 // 搜索帖子
 const handleSearch = async () => {
   if (!searchKeyword.value.trim()) {
-    ElMessage.warning('请输入搜索关键词');
+    // 如果搜索关键词为空，重新加载所有帖子
+    postStore.clearSearch();
+    postStore.fetchPosts({ pageNum: 1 });
     return;
   }
   
   searchLoading.value = true;
   try {
-    router.push(`/search?keyword=${encodeURIComponent(searchKeyword.value)}&type=post`);
+    // 在当前页面进行搜索，不跳转
+    await postStore.searchPosts({
+      keyword: searchKeyword.value,
+      categoryId: postStore.selectedCategoryId,
+      pageNum: 1
+    });
   } catch (error) {
     console.error('搜索失败:', error);
     ElMessage.error('搜索失败，请稍后重试');
@@ -293,6 +314,8 @@ const handleSearch = async () => {
 // 清除搜索
 const clearSearch = () => {
   searchKeyword.value = '';
+  postStore.clearSearch();
+  postStore.fetchPosts({ pageNum: 1 });
 };
 
 // 清除分类选择
@@ -354,11 +377,32 @@ const goLogin = () => {
 
 // 分页处理
 const handleCurrentChange = (page: number) => {
-  postStore.fetchPosts({ pageNum: page });
+  if (postStore.isSearching && postStore.searchKeyword) {
+    // 如果在搜索状态，使用搜索方法进行分页
+    postStore.searchPosts({
+      keyword: postStore.searchKeyword,
+      categoryId: postStore.selectedCategoryId,
+      pageNum: page
+    });
+  } else {
+    // 否则使用普通的帖子获取方法
+    postStore.fetchPosts({ pageNum: page });
+  }
 };
 
 const handleSizeChange = (size: number) => {
-  postStore.fetchPosts({ pageNum: 1, pageSize: size });
+  if (postStore.isSearching && postStore.searchKeyword) {
+    // 如果在搜索状态，使用搜索方法并重置到第一页
+    postStore.searchPosts({
+      keyword: postStore.searchKeyword,
+      categoryId: postStore.selectedCategoryId,
+      pageNum: 1,
+      pageSize: size
+    });
+  } else {
+    // 否则使用普通的帖子获取方法
+    postStore.fetchPosts({ pageNum: 1, pageSize: size });
+  }
 };
 
 onMounted(async () => {
@@ -541,6 +585,11 @@ onMounted(async () => {
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
+}
+
+/* 搜索状态 */
+.search-status {
+  margin-bottom: var(--space-6);
 }
 
 .loading-container,

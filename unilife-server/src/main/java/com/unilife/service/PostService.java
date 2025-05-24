@@ -27,12 +27,13 @@ public interface PostService {
     /**
      * 获取帖子列表
      * @param categoryId 分类ID，可为null
+     * @param keyword 搜索关键词，可为null
      * @param page 页码
      * @param size 每页大小
      * @param sort 排序方式（latest-最新，hot-热门）
      * @return 结果
      */
-    Result getPostList(Long categoryId, Integer page, Integer size, String sort);
+    Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort);
     
     /**
      * 更新帖子

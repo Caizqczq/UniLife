@@ -43,10 +43,11 @@ public class PostController {
     @GetMapping
     public Result<?> getPostList(
             @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
             @RequestParam(value = "sort", defaultValue = "latest") String sort) {
-        return postService.getPostList(categoryId, page, size, sort);
+        return postService.getPostList(categoryId, keyword, page, size, sort);
     }
 
     @Operation(summary = "更新帖子")

@@ -6,7 +6,7 @@
         <el-input
           v-model="searchKeyword"
           size="large"
-          placeholder="搜索帖子、资源、用户..."
+          placeholder="搜索帖子、资源..."
           @keyup.enter="handleSearch"
           clearable
         >
@@ -21,16 +21,23 @@
       <!-- 搜索过滤器 -->
       <div class="search-filters">
         <el-radio-group v-model="searchType" @change="handleSearch">
-          <el-radio-button label="all">全部</el-radio-button>
           <el-radio-button label="post">帖子</el-radio-button>
           <el-radio-button label="resource">资源</el-radio-button>
-          <el-radio-button label="user">用户</el-radio-button>
         </el-radio-group>
         
         <el-select v-model="sortBy" placeholder="排序方式" @change="handleSearch" style="width: 120px; margin-left: 10px;">
-          <el-option label="相关性" value="relevance" />
-          <el-option label="时间" value="time" />
-          <el-option label="热门度" value="popularity" />
+          <el-option label="最新" value="latest" />
+          <el-option label="热门" value="hot" />
+          <el-option label="点赞" value="likes" />
+        </el-select>
+        
+        <el-select v-model="categoryId" placeholder="选择分类" @change="handleSearch" style="width: 150px; margin-left: 10px;" clearable>
+          <el-option 
+            v-for="category in categories" 
+            :key="category.id" 
+            :label="category.name" 
+            :value="category.id" 
+          />
         </el-select>
       </div>
     </div>
@@ -39,22 +46,20 @@
     <div class="search-content" v-loading="loading">
       <!-- 搜索统计 -->
       <div class="search-stats" v-if="searchResult">
-        <span>找到 {{ searchResult.total }} 个结果</span>
-        <span class="search-time">耗时 {{ searchResult.searchTime }}ms</span>
+        <span>找到 {{ searchResult.total || 0 }} 个{{ searchType === 'post' ? '帖子' : '资源' }}</span>
+        <span v-if="searchResult.total" class="search-time">共{{ searchResult.pages || 1 }}页</span>
       </div>
 
-      <!-- 搜索结果列表 -->
-      <div class="search-results" v-if="searchResult && searchResult.items.length > 0">
+      <!-- 帖子搜索结果 -->
+      <div class="search-results" v-if="searchType === 'post' && searchResult && searchResult.list && searchResult.list.length > 0">
         <div 
-          v-for="item in searchResult.items" 
-          :key="`${item.type}-${item.id}`"
-          class="search-item"
-          @click="handleItemClick(item)"
+          v-for="item in searchResult.list" 
+          :key="item.id"
+          class="search-item post-item"
+          @click="handlePostClick(item)"
         >
           <div class="item-header">
-            <el-tag :type="getTypeTagType(item.type)" size="small">
-              {{ getTypeText(item.type) }}
-            </el-tag>
+            <el-tag type="primary" size="small">帖子</el-tag>
             <span class="item-title">{{ item.title }}</span>
           </div>
           
@@ -65,15 +70,52 @@
           <div class="item-meta">
             <div class="author-info">
               <el-avatar :src="item.avatar" :size="20" />
-              <span class="author-name">{{ item.author }}</span>
+              <span class="author-name">{{ item.nickname }}</span>
             </div>
             
             <div class="meta-info">
-              <span v-if="item.categoryName" class="category">{{ item.categoryName }}</span>
+              <span class="category">{{ item.categoryName }}</span>
               <span class="create-time">{{ formatTime(item.createdAt) }}</span>
               <span class="stats">
                 <el-icon><StarFilled /></el-icon>{{ item.likeCount }}
                 <el-icon style="margin-left: 10px;"><View /></el-icon>{{ item.viewCount }}
+                <el-icon style="margin-left: 10px;"><ChatDotSquare /></el-icon>{{ item.commentCount }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 资源搜索结果 -->
+      <div class="search-results" v-else-if="searchType === 'resource' && searchResult && searchResult.list && searchResult.list.length > 0">
+        <div 
+          v-for="item in searchResult.list" 
+          :key="item.id"
+          class="search-item resource-item"
+          @click="handleResourceClick(item)"
+        >
+          <div class="item-header">
+            <el-tag type="success" size="small">资源</el-tag>
+            <span class="item-title">{{ item.title }}</span>
+          </div>
+          
+          <div class="item-content">
+            <p class="item-summary">{{ item.description }}</p>
+          </div>
+          
+          <div class="item-meta">
+            <div class="author-info">
+              <el-avatar :src="item.avatar" :size="20" />
+              <span class="author-name">{{ item.nickname }}</span>
+            </div>
+            
+            <div class="meta-info">
+              <span class="category">{{ item.categoryName }}</span>
+              <span class="file-info">{{ formatFileSize(item.fileSize) }} · {{ item.fileType }}</span>
+              <span class="create-time">{{ formatTime(item.createdAt) }}</span>
+              <span class="stats">
+                <el-icon><StarFilled /></el-icon>{{ item.likeCount }}
+                <el-icon style="margin-left: 10px;"><Download /></el-icon>{{ item.downloadCount }}
               </span>
             </div>
           </div>
@@ -82,34 +124,19 @@
 
       <!-- 空状态 -->
       <el-empty 
-        v-else-if="searchResult && searchResult.items.length === 0" 
-        description="没有找到相关内容"
+        v-else-if="searchResult && (!searchResult.list || searchResult.list.length === 0)" 
+        :description="`没有找到相关${searchType === 'post' ? '帖子' : '资源'}`"
       />
 
       <!-- 分页 -->
-      <div class="pagination" v-if="searchResult && searchResult.total > 0">
+      <div class="pagination" v-if="searchResult && (searchResult.total || 0) > 0">
         <el-pagination
           v-model:current-page="currentPage"
           :page-size="pageSize"
-          :total="searchResult.total"
+          :total="searchResult.total || 0"
           layout="prev, pager, next, jumper"
           @current-change="handlePageChange"
         />
-      </div>
-    </div>
-
-    <!-- 热门搜索词 -->
-    <div class="hot-keywords" v-if="!searchResult">
-      <h3>热门搜索</h3>
-      <div class="keyword-tags">
-        <el-tag 
-          v-for="keyword in hotKeywords" 
-          :key="keyword"
-          @click="handleHotKeywordClick(keyword)"
-          style="margin: 5px; cursor: pointer;"
-        >
-          {{ keyword }}
-        </el-tag>
       </div>
     </div>
   </div>
@@ -119,9 +146,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, StarFilled, View } from '@element-plus/icons-vue'
-import { search, searchPosts, searchResources, searchUsers, getHotKeywords } from '@/api/search'
-import type { SearchParams, SearchResult, SearchItem } from '@/api/search'
+import { Search, StarFilled, View, ChatDotSquare, Download } from '@element-plus/icons-vue'
+import { searchPosts, getCategories } from '@/api/forum'
+import resourceApi from '@/api/resource'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,14 +156,15 @@ const router = useRouter()
 // 搜索状态
 const loading = ref(false)
 const searchKeyword = ref('')
-const searchType = ref<'all' | 'post' | 'resource' | 'user'>('all')
-const sortBy = ref<'time' | 'relevance' | 'popularity'>('relevance')
+const searchType = ref<'post' | 'resource'>('post')
+const sortBy = ref<'latest' | 'hot' | 'likes'>('latest')
+const categoryId = ref<number>()
 const currentPage = ref(1)
 const pageSize = ref(10)
 
 // 搜索结果
-const searchResult = ref<SearchResult>()
-const hotKeywords = ref<string[]>([])
+const searchResult = ref<any>()
+const categories = ref<any[]>([])
 
 // 初始化
 onMounted(async () => {
@@ -147,8 +175,8 @@ onMounted(async () => {
     handleSearch()
   }
   
-  // 获取热门搜索词
-  await loadHotKeywords()
+  // 获取分类列表
+  await loadCategories()
 })
 
 // 监听路由变化
@@ -158,6 +186,16 @@ watch(() => route.query.keyword, (newKeyword) => {
     handleSearch()
   }
 })
+
+// 加载分类
+const loadCategories = async () => {
+  try {
+    const response = await getCategories()
+    categories.value = response?.data?.list || response || []
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+}
 
 // 搜索处理
 const handleSearch = async () => {
@@ -170,26 +208,34 @@ const handleSearch = async () => {
   currentPage.value = 1
 
   try {
-    const params: SearchParams = {
-      keyword: searchKeyword.value,
-      type: searchType.value,
-      sortBy: sortBy.value,
-      page: currentPage.value,
-      size: pageSize.value
-    }
-
-    let result
+    let response
     if (searchType.value === 'post') {
-      result = await searchPosts(params)
-    } else if (searchType.value === 'resource') {
-      result = await searchResources(params)
-    } else if (searchType.value === 'user') {
-      result = await searchUsers(params)
+      response = await searchPosts(
+        searchKeyword.value,
+        currentPage.value,
+        pageSize.value,
+        categoryId.value,
+        sortBy.value
+      )
     } else {
-      result = await search(params)
+      response = await resourceApi.getResources({
+        page: currentPage.value,
+        size: pageSize.value,
+        categoryId: categoryId.value,
+        keyword: searchKeyword.value
+      })
     }
 
-    searchResult.value = result
+    // 调试日志
+    console.log('API响应:', response)
+    console.log('响应数据类型:', typeof response)
+    console.log('response.data:', response.data)
+
+    // 统一处理响应数据格式
+    searchResult.value = response.data || response
+    
+    console.log('最终搜索结果:', searchResult.value)
+    console.log('结果列表:', searchResult.value?.list)
 
     // 更新URL
     router.replace({
@@ -209,68 +255,42 @@ const handlePageChange = (page: number) => {
   handleSearch()
 }
 
-// 点击搜索结果项
-const handleItemClick = (item: SearchItem) => {
-  if (item.type === 'post') {
-    router.push(`/post/${item.id}`)
-  } else if (item.type === 'resource') {
-    router.push(`/resource/${item.id}`)
-  } else if (item.type === 'user') {
-    // TODO: 跳转到用户主页
-    ElMessage.info('用户主页功能待开发')
-  }
+// 处理帖子点击
+const handlePostClick = (post: any) => {
+  router.push(`/forum/post/${post.id}`)
 }
 
-// 点击热门关键词
-const handleHotKeywordClick = (keyword: string) => {
-  searchKeyword.value = keyword
-  handleSearch()
+// 处理资源点击
+const handleResourceClick = (resource: any) => {
+  router.push(`/resources/${resource.id}`)
 }
 
-// 获取热门搜索词
-const loadHotKeywords = async () => {
-  try {
-    const result = await getHotKeywords()
-    hotKeywords.value = result
-  } catch (error) {
-    console.error('获取热门搜索词失败:', error)
-  }
-}
-
-// 获取类型标签类型
-const getTypeTagType = (type: string) => {
-  switch (type) {
-    case 'post': return 'primary'
-    case 'resource': return 'success'
-    case 'user': return 'warning'
-    default: return 'info'
-  }
-}
-
-// 获取类型文本
-const getTypeText = (type: string) => {
-  switch (type) {
-    case 'post': return '帖子'
-    case 'resource': return '资源'
-    case 'user': return '用户'
-    default: return '未知'
-  }
-}
-
-// 格式化时间
+// 时间格式化
 const formatTime = (time: string) => {
-  return new Date(time).toLocaleDateString()
+  return new Date(time).toLocaleString()
+}
+
+// 文件大小格式化
+const formatFileSize = (size: number) => {
+  if (size < 1024) return size + 'B'
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + 'KB'
+  if (size < 1024 * 1024 * 1024) return (size / (1024 * 1024)).toFixed(1) + 'MB'
+  return (size / (1024 * 1024 * 1024)).toFixed(1) + 'GB'
 }
 </script>
 
 <style scoped>
 .search-page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
 .search-header {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
 
@@ -282,32 +302,33 @@ const formatTime = (time: string) => {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 400px;
 }
 
 .search-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  padding: 20px 20px 10px;
   color: #666;
-  font-size: 14px;
-}
-
-.search-time {
-  color: #999;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .search-results {
-  margin-bottom: 20px;
+  padding: 20px;
 }
 
 .search-item {
-  border: 1px solid #ebeef5;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 15px;
+  padding: 20px;
   margin-bottom: 15px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .search-item:hover {
@@ -318,14 +339,14 @@ const formatTime = (time: string) => {
 .item-header {
   display: flex;
   align-items: center;
-  gap: 10px;
   margin-bottom: 10px;
 }
 
 .item-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  margin-left: 10px;
+  color: #333;
 }
 
 .item-content {
@@ -333,7 +354,7 @@ const formatTime = (time: string) => {
 }
 
 .item-summary {
-  color: #606266;
+  color: #666;
   line-height: 1.6;
   margin: 0;
 }
@@ -342,8 +363,8 @@ const formatTime = (time: string) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  color: #909399;
+  font-size: 14px;
+  color: #999;
 }
 
 .author-info {
@@ -352,20 +373,10 @@ const formatTime = (time: string) => {
   gap: 8px;
 }
 
-.author-name {
-  color: #409eff;
-}
-
 .meta-info {
   display: flex;
   align-items: center;
   gap: 15px;
-}
-
-.category {
-  background: #f4f4f5;
-  padding: 2px 8px;
-  border-radius: 4px;
 }
 
 .stats {
@@ -375,17 +386,26 @@ const formatTime = (time: string) => {
 }
 
 .pagination {
+  padding: 20px;
   display: flex;
   justify-content: center;
-  margin-top: 30px;
+  border-top: 1px solid #f0f0f0;
 }
 
-.hot-keywords {
-  margin-top: 40px;
-}
-
-.hot-keywords h3 {
-  margin-bottom: 15px;
-  color: #303133;
+@media (max-width: 768px) {
+  .search-page {
+    padding: 10px;
+  }
+  
+  .search-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .item-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 }
 </style>

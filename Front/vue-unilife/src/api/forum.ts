@@ -5,10 +5,11 @@ import request from './request';
  * @param page 页码
  * @param size 每页数量
  * @param categoryId 分类ID，可选
+ * @param keyword 搜索关键词，可选
  * @param sort 排序方式（latest, hot, likes, comments），默认latest
  * @param userId 用户ID，可选，获取指定用户的帖子
  */
-export function getPosts(page = 1, size = 10, categoryId?: number | null, sort = 'latest', userId?: number | null) {
+export function getPosts(page = 1, size = 10, categoryId?: number | null, keyword?: string | null, sort = 'latest', userId?: number | null) {
   if (userId) {
     // 获取指定用户的帖子
     return request({
@@ -21,9 +22,25 @@ export function getPosts(page = 1, size = 10, categoryId?: number | null, sort =
     return request({
       url: '/posts',
       method: 'get',
-      params: { page, size, categoryId, sort }
+      params: { page, size, categoryId, keyword, sort }
     });
   }
+}
+
+/**
+ * 搜索帖子
+ * @param keyword 搜索关键词
+ * @param page 页码
+ * @param size 每页数量
+ * @param categoryId 分类ID，可选
+ * @param sort 排序方式
+ */
+export function searchPosts(keyword: string, page = 1, size = 10, categoryId?: number | null, sort = 'latest') {
+  return request({
+    url: '/posts',
+    method: 'get',
+    params: { keyword, page, size, categoryId, sort }
+  });
 }
 
 /**

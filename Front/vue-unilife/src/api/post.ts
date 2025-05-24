@@ -84,5 +84,23 @@ export default {
   // 获取所有帖子分类
   getCategories() {
     return get<{ code: number; message: string; data: { list: CategoryItem[], total: number } }>('/categories');
+  },
+
+  // 搜索帖子
+  searchPosts(params: { keyword: string; categoryId?: number | null; pageNum?: number; pageSize?: number; sort?: string }) {
+    // 将前端参数名转换为后端参数名
+    const serverParams: any = {
+      keyword: params.keyword,
+      page: params.pageNum,
+      size: params.pageSize,
+      sort: params.sort || 'latest'
+    };
+    
+    // 保留categoryId参数
+    if (params.categoryId !== undefined && params.categoryId !== null) {
+      serverParams.categoryId = params.categoryId;
+    }
+    
+    return get<{ code: number; data: { total: number; list: PostItem[]; pages: number } }>('/posts', serverParams);
   }
 };

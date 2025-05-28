@@ -1,0 +1,706 @@
+<template>
+  <div class="post-detail-container">
+    <!-- 顶部导航栏 -->
+    <nav class="forum-navbar glass-light">
+      <div class="nav-container">
+        <div class="nav-brand">
+          <router-link to="/" class="brand-link">
+            <div class="logo-circle">
+              <i class="el-icon-star-filled"></i>
+            </div>
+            <span class="brand-name gradient-text">UniLife</span>
+          </router-link>
+        </div>
+        
+        <div class="nav-menu">
+          <router-link to="/forum" class="nav-item">论坛</router-link>
+          <router-link to="/resources" class="nav-item">资源</router-link>
+          <router-link to="/schedule" class="nav-item">课程表</router-link>
+        </div>
+        
+        <div class="nav-actions">
+          <div class="user-info">
+            <el-avatar :size="36" :src="userStore.user?.avatar">
+              {{ userStore.user?.nickname?.charAt(0) }}
+            </el-avatar>
+            <span class="username">{{ userStore.user?.nickname }}</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div class="post-detail-main">
+      <div class="post-detail-content">
+        <!-- 返回按钮 -->
+        <div class="back-section">
+          <el-button @click="goBack" circle>
+            <el-icon><ArrowLeft /></el-icon>
+          </el-button>
+          <span class="breadcrumb">论坛 / 帖子详情</span>
+        </div>
+
+        <!-- 帖子内容 -->
+        <div class="post-content-section card-light">
+          <div class="post-header">
+            <div class="post-meta">
+              <el-tag type="primary">{{ post.categoryName }}</el-tag>
+              <span class="post-time">{{ post.createdAt }}</span>
+            </div>
+            
+            <div class="post-actions">
+              <el-button text @click="toggleLike">
+                <el-icon><Star /></el-icon>
+                {{ post.isLiked ? '已点赞' : '点赞' }} ({{ post.likeCount }})
+              </el-button>
+              <el-button text>
+                <el-icon><Share /></el-icon>
+                分享
+              </el-button>
+              <el-dropdown>
+                <el-button text>
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item>举报</el-dropdown-item>
+                    <el-dropdown-item v-if="isAuthor">编辑</el-dropdown-item>
+                    <el-dropdown-item v-if="isAuthor" divided>删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+
+          <h1 class="post-title">{{ post.title }}</h1>
+
+          <div class="author-section">
+            <div class="author-info">
+              <el-avatar :size="50" :src="post.avatar">
+                {{ post.nickname?.charAt(0) }}
+              </el-avatar>
+              <div class="author-details">
+                <div class="author-name">{{ post.nickname }}</div>
+                <div class="author-stats">发帖 {{ authorStats.postCount }} · 获赞 {{ authorStats.likeCount }}</div>
+              </div>
+            </div>
+            <el-button type="primary" plain size="small">关注</el-button>
+          </div>
+
+          <div class="post-content" v-html="post.content"></div>
+
+          <div class="post-footer">
+            <div class="post-stats">
+              <span class="stat-item">
+                <el-icon><View /></el-icon>
+                {{ post.viewCount }} 浏览
+              </span>
+              <span class="stat-item">
+                <el-icon><ChatDotRound /></el-icon>
+                {{ post.commentCount }} 评论
+              </span>
+              <span class="stat-item">
+                <el-icon><Star /></el-icon>
+                {{ post.likeCount }} 点赞
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 评论区域 -->
+        <div class="comments-section card-light">
+          <div class="comments-header">
+            <h3>评论 ({{ comments.length }})</h3>
+            <el-select v-model="commentSort" size="small" style="width: 120px">
+              <el-option label="最新" value="latest" />
+              <el-option label="最热" value="hot" />
+            </el-select>
+          </div>
+
+          <!-- 发表评论 -->
+          <div class="comment-form">
+            <el-input
+              v-model="newComment"
+              type="textarea"
+              :rows="3"
+              placeholder="写下你的评论..."
+              class="comment-input"
+            />
+            <div class="comment-actions">
+              <el-button type="primary" @click="submitComment">
+                发表评论
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 评论列表 -->
+          <div class="comments-list">
+            <div 
+              v-for="comment in comments" 
+              :key="comment.id"
+              class="comment-item"
+            >
+              <div class="comment-avatar">
+                <el-avatar :size="40" :src="comment.avatar">
+                  {{ comment.nickname?.charAt(0) }}
+                </el-avatar>
+              </div>
+              
+              <div class="comment-content">
+                <div class="comment-header">
+                  <span class="comment-author">{{ comment.nickname }}</span>
+                  <span class="comment-time">{{ comment.createdAt }}</span>
+                </div>
+                
+                <div class="comment-text">{{ comment.content }}</div>
+                
+                <div class="comment-footer">
+                  <el-button text size="small" @click="replyToComment(comment)">
+                    <el-icon><ChatDotRound /></el-icon>
+                    回复
+                  </el-button>
+                  <el-button text size="small" @click="likeComment(comment)">
+                    <el-icon><Star /></el-icon>
+                    {{ comment.likeCount }}
+                  </el-button>
+                </div>
+
+                <!-- 回复列表 -->
+                <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+                  <div 
+                    v-for="reply in comment.replies" 
+                    :key="reply.id"
+                    class="reply-item"
+                  >
+                    <el-avatar :size="32" :src="reply.avatar">
+                      {{ reply.nickname?.charAt(0) }}
+                    </el-avatar>
+                    <div class="reply-content">
+                      <div class="reply-header">
+                        <span class="reply-author">{{ reply.nickname }}</span>
+                        <span class="reply-time">{{ reply.createdAt }}</span>
+                      </div>
+                      <div class="reply-text">{{ reply.content }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { 
+  ArrowLeft, 
+  Star, 
+  Share, 
+  MoreFilled, 
+  View, 
+  ChatDotRound 
+} from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
+
+const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
+
+// 响应式数据
+const newComment = ref('')
+const commentSort = ref('latest')
+
+// 模拟帖子数据
+const post = ref({
+  id: 1,
+  title: '大学生活如何更好地安排时间？',
+  content: `
+    <p>作为一名大一新生，刚刚进入大学生活，发现与高中相比有很大的不同。高中时间安排比较固定，而大学有更多的自由时间，但也更容易迷茫。</p>
+    
+    <p>想请教一下学长学姐们关于时间管理的经验，比如：</p>
+    
+    <ul>
+      <li>如何平衡学习和社团活动？</li>
+      <li>怎么制定合理的学习计划？</li>
+      <li>如何避免拖延症？</li>
+      <li>课余时间应该如何充实自己？</li>
+    </ul>
+    
+    <p>希望大家能分享一些实用的方法和经验，谢谢！</p>
+  `,
+  nickname: '小明',
+  avatar: '',
+  categoryName: '学习交流',
+  viewCount: 156,
+  commentCount: 23,
+  likeCount: 45,
+  isLiked: false,
+  createdAt: '2024-01-15 10:30',
+  userId: 1
+})
+
+// 作者统计信息
+const authorStats = ref({
+  postCount: 12,
+  likeCount: 234
+})
+
+// 模拟评论数据
+const comments = ref([
+  {
+    id: 1,
+    content: '时间管理确实很重要，我推荐使用番茄工作法，25分钟专注学习，5分钟休息，效果很好！',
+    nickname: '学霸小王',
+    avatar: '',
+    likeCount: 12,
+    isLiked: false,
+    createdAt: '2024-01-15 11:20',
+    replies: [
+      {
+        id: 2,
+        content: '番茄工作法我也在用，确实挺有效的！',
+        nickname: '努力的小李',
+        avatar: '',
+        createdAt: '2024-01-15 12:10'
+      }
+    ]
+  },
+  {
+    id: 3,
+    content: '建议制定每日、每周和每月的目标，这样会更有方向感。另外要学会说不，不是所有活动都要参加。',
+    nickname: '经验分享者',
+    avatar: '',
+    likeCount: 8,
+    isLiked: false,
+    createdAt: '2024-01-15 13:45',
+    replies: []
+  }
+])
+
+// 计算属性
+const isAuthor = computed(() => {
+  return userStore.user?.id === post.value.userId
+})
+
+// 方法
+const goBack = () => {
+  router.go(-1)
+}
+
+const toggleLike = () => {
+  post.value.isLiked = !post.value.isLiked
+  post.value.likeCount += post.value.isLiked ? 1 : -1
+  ElMessage.success(post.value.isLiked ? '点赞成功' : '取消点赞')
+}
+
+const submitComment = () => {
+  if (!newComment.value.trim()) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+  
+  const comment = {
+    id: Date.now(),
+    content: newComment.value,
+    nickname: userStore.user?.nickname || '匿名用户',
+    avatar: userStore.user?.avatar || '',
+    likeCount: 0,
+    isLiked: false,
+    createdAt: new Date().toLocaleString('zh-CN'),
+    replies: []
+  }
+  
+  comments.value.unshift(comment)
+  newComment.value = ''
+  post.value.commentCount++
+  ElMessage.success('评论发表成功')
+}
+
+const replyToComment = (comment: any) => {
+  ElMessage.info('回复功能开发中...')
+}
+
+const likeComment = (comment: any) => {
+  comment.isLiked = !comment.isLiked
+  comment.likeCount += comment.isLiked ? 1 : -1
+  ElMessage.success(comment.isLiked ? '点赞成功' : '取消点赞')
+}
+
+onMounted(() => {
+  console.log('帖子详情页面加载完成', route.params.id)
+})
+</script>
+
+<style scoped>
+.post-detail-container {
+  min-height: 100vh;
+  background: var(--gradient-bg);
+}
+
+/* 导航栏样式 - 复用论坛页面的样式 */
+.forum-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logo-circle {
+  width: 40px;
+  height: 40px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  box-shadow: var(--shadow-light);
+}
+
+.brand-name {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 32px;
+}
+
+.nav-item {
+  text-decoration: none;
+  color: var(--gray-600);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: var(--transition-base);
+}
+
+.nav-item:hover {
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+/* 主要内容区域 */
+.post-detail-main {
+  padding: 32px 24px;
+}
+
+.post-detail-content {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 返回按钮区域 */
+.back-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.breadcrumb {
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+/* 帖子内容区域 */
+.post-content-section {
+  padding: 32px;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-time {
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.post-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 24px;
+  line-height: 1.3;
+}
+
+.author-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: var(--primary-50);
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-name {
+  font-weight: 700;
+  color: var(--gray-800);
+  font-size: 16px;
+}
+
+.author-stats {
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+.post-content {
+  color: var(--gray-700);
+  line-height: 1.8;
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.post-content p {
+  margin-bottom: 16px;
+}
+
+.post-content ul {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.post-content li {
+  margin-bottom: 8px;
+}
+
+.post-footer {
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.post-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+/* 评论区域 */
+.comments-section {
+  padding: 32px;
+}
+
+.comments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.comments-header h3 {
+  color: var(--gray-800);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.comment-form {
+  margin-bottom: 32px;
+}
+
+.comment-input {
+  margin-bottom: 12px;
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 16px;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.comment-time {
+  color: var(--gray-500);
+  font-size: 12px;
+}
+
+.comment-text {
+  color: var(--gray-700);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.comment-footer {
+  display: flex;
+  gap: 16px;
+}
+
+.replies-list {
+  margin-top: 16px;
+  padding-left: 16px;
+  border-left: 2px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reply-item {
+  display: flex;
+  gap: 12px;
+}
+
+.reply-content {
+  flex: 1;
+}
+
+.reply-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.reply-author {
+  font-weight: 600;
+  color: var(--gray-800);
+  font-size: 14px;
+}
+
+.reply-time {
+  color: var(--gray-500);
+  font-size: 12px;
+}
+
+.reply-text {
+  color: var(--gray-700);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .nav-menu {
+    display: none;
+  }
+  
+  .post-detail-main {
+    padding: 16px;
+  }
+  
+  .post-content-section,
+  .comments-section {
+    padding: 24px 16px;
+  }
+  
+  .post-title {
+    font-size: 1.5rem;
+  }
+  
+  .author-section {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .comment-item {
+    gap: 12px;
+  }
+}
+</style> 

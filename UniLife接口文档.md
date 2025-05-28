@@ -64,7 +64,8 @@
   "studentId": "20220101001",
   "department": "计算机学院",
   "major": "软件工程",
-  "grade": "2023级"
+  "grade": "2023级",
+  "code": "123456"
 }
 ```
 
@@ -89,7 +90,7 @@
 请求参数：
 ```json
 {
-  "username": "student123",
+  "email": "student@school.edu",
   "password": "Secure@Password123"
 }
 ```
@@ -101,15 +102,11 @@
   "message": "登录成功",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "userInfo": {
-      "userId": 12345,
-      "username": "student123",
-      "nickname": "学生昵称",
-      "avatar": "https://example.com/avatar.jpg",
-      "role": 0,
-      "isVerified": true,
-      "status": 1
-    }
+    "id": 12345,
+    "username": "student123",
+    "nickname": "学生昵称",
+    "avatar": "https://example.com/avatar.jpg",
+    "role": 0
   }
 }
 ```
@@ -155,13 +152,11 @@
   "message": "登录成功",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "userInfo": {
-      "userId": 12345,
-      "username": "student123",
-      "nickname": "学生昵称",
-      "avatar": "https://example.com/avatar.jpg",
-      "role": 0
-    }
+    "id": 12345,
+    "username": "student123",
+    "nickname": "学生昵称",
+    "avatar": "https://example.com/avatar.jpg",
+    "role": 0
   }
 }
 ```
@@ -200,14 +195,15 @@
 ### 3.2 更新用户个人信息
 - **URL**: `/users/profile`
 - **方法**: PUT
-- **描述**: 更新当前登录用户的个人资料
+- **描述**: 更新当前登录用户的个人资料信息
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
 {
-  "nickname": "新昵称",
-  "bio": "这是更新后的个人简介",
-  "gender": 2,
+  "username": "newusername",
+  "bio": "这是一个更新的个人简介",
+  "gender": 1,
   "department": "计算机学院",
   "major": "软件工程",
   "grade": "2023级"
@@ -227,12 +223,13 @@
 - **URL**: `/users/password`
 - **方法**: PUT
 - **描述**: 修改当前登录用户的密码
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
 {
-  "code": "验证码",
-  "newPassword": "新密码"
+  "code": "123456",
+  "newPassword": "NewSecure@Password123"
 }
 ```
 
@@ -248,12 +245,12 @@
 ### 3.4 上传用户头像
 - **URL**: `/users/avatar`
 - **方法**: POST
-- **描述**: 上传或更新用户头像
+- **描述**: 上传用户头像
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-file: [图片文件]
-```
+- **Content-Type**: `multipart/form-data`
+- **file**: 头像文件（图片格式）
 
 响应结果：
 ```json
@@ -261,7 +258,7 @@ file: [图片文件]
   "code": 200,
   "message": "头像上传成功",
   "data": {
-    "avatar": "https://example.com/avatars/user_123456.jpg"
+    "avatarUrl": "https://example.com/avatars/user_12345.jpg"
   }
 }
 ```
@@ -269,12 +266,13 @@ file: [图片文件]
 ### 3.5 更新用户邮箱
 - **URL**: `/users/email`
 - **方法**: PUT
-- **描述**: 更新用户邮箱地址
+- **描述**: 更新当前登录用户的邮箱
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
 {
-  "email": "new_email@school.edu",
+  "email": "newemail@school.edu",
   "code": "123456"
 }
 ```
@@ -288,6 +286,57 @@ file: [图片文件]
 }
 ```
 
+### 3.6 获取用户统计数据
+- **URL**: `/users/stats`
+- **方法**: GET
+- **描述**: 获取当前用户的统计数据
+- **认证**: 需要JWT Token
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "postsCount": 25,
+    "commentsCount": 150,
+    "resourcesCount": 10,
+    "likesReceived": 300,
+    "coursesCount": 8,
+    "schedulesCount": 15
+  }
+}
+```
+
+### 3.7 获取用户最近帖子
+- **URL**: `/users/recent-posts`
+- **方法**: GET
+- **描述**: 获取当前用户最近发布的帖子
+- **认证**: 需要JWT Token
+
+请求参数：
+- **limit** (query, 可选): 返回的帖子数量，默认为5
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 123,
+      "title": "最新帖子标题",
+      "content": "帖子内容摘要...",
+      "categoryId": 1,
+      "createTime": "2024-01-15T10:30:00",
+      "viewsCount": 50,
+      "likesCount": 10,
+      "commentsCount": 5
+    }
+  ]
+}
+```
+
 ## 4. 论坛功能模块
 
 ### 4.1 帖子管理
@@ -298,12 +347,11 @@ file: [图片文件]
 - **描述**: 获取帖子列表，支持分页和筛选
 
 请求参数：
-```
-page: 1
-size: 10
-category: 1
-sort: latest
-```
+- **categoryId** (query, 可选): 分类ID
+- **keyword** (query, 可选): 搜索关键词
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为10
+- **sort** (query, 可选): 排序方式，默认为latest
 
 响应结果：
 ```json
@@ -366,6 +414,7 @@ sort: latest
 - **URL**: `/posts`
 - **方法**: POST
 - **描述**: 发布新帖子
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -391,6 +440,7 @@ sort: latest
 - **URL**: `/posts/{id}`
 - **方法**: PUT
 - **描述**: 更新帖子
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -414,6 +464,7 @@ sort: latest
 - **URL**: `/posts/{id}`
 - **方法**: DELETE
 - **描述**: 删除帖子
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -428,6 +479,7 @@ sort: latest
 - **URL**: `/posts/{id}/like`
 - **方法**: POST
 - **描述**: 点赞或取消点赞帖子
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -435,6 +487,45 @@ sort: latest
   "code": 200,
   "message": "点赞成功",
   "data": null
+}
+```
+
+#### 4.1.7 获取用户的帖子列表
+- **URL**: `/posts/user/{userId}`
+- **方法**: GET
+- **描述**: 获取指定用户发布的帖子列表
+
+请求参数：
+- **userId** (path): 用户ID
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为10
+- **sort** (query, 可选): 排序方式，默认为latest
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "total": 25,
+    "list": [
+      {
+        "id": 1,
+        "title": "帖子标题",
+        "summary": "帖子摘要...",
+        "userId": 12345,
+        "nickname": "发布者昵称",
+        "avatar": "https://example.com/avatar.jpg",
+        "categoryId": 1,
+        "categoryName": "学习交流",
+        "viewCount": 100,
+        "likeCount": 20,
+        "commentCount": 5,
+        "createdAt": "2023-05-01 12:00:00"
+      }
+    ],
+    "pages": 3
+  }
 }
 ```
 
@@ -484,6 +575,7 @@ sort: latest
 - **URL**: `/comments`
 - **方法**: POST
 - **描述**: 发表评论或回复
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -509,6 +601,7 @@ sort: latest
 - **URL**: `/comments/{id}`
 - **方法**: DELETE
 - **描述**: 删除评论
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -523,6 +616,7 @@ sort: latest
 - **URL**: `/comments/{id}/like`
 - **方法**: POST
 - **描述**: 点赞或取消点赞评论
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -541,9 +635,7 @@ sort: latest
 - **描述**: 获取分类列表
 
 请求参数：
-```
-status: 1  // 可选，1-启用，0-禁用
-```
+- **status** (query, 可选): 分类状态，1-启用，0-禁用
 
 响应结果：
 ```json
@@ -595,6 +687,7 @@ status: 1  // 可选，1-启用，0-禁用
 - **URL**: `/categories`
 - **方法**: POST
 - **描述**: 创建新分类（需要管理员权限）
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -622,6 +715,7 @@ status: 1  // 可选，1-启用，0-禁用
 - **URL**: `/categories/{id}`
 - **方法**: PUT
 - **描述**: 更新分类（需要管理员权限）
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -647,6 +741,7 @@ status: 1  // 可选，1-启用，0-禁用
 - **URL**: `/categories/{id}`
 - **方法**: DELETE
 - **描述**: 删除分类（需要管理员权限）
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -663,14 +758,14 @@ status: 1  // 可选，1-启用，0-禁用
 - **URL**: `/resources`
 - **方法**: POST
 - **描述**: 上传新资源
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-file: [文件]
-title: 资源标题
-description: 资源描述
-categoryId: 分类ID
-```
+- **Content-Type**: `multipart/form-data`
+- **file**: 资源文件
+- **title**: 资源标题
+- **description**: 资源描述
+- **categoryId**: 分类ID
 
 响应结果：
 ```json
@@ -720,13 +815,11 @@ categoryId: 分类ID
 - **描述**: 获取资源列表，支持分页和筛选
 
 请求参数：
-```
-category: 1  // 可选，分类ID
-user: 12345  // 可选，用户ID
-keyword: "关键词"  // 可选，搜索关键词
-page: 1
-size: 10
-```
+- **category** (query, 可选): 分类ID
+- **user** (query, 可选): 用户ID
+- **keyword** (query, 可选): 搜索关键词
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为10
 
 响应结果：
 ```json
@@ -764,6 +857,7 @@ size: 10
 - **URL**: `/resources/{id}`
 - **方法**: PUT
 - **描述**: 更新资源信息
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -787,6 +881,7 @@ size: 10
 - **URL**: `/resources/{id}`
 - **方法**: DELETE
 - **描述**: 删除资源
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -819,6 +914,7 @@ size: 10
 - **URL**: `/resources/{id}/like`
 - **方法**: POST
 - **描述**: 点赞或取消点赞资源
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -835,10 +931,8 @@ size: 10
 - **描述**: 获取指定用户上传的资源列表
 
 请求参数：
-```
-page: 1
-size: 10
-```
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为10
 
 响应结果：
 ```json
@@ -876,12 +970,11 @@ size: 10
 - **URL**: `/resources/my`
 - **方法**: GET
 - **描述**: 获取当前登录用户上传的资源列表
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-page: 1
-size: 10
-```
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为10
 
 响应结果：
 ```json
@@ -923,6 +1016,7 @@ size: 10
 - **URL**: `/courses`
 - **方法**: POST
 - **描述**: 创建新课程
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -935,6 +1029,7 @@ size: 10
   "endTime": "09:40:00",
   "startWeek": 1,
   "endWeek": 16,
+  "semester": "2023-1",
   "color": "#4CAF50"
 }
 ```
@@ -954,6 +1049,7 @@ size: 10
 - **URL**: `/courses/{id}`
 - **方法**: GET
 - **描述**: 获取课程详情
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -983,6 +1079,7 @@ size: 10
 - **URL**: `/courses`
 - **方法**: GET
 - **描述**: 获取当前用户的所有课程
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1017,6 +1114,7 @@ size: 10
 - **URL**: `/courses/day/{dayOfWeek}`
 - **方法**: GET
 - **描述**: 获取当前用户在指定星期几的课程
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1047,10 +1145,47 @@ size: 10
 }
 ```
 
-#### 6.1.5 更新课程
+#### 6.1.5 获取用户在指定学期的课程
+- **URL**: `/courses/semester/{semester}`
+- **方法**: GET
+- **描述**: 获取当前用户在指定学期的课程
+- **认证**: 需要JWT Token
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "total": 5,
+    "list": [
+      {
+        "id": 1,
+        "userId": 12345,
+        "name": "数据结构",
+        "teacher": "张教授",
+        "location": "教学楼A-101",
+        "dayOfWeek": 1,
+        "startTime": "08:00:00",
+        "endTime": "09:40:00",
+        "startWeek": 1,
+        "endWeek": 16,
+        "semester": "2023-1",
+        "color": "#4CAF50",
+        "status": 1,
+        "createdAt": "2023-05-01 12:00:00",
+        "updatedAt": "2023-05-01 12:00:00"
+      }
+    ]
+  }
+}
+```
+
+#### 6.1.6 更新课程
 - **URL**: `/courses/{id}`
 - **方法**: PUT
 - **描述**: 更新课程
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -1076,10 +1211,11 @@ size: 10
 }
 ```
 
-#### 6.1.6 删除课程
+#### 6.1.7 删除课程
 - **URL**: `/courses/{id}`
 - **方法**: DELETE
 - **描述**: 删除课程
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1090,18 +1226,17 @@ size: 10
 }
 ```
 
-#### 6.1.7 检查课程时间冲突
+#### 6.1.8 检查课程时间冲突
 - **URL**: `/courses/check-conflict`
 - **方法**: GET
 - **描述**: 检查课程时间是否冲突
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-dayOfWeek: 1
-startTime: "08:00:00"
-endTime: "09:40:00"
-excludeCourseId: 1  // 可选，排除的课程ID
-```
+- **dayOfWeek** (query): 星期几（1-7）
+- **startTime** (query): 开始时间，格式："HH:mm:ss"
+- **endTime** (query): 结束时间，格式："HH:mm:ss"
+- **excludeCourseId** (query, 可选): 排除的课程ID
 
 响应结果：
 ```json
@@ -1121,6 +1256,7 @@ excludeCourseId: 1  // 可选，排除的课程ID
 - **URL**: `/schedules`
 - **方法**: POST
 - **描述**: 创建新日程
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -1151,6 +1287,7 @@ excludeCourseId: 1  // 可选，排除的课程ID
 - **URL**: `/schedules/{id}`
 - **方法**: GET
 - **描述**: 获取日程详情
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1179,6 +1316,7 @@ excludeCourseId: 1  // 可选，排除的课程ID
 - **URL**: `/schedules`
 - **方法**: GET
 - **描述**: 获取当前用户的所有日程
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1212,12 +1350,11 @@ excludeCourseId: 1  // 可选，排除的课程ID
 - **URL**: `/schedules/range`
 - **方法**: GET
 - **描述**: 获取当前用户在指定时间范围内的日程
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-startTime: "2023-05-01T00:00:00"
-endTime: "2023-05-31T23:59:59"
-```
+- **startTime** (query): 开始时间，格式："yyyy-MM-ddTHH:mm:ss"
+- **endTime** (query): 结束时间，格式："yyyy-MM-ddTHH:mm:ss"
 
 响应结果：
 ```json
@@ -1251,6 +1388,7 @@ endTime: "2023-05-31T23:59:59"
 - **URL**: `/schedules/{id}`
 - **方法**: PUT
 - **描述**: 更新日程
+- **认证**: 需要JWT Token
 
 请求参数：
 ```json
@@ -1279,6 +1417,7 @@ endTime: "2023-05-31T23:59:59"
 - **URL**: `/schedules/{id}`
 - **方法**: DELETE
 - **描述**: 删除日程
+- **认证**: 需要JWT Token
 
 响应结果：
 ```json
@@ -1293,13 +1432,12 @@ endTime: "2023-05-31T23:59:59"
 - **URL**: `/schedules/check-conflict`
 - **方法**: GET
 - **描述**: 检查日程时间是否冲突
+- **认证**: 需要JWT Token
 
 请求参数：
-```
-startTime: "2023-05-10T14:00:00"
-endTime: "2023-05-10T16:00:00"
-excludeScheduleId: 1  // 可选，排除的日程ID
-```
+- **startTime** (query): 开始时间，格式："yyyy-MM-ddTHH:mm:ss"
+- **endTime** (query): 结束时间，格式："yyyy-MM-ddTHH:mm:ss"
+- **excludeScheduleId** (query, 可选): 排除的日程ID
 
 响应结果：
 ```json

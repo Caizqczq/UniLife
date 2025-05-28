@@ -1,0 +1,458 @@
+@import 'element-plus/dist/index.css';
+
+/* 自定义CSS变量 - 淡紫色和白色主题 */
+:root {
+  /* 淡紫色主题色系 - 更柔和的配色 */
+  --primary-50: #fefeff;       /* 几乎白色 */
+  --primary-100: #fbfaff;      /* 极淡紫白 */
+  --primary-200: #f4f2ff;      /* 很淡的紫白 */
+  --primary-300: #e7e3ff;      /* 淡紫白 */
+  --primary-400: #d4cbff;      /* 浅淡紫 */
+  --primary-500: #b8a9ff;      /* 柔和淡紫（主色） */
+  --primary-600: #9b85ff;      /* 中等淡紫 */
+  --primary-700: #7c63d4;      /* 深一点的淡紫 */
+  --primary-800: #6b4fb8;      /* 较深淡紫 */
+  --primary-900: #5a3d9c;      /* 深淡紫 */
+  --primary-950: #4a2d80;      /* 最深淡紫 */
+
+  /* 优雅的中性色系 */
+  --gray-50: #fefefe;          /* 纯白 */
+  --gray-100: #fafafa;         /* 极浅灰 */
+  --gray-200: #f5f5f5;         /* 很浅灰 */
+  --gray-300: #e8e8e8;         /* 浅灰 */
+  --gray-400: #d1d1d1;         /* 中浅灰 */
+  --gray-500: #a3a3a3;         /* 中灰 */
+  --gray-600: #737373;         /* 中深灰 */
+  --gray-700: #525252;         /* 深灰 */
+  --gray-800: #404040;         /* 很深灰 */
+  --gray-900: #262626;         /* 极深灰 */
+  --gray-950: #171717;         /* 近黑 */
+
+  /* 语义化颜色 - 更柔和 */
+  --success: #22c55e;          /* 柔和绿 */
+  --warning: #f59e0b;          /* 温暖橙 */
+  --error: #ef4444;            /* 柔和红 */
+  --info: #3b82f6;             /* 柔和蓝 */
+
+  /* 优雅的渐变背景 */
+  --gradient-primary: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--primary-200) 0%, var(--primary-400) 100%);
+  --gradient-light: linear-gradient(135deg, var(--primary-100) 0%, var(--primary-300) 100%);
+  --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #e7e3ff 100%);
+  --gradient-purple-light: linear-gradient(135deg, #faf7ff 0%, #f3efff 100%);
+  
+  /* 柔和的阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-purple: 0 10px 25px -5px rgba(184, 169, 255, 0.3);
+  --shadow-light: 0 4px 20px rgba(184, 169, 255, 0.15);
+  
+  /* 平滑动画 */
+  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--gray-800);
+  background: var(--gradient-bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 优雅的滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-500));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+}
+
+/* 优雅的玻璃态效果 */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-light);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(248, 245, 255, 0.6);
+  box-shadow: var(--shadow-sm);
+}
+
+.glass-purple {
+  background: rgba(248, 245, 255, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(184, 169, 255, 0.2);
+  box-shadow: var(--shadow-purple);
+}
+
+/* 优雅的渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.gradient-text-light {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* 柔和的动画类 */
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(184, 169, 255, 0.3);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(184, 169, 255, 0.5);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 优雅的按钮样式 */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: var(--transition-base);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-light);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-purple);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--primary-600);
+  border: 2px solid var(--primary-300);
+  border-radius: 16px;
+  padding: 12px 26px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: var(--transition-base);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-400);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-light {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: var(--transition-base);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.btn-light:hover {
+  background: white;
+  border-color: var(--primary-300);
+  color: var(--primary-600);
+  transform: translateY(-1px);
+}
+
+/* 现代化输入框样式 */
+.input-modern {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--gray-800);
+  backdrop-filter: blur(10px);
+  transition: var(--transition-base);
+  font-size: 16px;
+}
+
+.input-modern::placeholder {
+  color: var(--gray-400);
+}
+
+.input-modern:focus {
+  outline: none;
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 3px rgba(184, 169, 255, 0.15);
+  background: white;
+}
+
+/* 优雅的卡片样式 */
+.card-modern {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--gray-200);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition-base);
+}
+
+.card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-purple);
+  border-color: var(--primary-300);
+}
+
+.card-light {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+}
+
+.card-light:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Element Plus 主题覆盖 - 淡紫色主题 */
+.el-button--primary {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  transition: var(--transition-base) !important;
+  box-shadow: var(--shadow-light) !important;
+}
+
+.el-button--primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-purple) !important;
+}
+
+.el-input__wrapper {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  border: 2px solid var(--gray-200) !important;
+  transition: var(--transition-base) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.el-input__wrapper:hover {
+  border-color: var(--primary-300) !important;
+}
+
+.el-input__wrapper.is-focus {
+  border-color: var(--primary-400) !important;
+  box-shadow: 0 0 0 3px rgba(184, 169, 255, 0.15) !important;
+  background: white !important;
+}
+
+.el-input__inner {
+  color: var(--gray-800) !important;
+  font-size: 16px !important;
+}
+
+.el-input__inner::placeholder {
+  color: var(--gray-400) !important;
+}
+
+.el-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--gray-200) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-lg) !important;
+  transition: var(--transition-base) !important;
+}
+
+.el-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-purple) !important;
+}
+
+.el-message {
+  backdrop-filter: blur(20px) !important;
+  border-radius: 12px !important;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .card-modern {
+    padding: 24px;
+    border-radius: 20px;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  
+  .input-modern {
+    font-size: 16px; /* 防止iOS缩放 */
+  }
+}
+
+/* 深色主题适配 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gradient-bg: linear-gradient(135deg, #1e1e2e 0%, #2a2a3a 50%, #3a2a4a 100%);
+  }
+  
+  .card-modern {
+    background: rgba(30, 30, 46, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .glass {
+    background: rgba(30, 30, 46, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 自定义动画延迟 */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* 特殊效果 */
+.backdrop-blur {
+  backdrop-filter: blur(20px);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* 聚焦环 */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* 选择高亮 */
+::selection {
+  background: var(--primary-200);
+  color: var(--primary-800);
+} 

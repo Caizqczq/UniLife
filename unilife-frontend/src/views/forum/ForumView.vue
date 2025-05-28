@@ -116,7 +116,7 @@
             </div>
             
             <div class="filter-options">
-              <el-select v-model="sortBy" placeholder="排序方式" size="default">
+              <el-select v-model="sortBy" placeholder="排序方式" size="default" @change="handleSortChange">
                 <el-option label="最新发布" value="latest" />
                 <el-option label="最多点赞" value="likes" />
                 <el-option label="最多回复" value="comments" />
@@ -129,17 +129,17 @@
             </div>
           </div>
 
-          <!-- 示例帖子列表 -->
-          <div class="posts-list">
+          <!-- 帖子列表 -->
+          <div class="posts-list" v-loading="loading">
             <div 
-              v-for="post in mockPosts" 
+              v-for="post in posts" 
               :key="post.id"
               class="post-card card-light animate-fade-in-up"
               @click="viewPost(post.id)"
             >
               <div class="post-header">
                 <div class="author-info">
-                  <el-avatar :size="40">
+                  <el-avatar :size="40" :src="post.avatar">
                     {{ post.nickname?.charAt(0) }}
                   </el-avatar>
                   <div class="author-details">
@@ -177,21 +177,38 @@
                 </div>
                 
                 <div class="post-actions">
-                  <el-button text @click.stop="toggleLike(post)">
+                  <el-button 
+                    text 
+                    :type="post.isLiked ? 'primary' : 'default'"
+                    @click.stop="toggleLike(post)"
+                  >
                     <el-icon><Star /></el-icon>
-                    点赞
+                    {{ post.isLiked ? '已点赞' : '点赞' }}
                   </el-button>
                 </div>
               </div>
             </div>
 
             <!-- 空状态 -->
-            <div v-if="mockPosts.length === 0" class="empty-state">
+            <div v-if="posts.length === 0 && !loading" class="empty-state">
               <el-empty description="暂无帖子">
                 <el-button type="primary" @click="showCreatePost = true">
                   发布第一个帖子
                 </el-button>
               </el-empty>
+            </div>
+
+            <!-- 分页 -->
+            <div v-if="posts.length > 0" class="pagination-section">
+              <el-pagination
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.size"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="pagination.total"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
             </div>
           </div>
         </main>
@@ -207,21 +224,41 @@
     >
       <el-form label-position="top">
         <el-form-item label="帖子标题">
-          <el-input placeholder="请输入帖子标题" size="large" />
+          <el-input 
+            v-model="postForm.title"
+            placeholder="请输入帖子标题" 
+            size="large" 
+          />
         </el-form-item>
         <el-form-item label="分类">
-          <el-select placeholder="请选择分类" size="large" style="width: 100%">
-            <el-option label="学习交流" value="1" />
-            <el-option label="生活分享" value="2" />
+          <el-select 
+            v-model="postForm.categoryId"
+            placeholder="请选择分类" 
+            size="large" 
+            style="width: 100%"
+          >
+            <el-option 
+              v-for="category in categories"
+              :key="category.id"
+              :label="category.name" 
+              :value="category.id" 
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="帖子内容">
-          <el-input type="textarea" :rows="6" placeholder="请输入帖子内容..." />
+          <el-input 
+            v-model="postForm.content"
+            type="textarea" 
+            :rows="6" 
+            placeholder="请输入帖子内容..." 
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreatePost = false">取消</el-button>
-        <el-button type="primary" @click="handleCreatePost">发布</el-button>
+        <el-button @click="showCreatePost = false" :disabled="posting">取消</el-button>
+        <el-button type="primary" @click="handleCreatePost" :loading="posting">
+          {{ posting ? '发布中...' : '发布' }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -230,7 +267,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Edit, 
   Search, 
@@ -242,6 +279,8 @@ import {
   School
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { getPosts, getCategories, createPost, likePost } from '@/api/forum'
+import type { Post, Category, ApiResponse } from '@/types'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -251,53 +290,25 @@ const showCreatePost = ref(false)
 const searchKeyword = ref('')
 const selectedCategory = ref<number | null>(null)
 const sortBy = ref('latest')
+const loading = ref(false)
+const posting = ref(false)
 
-// 模拟数据
-const categories = ref([
-  { id: 1, name: '学习交流', description: '', icon: '', sort: 1, status: 1, createdAt: '', updatedAt: '' },
-  { id: 2, name: '生活分享', description: '', icon: '', sort: 2, status: 1, createdAt: '', updatedAt: '' },
-  { id: 3, name: '技术讨论', description: '', icon: '', sort: 3, status: 1, createdAt: '', updatedAt: '' },
-  { id: 4, name: '校园活动', description: '', icon: '', sort: 4, status: 1, createdAt: '', updatedAt: '' }
-])
+// 真实数据
+const categories = ref<Category[]>([])
+const posts = ref<Post[]>([])
+const pagination = ref({
+  page: 1,
+  size: 10,
+  total: 0,
+  pages: 0
+})
 
-const mockPosts = ref([
-  {
-    id: 1,
-    title: '大学生活如何更好地安排时间？',
-    summary: '作为一名大一新生，想请教一下学长学姐们关于时间管理的经验...',
-    nickname: '小明',
-    avatar: '',
-    categoryName: '学习交流',
-    viewCount: 156,
-    commentCount: 23,
-    likeCount: 45,
-    createdAt: '2024-01-15 10:30'
-  },
-  {
-    id: 2,
-    title: '分享一些高效学习方法',
-    summary: '经过一学期的摸索，总结了一些比较有效的学习方法，希望对大家有帮助...',
-    nickname: '学霸小王',
-    avatar: '',
-    categoryName: '学习交流',
-    viewCount: 234,
-    commentCount: 67,
-    likeCount: 89,
-    createdAt: '2024-01-14 16:20'
-  },
-  {
-    id: 3,
-    title: '校园里发现的好去处推荐',
-    summary: '今天发现了几个校园里很安静适合学习的地方，想和大家分享一下...',
-    nickname: '探索者',
-    avatar: '',
-    categoryName: '生活分享',
-    viewCount: 98,
-    commentCount: 12,
-    likeCount: 34,
-    createdAt: '2024-01-13 14:15'
-  }
-])
+// 发帖表单数据
+const postForm = reactive({
+  title: '',
+  content: '',
+  categoryId: null as number | null
+})
 
 // 热门标签
 const hotTags = ref(['学习交流', '生活分享', '技术讨论', '考试', '实习', '社团活动'])
@@ -305,30 +316,97 @@ const hotTags = ref(['学习交流', '生活分享', '技术讨论', '考试', '
 // 方法
 const selectCategory = (categoryId: number | null) => {
   selectedCategory.value = selectedCategory.value === categoryId ? null : categoryId
+  pagination.value.page = 1 // 重置到第一页
+  loadPosts()
 }
 
 const searchPosts = (keyword?: string) => {
   if (keyword) {
     searchKeyword.value = keyword
   }
-  ElMessage.info('搜索功能开发中...')
+  pagination.value.page = 1 // 重置到第一页
+  loadPosts()
 }
 
 const refreshPosts = () => {
-  ElMessage.success('刷新成功')
+  pagination.value.page = 1
+  loadPosts()
+}
+
+const handleSizeChange = (size: number) => {
+  pagination.value.size = size
+  pagination.value.page = 1
+  loadPosts()
+}
+
+const handleCurrentChange = (page: number) => {
+  pagination.value.page = page
+  loadPosts()
+}
+
+const handleSortChange = () => {
+  pagination.value.page = 1
+  loadPosts()
 }
 
 const viewPost = (postId: number) => {
   router.push(`/forum/post/${postId}`)
 }
 
-const toggleLike = (post: any) => {
-  ElMessage.success('点赞成功')
+const toggleLike = async (post: Post) => {
+  try {
+    const response = await likePost(post.id) as any as ApiResponse<null>
+    if (response.code === 200) {
+      // 切换点赞状态
+      const wasLiked = post.isLiked
+      post.isLiked = !wasLiked
+      post.likeCount += post.isLiked ? 1 : -1
+      ElMessage.success(post.isLiked ? '点赞成功' : '取消点赞')
+    } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '操作失败')
+  }
 }
 
-const handleCreatePost = () => {
-  showCreatePost.value = false
-  ElMessage.success('发布成功！')
+const handleCreatePost = async () => {
+  if (!postForm.title.trim()) {
+    ElMessage.warning('请输入帖子标题')
+    return
+  }
+  if (!postForm.categoryId) {
+    ElMessage.warning('请选择分类')
+    return
+  }
+  if (!postForm.content.trim()) {
+    ElMessage.warning('请输入帖子内容')
+    return
+  }
+
+  try {
+    posting.value = true
+    const response = await createPost({
+      title: postForm.title,
+      content: postForm.content,
+      categoryId: postForm.categoryId
+    }) as any as ApiResponse<{ postId: number }>
+    
+    if (response.code === 200) {
+      showCreatePost.value = false
+      ElMessage.success('发布成功！')
+      // 重置表单
+      postForm.title = ''
+      postForm.content = ''
+      postForm.categoryId = null
+      // 刷新帖子列表
+      loadPosts()
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '发布失败')
+  } finally {
+    posting.value = false
+  }
 }
 
 const handleCommand = (command: string) => {
@@ -340,8 +418,76 @@ const handleCommand = (command: string) => {
   }
 }
 
+// 加载帖子列表
+const loadPosts = async () => {
+  try {
+    loading.value = true
+    const params: any = {
+      page: pagination.value.page,
+      size: pagination.value.size,
+      sort: sortBy.value
+    }
+    
+    if (selectedCategory.value) {
+      params.categoryId = selectedCategory.value
+    }
+    
+    if (searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+    
+    const response = await getPosts(params) as any as ApiResponse<{
+      total: number
+      list: Post[]
+      pages: number
+    }>
+    
+    if (response.code === 200) {
+      posts.value = response.data.list || []
+      pagination.value.total = response.data.total || 0
+      pagination.value.pages = response.data.pages || 0
+      
+      // 调试信息：打印帖子的点赞状态
+      console.log('加载的帖子数据:', posts.value.map(p => ({
+        id: p.id,
+        title: p.title,
+        isLiked: p.isLiked,
+        likeCount: p.likeCount
+      })))
+    } else {
+      ElMessage.error(response.message || '加载帖子失败')
+    }
+  } catch (error: any) {
+    console.error('加载帖子失败:', error)
+    ElMessage.error(error.response?.data?.message || '加载帖子失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 加载分类列表
+const loadCategories = async () => {
+  try {
+    const response = await getCategories({ status: 1 }) as any as ApiResponse<{
+      total: number
+      list: Category[]
+    }>
+    
+    if (response.code === 200) {
+      categories.value = response.data.list || []
+    } else {
+      console.error('加载分类失败:', response.message)
+    }
+  } catch (error: any) {
+    console.error('加载分类失败:', error)
+    ElMessage.error('加载分类失败')
+  }
+}
+
 onMounted(() => {
   console.log('论坛页面加载完成')
+  loadCategories()
+  loadPosts()
 })
 </script>
 
@@ -633,6 +779,18 @@ onMounted(() => {
 .post-stats {
   display: flex;
   gap: 16px;
+}
+
+/* 分页样式 */
+.pagination-section {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .stat-item {

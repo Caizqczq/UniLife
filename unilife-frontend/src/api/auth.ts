@@ -50,4 +50,22 @@ export const uploadAvatar = (file: File) => {
 // 更新邮箱
 export const updateEmail = (email: string, code: string) => {
   return api.put<ApiResponse>('/users/email', { email, code })
+}
+
+// 获取用户统计数据
+export const getUserStats = () => {
+  return api.get<ApiResponse<{
+    postsCount: number
+    commentsCount: number
+    resourcesCount: number
+    likesReceived: number
+    coursesCount: number
+    schedulesCount: number
+  }>>('/users/stats')
+}
+
+// 获取用户最近帖子
+export const getUserRecentPosts = (limit?: number) => {
+  const params = limit ? { limit } : {}
+  return api.get<ApiResponse<any[]>>('/users/recent-posts', { params })
 } 

@@ -41,7 +41,7 @@
         </div>
 
         <!-- 帖子内容 -->
-        <div class="post-content-section card-light">
+        <div class="post-content-section card-light" v-loading="loading">
           <div class="post-header">
             <div class="post-meta">
               <el-tag type="primary">{{ post.categoryName }}</el-tag>
@@ -87,7 +87,9 @@
             <el-button type="primary" plain size="small">关注</el-button>
           </div>
 
-          <div class="post-content" v-html="post.content"></div>
+          <div class="post-content">
+            <pre class="post-text">{{ post.content }}</pre>
+          </div>
 
           <div class="post-footer">
             <div class="post-stats">
@@ -110,7 +112,7 @@
         <!-- 评论区域 -->
         <div class="comments-section card-light">
           <div class="comments-header">
-            <h3>评论 ({{ comments.length }})</h3>
+            <h3>评论 ({{ post.commentCount || 0 }})</h3>
             <el-select v-model="commentSort" size="small" style="width: 120px">
               <el-option label="最新" value="latest" />
               <el-option label="最热" value="hot" />
@@ -127,14 +129,23 @@
               class="comment-input"
             />
             <div class="comment-actions">
-              <el-button type="primary" @click="submitComment">
-                发表评论
+              <el-button type="primary" @click="submitComment" :loading="commenting">
+                {{ commenting ? '发表中...' : '发表评论' }}
               </el-button>
             </div>
           </div>
 
           <!-- 评论列表 -->
           <div class="comments-list">
+            <!-- 空状态 -->
+            <div v-if="comments.length === 0" class="empty-comments">
+              <el-empty description="暂无评论" :image-size="80">
+                <template #description>
+                  <p>暂无评论，快来发表第一个评论吧！</p>
+                </template>
+              </el-empty>
+            </div>
+            
             <div 
               v-for="comment in comments" 
               :key="comment.id"
@@ -206,6 +217,8 @@ import {
   ChatDotRound 
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { getPostDetail, likePost as likePostAPI, getComments, createComment as createCommentAPI, likeComment as likeCommentAPI } from '@/api/forum'
+import type { Post, ApiResponse } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -214,73 +227,34 @@ const userStore = useUserStore()
 // 响应式数据
 const newComment = ref('')
 const commentSort = ref('latest')
+const loading = ref(false)
+const commenting = ref(false)
 
-// 模拟帖子数据
-const post = ref({
-  id: 1,
-  title: '大学生活如何更好地安排时间？',
-  content: `
-    <p>作为一名大一新生，刚刚进入大学生活，发现与高中相比有很大的不同。高中时间安排比较固定，而大学有更多的自由时间，但也更容易迷茫。</p>
-    
-    <p>想请教一下学长学姐们关于时间管理的经验，比如：</p>
-    
-    <ul>
-      <li>如何平衡学习和社团活动？</li>
-      <li>怎么制定合理的学习计划？</li>
-      <li>如何避免拖延症？</li>
-      <li>课余时间应该如何充实自己？</li>
-    </ul>
-    
-    <p>希望大家能分享一些实用的方法和经验，谢谢！</p>
-  `,
-  nickname: '小明',
+// 真实数据
+const post = ref<Post>({
+  id: 0,
+  title: '',
+  content: '',
+  summary: '',
+  userId: 0,
+  nickname: '',
   avatar: '',
-  categoryName: '学习交流',
-  viewCount: 156,
-  commentCount: 23,
-  likeCount: 45,
+  categoryId: 0,
+  categoryName: '',
+  viewCount: 0,
+  likeCount: 0,
+  commentCount: 0,
   isLiked: false,
-  createdAt: '2024-01-15 10:30',
-  userId: 1
+  createdAt: '',
+  updatedAt: ''
 })
+const comments = ref<any[]>([])
 
 // 作者统计信息
 const authorStats = ref({
   postCount: 12,
   likeCount: 234
 })
-
-// 模拟评论数据
-const comments = ref([
-  {
-    id: 1,
-    content: '时间管理确实很重要，我推荐使用番茄工作法，25分钟专注学习，5分钟休息，效果很好！',
-    nickname: '学霸小王',
-    avatar: '',
-    likeCount: 12,
-    isLiked: false,
-    createdAt: '2024-01-15 11:20',
-    replies: [
-      {
-        id: 2,
-        content: '番茄工作法我也在用，确实挺有效的！',
-        nickname: '努力的小李',
-        avatar: '',
-        createdAt: '2024-01-15 12:10'
-      }
-    ]
-  },
-  {
-    id: 3,
-    content: '建议制定每日、每周和每月的目标，这样会更有方向感。另外要学会说不，不是所有活动都要参加。',
-    nickname: '经验分享者',
-    avatar: '',
-    likeCount: 8,
-    isLiked: false,
-    createdAt: '2024-01-15 13:45',
-    replies: []
-  }
-])
 
 // 计算属性
 const isAuthor = computed(() => {
@@ -292,47 +266,127 @@ const goBack = () => {
   router.go(-1)
 }
 
-const toggleLike = () => {
-  post.value.isLiked = !post.value.isLiked
-  post.value.likeCount += post.value.isLiked ? 1 : -1
-  ElMessage.success(post.value.isLiked ? '点赞成功' : '取消点赞')
+const toggleLike = async () => {
+  if (!post.value) return
+  
+  try {
+    const response = await likePostAPI(post.value.id) as any as ApiResponse<null>
+    if (response.code === 200) {
+      post.value.isLiked = !post.value.isLiked
+      post.value.likeCount += post.value.isLiked ? 1 : -1
+      ElMessage.success(post.value.isLiked ? '点赞成功' : '取消点赞')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
-const submitComment = () => {
+const submitComment = async () => {
   if (!newComment.value.trim()) {
     ElMessage.warning('请输入评论内容')
     return
   }
   
-  const comment = {
-    id: Date.now(),
-    content: newComment.value,
-    nickname: userStore.user?.nickname || '匿名用户',
-    avatar: userStore.user?.avatar || '',
-    likeCount: 0,
-    isLiked: false,
-    createdAt: new Date().toLocaleString('zh-CN'),
-    replies: []
+  try {
+    commenting.value = true
+    const response = await createCommentAPI({
+      postId: post.value.id,
+      content: newComment.value,
+      parentId: null
+    }) as any as ApiResponse<{ commentId: number }>
+    
+    if (response.code === 200) {
+      newComment.value = ''
+      ElMessage.success('评论发表成功')
+      // 重新加载评论
+      loadComments()
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '评论发表失败')
+  } finally {
+    commenting.value = false
   }
-  
-  comments.value.unshift(comment)
-  newComment.value = ''
-  post.value.commentCount++
-  ElMessage.success('评论发表成功')
 }
 
 const replyToComment = (comment: any) => {
   ElMessage.info('回复功能开发中...')
 }
 
-const likeComment = (comment: any) => {
-  comment.isLiked = !comment.isLiked
-  comment.likeCount += comment.isLiked ? 1 : -1
-  ElMessage.success(comment.isLiked ? '点赞成功' : '取消点赞')
+const likeComment = async (comment: any) => {
+  try {
+    const response = await likeCommentAPI(comment.id) as any as ApiResponse<null>
+    if (response.code === 200) {
+      comment.isLiked = !comment.isLiked
+      comment.likeCount += comment.isLiked ? 1 : -1
+      ElMessage.success(comment.isLiked ? '点赞成功' : '取消点赞')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
-onMounted(() => {
+// 加载帖子详情
+const loadPost = async () => {
+  const postId = Number(route.params.id)
+  if (!postId) {
+    ElMessage.error('帖子ID无效')
+    router.push('/forum')
+    return
+  }
+  
+  try {
+    loading.value = true
+    const response = await getPostDetail(postId) as any as ApiResponse<Post>
+    if (response.code === 200) {
+      post.value = response.data
+      
+      // 调试信息：打印帖子详情的点赞状态
+      console.log('加载的帖子详情:', {
+        id: post.value.id,
+        title: post.value.title,
+        isLiked: post.value.isLiked,
+        likeCount: post.value.likeCount
+      })
+    } else {
+      ElMessage.error(response.message || '加载帖子失败')
+      router.push('/forum')
+    }
+  } catch (error: any) {
+    console.error('加载帖子失败:', error)
+    ElMessage.error(error.response?.data?.message || '加载帖子失败')
+    router.push('/forum')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 加载评论列表
+const loadComments = async () => {
+  if (!post.value.id) return
+  
+  try {
+    const response = await getComments(post.value.id) as any as ApiResponse<{
+      total: number
+      list: any[]
+    }>
+    
+    if (response.code === 200) {
+      comments.value = response.data.list || []
+    } else {
+      console.error('加载评论失败:', response.message)
+    }
+  } catch (error: any) {
+    console.error('加载评论失败:', error)
+    ElMessage.error('加载评论失败')
+  }
+}
+
+onMounted(async () => {
   console.log('帖子详情页面加载完成', route.params.id)
+  await loadPost()
+  if (post.value.id) {
+    await loadComments()
+  }
 })
 </script>
 
@@ -536,6 +590,18 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
+.post-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  margin: 0;
+  background: none;
+  border: none;
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
 .post-footer {
   padding-top: 24px;
   border-top: 1px solid var(--gray-200);
@@ -589,6 +655,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.empty-comments {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-500);
 }
 
 .comment-item {

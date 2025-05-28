@@ -123,11 +123,15 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort) {
+    public Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort, Long userId) {
         // 参数校验
         if (page == null || page < 1) page = 1;
         if (size == null || size < 1 || size > 50) size = 10;
         if (StrUtil.isBlank(sort)) sort = "latest";
+
+        // 添加调试日志
+        log.info("getPostList - 接收到的参数: categoryId={}, keyword={}, page={}, size={}, sort={}, userId={}",
+                categoryId, keyword, page, size, sort, userId);
 
         // 只使用PageHelper进行分页，不设置排序
         PageHelper.startPage(page, size);
@@ -144,13 +148,13 @@ public class PostServiceImpl implements PostService {
 
         // 获取分页信息
         PageInfo<Post> pageInfo = new PageInfo<>(posts);
-        
+
         // 收集所有帖子的分类 ID
         List<Long> categoryIds = posts.stream()
                 .map(Post::getCategoryId)
                 .distinct()
                 .collect(Collectors.toList());
-        
+
         // 批量获取分类信息
         Map<Long, String> categoryMap = new HashMap<>();
         if (!categoryIds.isEmpty()) {
@@ -163,6 +167,18 @@ public class PostServiceImpl implements PostService {
         // 转换为VO
         List<PostListVO> postListVOs = posts.stream().map(post -> {
             User user = userMapper.getUserById(post.getUserId());
+
+            // 查询用户是否点赞过该帖子
+            boolean isLiked = false;
+            if (userId != null) {
+                log.info("查询帖子 {} 的点赞状态，用户ID: {}", post.getId(), userId);
+                Boolean liked = postLikeMapper.isLiked(post.getId(), userId);
+                isLiked = liked != null && liked;
+                log.info("帖子 {} 的点赞状态查询结果: liked={}, isLiked={}", post.getId(), liked, isLiked);
+            } else {
+                log.info("用户ID为null，跳过帖子 {} 的点赞状态查询", post.getId());
+            }
+
             return PostListVO.builder()
                     .id(post.getId())
                     .title(post.getTitle())
@@ -175,9 +191,13 @@ public class PostServiceImpl implements PostService {
                     .viewCount(post.getViewCount())
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())
+                    .isLiked(isLiked)
                     .createdAt(post.getCreatedAt())
                     .build();
         }).collect(Collectors.toList());
+
+        log.info("返回的帖子列表中点赞状态: {}",
+                postListVOs.stream().map(p -> "帖子" + p.getId() + ":isLiked=" + p.getIsLiked()).collect(Collectors.toList()));
 
         // 返回结果
         Map<String, Object> data = new HashMap<>();

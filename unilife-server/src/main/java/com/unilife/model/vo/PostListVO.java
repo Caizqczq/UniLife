@@ -71,6 +71,11 @@ public class PostListVO {
     private Integer commentCount;
     
     /**
+     * 当前用户是否点赞
+     */
+    private Boolean isLiked;
+    
+    /**
      * 创建时间
      */
     private LocalDateTime createdAt;

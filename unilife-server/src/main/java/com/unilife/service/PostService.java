@@ -31,9 +31,10 @@ public interface PostService {
      * @param page 页码
      * @param size 每页大小
      * @param sort 排序方式（latest-最新，hot-热门）
+     * @param userId 当前用户ID，可为null
      * @return 结果
      */
-    Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort);
+    Result getPostList(Long categoryId, String keyword, Integer page, Integer size, String sort, Long userId);
     
     /**
      * 更新帖子

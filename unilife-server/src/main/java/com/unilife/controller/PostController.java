@@ -47,7 +47,9 @@ public class PostController {
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size,
             @RequestParam(value = "sort", defaultValue = "latest") String sort) {
-        return postService.getPostList(categoryId, keyword, page, size, sort);
+        // 从当前上下文获取用户ID，可能为null（未登录用户）
+        Long userId = BaseContext.getId();
+        return postService.getPostList(categoryId, keyword, page, size, sort, userId);
     }
 
     @Operation(summary = "更新帖子")

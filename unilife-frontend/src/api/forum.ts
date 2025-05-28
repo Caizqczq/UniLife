@@ -49,6 +49,67 @@ export const likePost = (id: number) => {
   return api.post<ApiResponse<null>>(`/posts/${id}/like`)
 }
 
+// 获取用户的帖子列表
+export const getUserPosts = (userId: number, params?: {
+  page?: number
+  size?: number
+  sort?: string
+}) => {
+  return api.get<ApiResponse<{
+    total: number
+    list: Post[]
+    pages: number
+  }>>(`/posts/user/${userId}`, { params })
+}
+
+// ==================== 评论管理 ====================
+
+// 获取评论列表
+export const getComments = (postId: number) => {
+  return api.get<ApiResponse<{
+    total: number
+    list: Array<{
+      id: number
+      content: string
+      userId: number
+      nickname: string
+      avatar: string
+      likeCount: number
+      isLiked: boolean
+      createdAt: string
+      replies?: Array<{
+        id: number
+        content: string
+        userId: number
+        nickname: string
+        avatar: string
+        likeCount: number
+        isLiked: boolean
+        createdAt: string
+      }>
+    }>
+  }>>(`/comments/post/${postId}`)
+}
+
+// 发表评论
+export const createComment = (data: {
+  postId: number
+  content: string
+  parentId?: number | null
+}) => {
+  return api.post<ApiResponse<{ commentId: number }>>('/comments', data)
+}
+
+// 删除评论
+export const deleteComment = (id: number) => {
+  return api.delete<ApiResponse<null>>(`/comments/${id}`)
+}
+
+// 点赞/取消点赞评论
+export const likeComment = (id: number) => {
+  return api.post<ApiResponse<null>>(`/comments/${id}/like`)
+}
+
 // 获取分类列表
 export const getCategories = (params?: { status?: number }) => {
   return api.get<ApiResponse<{

@@ -9,6 +9,7 @@
 - **增强文件存储**: 文件存储从本地上传改为阿里云OSS，支持临时访问链接
 - **添加数据库设计说明**: 详细说明了资源表和点赞表的设计
 - **修正API参数说明**: 更新了资源列表接口中 `user` 参数的含义，改为 `uploaderUserId`
+- **优化课程表时间安排**: 学期格式统一为"2024-2025第一学期"格式，课程时间安排调整为13个标准时间段
 
 ### v1.1.0 (2025-01-26)
 - 完成论坛功能模块的前后端集成
@@ -1113,13 +1114,31 @@ CREATE TABLE `resource_likes` (
   "location": "教学楼A-101",
   "dayOfWeek": 1,
   "startTime": "08:00:00",
-  "endTime": "09:40:00",
+  "endTime": "08:50:00",
   "startWeek": 1,
   "endWeek": 16,
-  "semester": "2023-1",
+  "semester": "2024-2025-1",
   "color": "#4CAF50"
 }
 ```
+
+**参数说明**:
+- `dayOfWeek`: 星期几（1-7，1表示周一，7表示周日）
+- `startTime`/`endTime`: 课程时间，支持13个标准时间段：
+  - 第1节课: 08:00-08:50
+  - 第2节课: 08:50-09:40
+  - 第3节课: 09:50-10:40
+  - 第4节课: 10:40-11:30
+  - 第5节课: 11:30-12:20
+  - 第6节课: 14:05-14:55
+  - 第7节课: 14:55-15:45
+  - 第8节课: 15:45-16:35
+  - 第9节课: 16:40-17:30
+  - 第10节课: 17:30-18:20
+  - 第11节课: 18:30-19:20
+  - 第12节课: 19:20-20:10
+  - 第13节课: 20:10-21:00
+- `semester`: 学期格式为"YYYY-YYYY-X"（如："2024-2025-1"表示2024-2025学年第一学期）
 
 响应结果：
 ```json
@@ -1151,10 +1170,10 @@ CREATE TABLE `resource_likes` (
     "location": "教学楼A-101",
     "dayOfWeek": 1,
     "startTime": "08:00:00",
-    "endTime": "09:40:00",
+    "endTime": "08:50:00",
     "startWeek": 1,
     "endWeek": 16,
-    "semester": "2023-1",
+    "semester": "2024-2025-1",
     "color": "#4CAF50",
     "status": 1,
     "createdAt": "2023-05-01T12:00:00",
@@ -1185,10 +1204,10 @@ CREATE TABLE `resource_likes` (
         "location": "教学楼A-101",
         "dayOfWeek": 1,
         "startTime": "08:00:00",
-        "endTime": "09:40:00",
+        "endTime": "08:50:00",
         "startWeek": 1,
         "endWeek": 16,
-        "semester": "2023-1",
+        "semester": "2024-2025-1",
         "color": "#4CAF50",
         "status": 1,
         "createdAt": "2023-05-01T12:00:00",
@@ -1221,10 +1240,10 @@ CREATE TABLE `resource_likes` (
         "location": "教学楼A-101",
         "dayOfWeek": 1,
         "startTime": "08:00:00",
-        "endTime": "09:40:00",
+        "endTime": "08:50:00",
         "startWeek": 1,
         "endWeek": 16,
-        "semester": "2023-1",
+        "semester": "2024-2025-1",
         "color": "#4CAF50",
         "status": 1,
         "createdAt": "2023-05-01T12:00:00",
@@ -1240,6 +1259,8 @@ CREATE TABLE `resource_likes` (
 - **方法**: GET
 - **描述**: 获取当前用户在指定学期的课程
 - **认证**: 需要JWT Token
+
+**参数说明**: `semester`路径参数示例："2024-2025-1"
 
 响应结果：
 ```json
@@ -1257,10 +1278,10 @@ CREATE TABLE `resource_likes` (
         "location": "教学楼A-101",
         "dayOfWeek": 1,
         "startTime": "08:00:00",
-        "endTime": "09:40:00",
+        "endTime": "08:50:00",
         "startWeek": 1,
         "endWeek": 16,
-        "semester": "2023-1",
+        "semester": "2024-2025-1",
         "color": "#4CAF50",
         "status": 1,
         "createdAt": "2023-05-01T12:00:00",
@@ -1284,11 +1305,11 @@ CREATE TABLE `resource_likes` (
   "teacher": "李教授",
   "location": "教学楼B-202",
   "dayOfWeek": 2,
-  "startTime": "10:00:00",
-  "endTime": "11:40:00",
+  "startTime": "09:50:00",
+  "endTime": "10:40:00",
   "startWeek": 1,
   "endWeek": 16,
-  "semester": "2023-1",
+  "semester": "2024-2025-1",
   "color": "#2196F3"
 }
 ```
@@ -1574,7 +1595,7 @@ CREATE TABLE `courses` (
   `end_time` TIME NOT NULL COMMENT '结束时间',
   `start_week` TINYINT NOT NULL COMMENT '开始周次',
   `end_week` TINYINT NOT NULL COMMENT '结束周次',
-  `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2023-1）',
+  `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2024-2025-1）',
   `color` VARCHAR(20) DEFAULT NULL COMMENT '显示颜色',
   `status` TINYINT DEFAULT 1 COMMENT '状态（0-删除, 1-正常）',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -1603,9 +1624,27 @@ CREATE TABLE `schedules` (
 
 **特性**:
 - 支持学期管理和多学期课程数据
+- 支持13个标准课程时间段的时间安排
 - 支持时间冲突检测
 - 支持课程和日程的颜色标记
 - 支持日程提醒功能
+- 学期格式统一为"YYYY-YYYY-X"格式
+
+**课程时间安排说明**:
+系统支持13个标准课程时间段：
+- 第1节课: 08:00-08:50
+- 第2节课: 08:50-09:40  
+- 第3节课: 09:50-10:40
+- 第4节课: 10:40-11:30
+- 第5节课: 11:30-12:20
+- 第6节课: 14:05-14:55
+- 第7节课: 14:55-15:45
+- 第8节课: 15:45-16:35
+- 第9节课: 16:40-17:30
+- 第10节课: 17:30-18:20
+- 第11节课: 18:30-19:20
+- 第12节课: 19:20-20:10
+- 第13节课: 20:10-21:00
 
 ## 7. 待实现模块
 

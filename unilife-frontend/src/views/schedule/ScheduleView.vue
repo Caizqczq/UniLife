@@ -60,25 +60,50 @@
                 <el-icon><Calendar /></el-icon>
                 添加日程
               </el-button>
+              <el-button @click="createTestSchedule" type="warning" plain>
+                <el-icon><Calendar /></el-icon>
+                创建测试日程
+              </el-button>
             </div>
           </div>
           
           <!-- 学期选择 -->
           <div class="semester-selector">
-            <el-select v-model="currentSemester" placeholder="选择学期" size="default" @change="loadCourses">
-              <el-option label="2024春季学期" value="2024-1" />
-              <el-option label="2024秋季学期" value="2024-2" />
-              <el-option label="2023秋季学期" value="2023-2" />
-              <el-option label="2023春季学期" value="2023-1" />
+            <el-select v-model="currentSemester" placeholder="选择学期" size="default" @change="handleSemesterChange">
+              <el-option 
+                v-for="(config, key) in semesterConfig" 
+                :key="key" 
+                :label="config.name" 
+                :value="key" 
+              />
             </el-select>
             
             <div class="week-selector">
               <el-button @click="previousWeek" circle size="small">
                 <el-icon><ArrowLeft /></el-icon>
               </el-button>
-              <span class="current-week">第 {{ currentWeek }} 周</span>
+              
+              <el-select 
+                v-model="currentWeek" 
+                placeholder="选择周数" 
+                size="small"
+                style="width: 120px;"
+              >
+                <el-option 
+                  v-for="week in getCurrentSemesterConfig().totalWeeks" 
+                  :key="week" 
+                  :label="`第 ${week} 周`" 
+                  :value="week"
+                />
+              </el-select>
+              
               <el-button @click="nextWeek" circle size="small">
                 <el-icon><ArrowRight /></el-icon>
+              </el-button>
+              
+              <el-button @click="goToCurrentWeek" size="small" type="primary" plain>
+                <el-icon><Calendar /></el-icon>
+                回到今天
               </el-button>
             </div>
           </div>
@@ -92,10 +117,16 @@
               v-for="(day, index) in weekDays" 
               :key="index"
               class="day-column"
-              :class="{ today: isToday(index) }"
+              :class="{ 
+                today: getDayDate(index).isToday,
+                'current-day': getDayDate(index).isToday 
+              }"
             >
               <div class="day-name">{{ day }}</div>
-              <div class="day-date">{{ getDayDate(index) }}</div>
+              <div class="day-date" :class="{ 'today-date': getDayDate(index).isToday }">
+                {{ getDayDate(index).month }}/{{ getDayDate(index).date }}
+                <span v-if="getDayDate(index).isToday" class="today-indicator">今天</span>
+              </div>
             </div>
           </div>
           
@@ -106,27 +137,44 @@
               class="time-row"
             >
               <div class="time-cell">
-                <div class="time-period">第{{ timeIndex + 1 }}节</div>
-                <div class="time-range">{{ timeSlot }}</div>
+                <div class="time-period">{{ timeSlot }}</div>
               </div>
               
               <div 
                 v-for="dayIndex in 7" 
                 :key="dayIndex"
                 class="course-cell"
-                @click="addCourseToSlot(timeIndex, dayIndex)"
+                @click="addCourseToSlot(timeIndex, dayIndex - 1)"
               >
-                <div 
-                  v-if="getCourseForSlot(timeIndex, dayIndex)"
-                  class="course-item"
-                  :style="{ backgroundColor: getCourseForSlot(timeIndex, dayIndex)?.color }"
-                  @click.stop="editCourse(getCourseForSlot(timeIndex, dayIndex)!)"
-                >
-                  <div class="course-name">{{ getCourseForSlot(timeIndex, dayIndex)?.name }}</div>
-                  <div class="course-location">{{ getCourseForSlot(timeIndex, dayIndex)?.location }}</div>
-                  <div class="course-teacher">{{ getCourseForSlot(timeIndex, dayIndex)?.teacher }}</div>
+                <!-- 显示所有项目（课程和日程） -->
+                <div v-if="getItemsForSlot(timeIndex, dayIndex - 1).length > 0" class="slot-items">
+                  <div 
+                    v-for="(item, itemIndex) in getItemsForSlot(timeIndex, dayIndex - 1)" 
+                    :key="itemIndex"
+                    :class="item.type === 'course' ? 'course-item' : 'schedule-item'"
+                    :style="{ backgroundColor: item.data.color }"
+                    @click.stop="item.type === 'course' ? editCourse(item.data) : editSchedule(item.data)"
+                  >
+                    <!-- 课程内容 -->
+                    <template v-if="item.type === 'course'">
+                      <div class="course-name">{{ item.data.name }}</div>
+                      <div class="course-location">{{ item.data.location }}</div>
+                      <div class="course-teacher">{{ item.data.teacher }}</div>
+                    </template>
+                    
+                    <!-- 日程内容 -->
+                    <template v-else>
+                      <div class="schedule-name">{{ item.data.title }}</div>
+                      <div class="schedule-location">{{ item.data.location }}</div>
+                      <div class="schedule-time" v-if="item.data.isAllDay !== 1">
+                        {{ formatTime(item.data.startTime) }}
+                      </div>
+                      <div class="schedule-time" v-else>全天</div>
+                    </template>
+                  </div>
                 </div>
                 
+                <!-- 空白时间段 -->
                 <div v-else class="empty-slot">
                   <el-icon class="add-icon"><Plus /></el-icon>
                 </div>
@@ -221,21 +269,33 @@
         
         <div class="form-row">
           <el-form-item label="开始时间" prop="startTime">
-            <el-time-picker
-              v-model="courseForm.startTime"
-              format="HH:mm"
-              placeholder="选择开始时间"
+            <el-select 
+              v-model="courseForm.startTime" 
+              placeholder="选择开始时间" 
               style="width: 100%"
-            />
+            >
+              <el-option 
+                v-for="option in startTimeOptions" 
+                :key="option.value" 
+                :label="option.label" 
+                :value="option.value"
+              />
+            </el-select>
           </el-form-item>
           
           <el-form-item label="结束时间" prop="endTime">
-            <el-time-picker
-              v-model="courseForm.endTime"
-              format="HH:mm"
-              placeholder="选择结束时间"
+            <el-select 
+              v-model="courseForm.endTime" 
+              placeholder="选择结束时间" 
               style="width: 100%"
-            />
+            >
+              <el-option 
+                v-for="option in endTimeOptions" 
+                :key="option.value" 
+                :label="option.label" 
+                :value="option.value"
+              />
+            </el-select>
           </el-form-item>
         </div>
         
@@ -409,7 +469,7 @@ const savingCourse = ref(false)
 const savingSchedule = ref(false)
 const showAddCourse = ref(false)
 const showAddSchedule = ref(false)
-const currentSemester = ref('2024-1')
+const currentSemester = ref('2024-2025-1')
 const currentWeek = ref(1)
 
 // 编辑状态
@@ -438,7 +498,17 @@ const courseForm = reactive({
 })
 
 // 日程表单
-const scheduleForm = reactive({
+const scheduleForm = reactive<{
+  title: string
+  description: string
+  location: string
+  startTime: string | Date
+  endTime: string | Date
+  date: string
+  isAllDay: boolean
+  reminder: number
+  color: string
+}>({
   title: '',
   description: '',
   location: '',
@@ -489,12 +559,70 @@ const scheduleRules: FormRules = {
 // 常量数据
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const timeSlots = [
-  '08:00-09:40',
-  '10:00-11:40', 
-  '14:00-15:40',
-  '16:00-17:40',
-  '19:00-20:40'
+  '08:00-08:50',   // 第1节课
+  '08:50-09:40',   // 第2节课  
+  '09:50-10:40',   // 第3节课
+  '10:40-11:30',   // 第4节课
+  '11:30-12:20',   // 第5节课
+  '14:05-14:55',   // 第6节课
+  '14:55-15:45',   // 第7节课
+  '15:45-16:35',   // 第8节课
+  '16:40-17:30',   // 第9节课
+  '17:30-18:20',   // 第10节课
+  '18:30-19:20',   // 第11节课
+  '19:20-20:10',   // 第12节课
+  '20:10-21:00'    // 第13节课
 ]
+
+// 课程时间选项
+const courseTimeOptions = [
+  { label: '第1节课 08:00-08:50', value: '08:00', endValue: '08:50' },
+  { label: '第2节课 08:50-09:40', value: '08:50', endValue: '09:40' },
+  { label: '第3节课 09:50-10:40', value: '09:50', endValue: '10:40' },
+  { label: '第4节课 10:40-11:30', value: '10:40', endValue: '11:30' },
+  { label: '第5节课 11:30-12:20', value: '11:30', endValue: '12:20' },
+  { label: '第6节课 14:05-14:55', value: '14:05', endValue: '14:55' },
+  { label: '第7节课 14:55-15:45', value: '14:55', endValue: '15:45' },
+  { label: '第8节课 15:45-16:35', value: '15:45', endValue: '16:35' },
+  { label: '第9节课 16:40-17:30', value: '16:40', endValue: '17:30' },
+  { label: '第10节课 17:30-18:20', value: '17:30', endValue: '18:20' },
+  { label: '第11节课 18:30-19:20', value: '18:30', endValue: '19:20' },
+  { label: '第12节课 19:20-20:10', value: '19:20', endValue: '20:10' },
+  { label: '第13节课 20:10-21:00', value: '20:10', endValue: '21:00' }
+]
+
+// 开始时间选项（显示开始时间）
+const startTimeOptions = courseTimeOptions.map(option => ({
+  label: `${option.value} (${option.label.split(' ')[0]}开始)`,
+  value: option.value + ':00'  // 添加秒数，符合后端HH:mm:ss格式
+}))
+
+// 结束时间选项（显示结束时间）
+const endTimeOptions = courseTimeOptions.map(option => ({
+  label: `${option.endValue} (${option.label.split(' ')[0]}结束)`,
+  value: option.endValue + ':00'  // 添加秒数，符合后端HH:mm:ss格式
+}))
+
+// 课程颜色预设
+const courseColors = [
+  '#409EFF', // 蓝色
+  '#67C23A', // 绿色
+  '#E6A23C', // 橙色
+  '#F56C6C', // 红色
+  '#909399', // 灰色
+  '#9C27B0', // 紫色
+  '#FF5722', // 深橙色
+  '#4CAF50', // 深绿色
+  '#2196F3', // 深蓝色
+  '#FF9800', // 琥珀色
+  '#795548', // 棕色
+  '#607D8B'  // 蓝灰色
+]
+
+// 生成随机颜色
+const getRandomColor = () => {
+  return courseColors[Math.floor(Math.random() * courseColors.length)]
+}
 
 // 计算属性
 const todayCourses = computed(() => {
@@ -504,45 +632,293 @@ const todayCourses = computed(() => {
 })
 
 const todaySchedules = computed(() => {
+  // 获取真实的今天日期
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
-  return schedules.value.filter(schedule => {
-    const scheduleDate = new Date(schedule.startTime).toISOString().split('T')[0]
-    return scheduleDate === todayStr
+  
+  console.log('=== 今日日程调试信息 ===')
+  console.log('今天日期:', todayStr)
+  console.log('所有日程数据:', schedules.value)
+  
+  const filteredSchedules = schedules.value.filter(schedule => {
+    const startDate = new Date(schedule.startTime).toISOString().split('T')[0]
+    const endDate = new Date(schedule.endTime).toISOString().split('T')[0]
+    
+    // 检查今天是否在日程的时间范围内（包括跨天日程）
+    const isInRange = todayStr >= startDate && todayStr <= endDate
+    
+    console.log('日程:', schedule.title)
+    console.log('开始日期:', startDate, '结束日期:', endDate)
+    console.log('今天是否在范围内:', isInRange)
+    
+    return isInRange
   })
+  
+  console.log('筛选后的今日日程:', filteredSchedules)
+  console.log('=== 调试信息结束 ===')
+  
+  return filteredSchedules
 })
 
 // 方法
+// 学期配置
+const semesterConfig = {
+  '2024-2025-1': {
+    name: '2024-2025第一学期',
+    startDate: new Date(2024, 8, 2), // 2024年9月2日（周一）
+    endDate: new Date(2025, 0, 19),   // 2025年1月19日
+    totalWeeks: 20
+  },
+  '2024-2025-2': {
+    name: '2024-2025第二学期', 
+    startDate: new Date(2025, 1, 24), // 2025年2月24日（周一）
+    endDate: new Date(2025, 5, 29),   // 2025年6月29日
+    totalWeeks: 18
+  },
+  '2023-2024-1': {
+    name: '2023-2024第一学期',
+    startDate: new Date(2023, 8, 4), // 2023年9月4日（周一）
+    endDate: new Date(2024, 0, 21),   // 2024年1月21日
+    totalWeeks: 20
+  },
+  '2023-2024-2': {
+    name: '2023-2024第二学期',
+    startDate: new Date(2024, 1, 26), // 2024年2月26日（周一）
+    endDate: new Date(2024, 5, 30),   // 2024年6月30日
+    totalWeeks: 18
+  },
+  '2022-2023-1': {
+    name: '2022-2023第一学期',
+    startDate: new Date(2022, 8, 5), // 2022年9月5日（周一）
+    endDate: new Date(2023, 0, 15),   // 2023年1月15日
+    totalWeeks: 20
+  },
+  '2022-2023-2': {
+    name: '2022-2023第二学期',
+    startDate: new Date(2023, 1, 27), // 2023年2月27日（周一）
+    endDate: new Date(2023, 6, 2),    // 2023年7月2日
+    totalWeeks: 18
+  }
+}
+
+// 获取当前应该显示的学期
+const getCurrentSemester = () => {
+  const now = new Date()
+  
+  // 按时间顺序检查学期，找到当前日期所在的学期
+  const sortedSemesters = Object.entries(semesterConfig).sort((a, b) => {
+    return b[1].startDate.getTime() - a[1].startDate.getTime() // 按开始时间倒序排列
+  })
+  
+  for (const [semesterKey, config] of sortedSemesters) {
+    if (now >= config.startDate && now <= config.endDate) {
+      return semesterKey
+    }
+  }
+  
+  // 如果当前时间不在任何学期范围内，找最接近的学期
+  let closestSemester = '2024-2025-1'
+  let minDistance = Infinity
+  
+  for (const [semesterKey, config] of Object.entries(semesterConfig)) {
+    // 计算到学期开始时间的距离
+    const distanceToStart = Math.abs(now.getTime() - config.startDate.getTime())
+    // 计算到学期结束时间的距离
+    const distanceToEnd = Math.abs(now.getTime() - config.endDate.getTime())
+    // 取较小的距离
+    const distance = Math.min(distanceToStart, distanceToEnd)
+    
+    if (distance < minDistance) {
+      minDistance = distance
+      closestSemester = semesterKey
+    }
+  }
+  
+  console.log('当前时间不在任何学期范围内，选择最接近的学期:', closestSemester)
+  return closestSemester
+}
+
+// 获取指定学期的当前周数
+const getCurrentWeekInSemester = (semester: string) => {
+  const config = semesterConfig[semester as keyof typeof semesterConfig]
+  if (!config) return 1
+  
+  const now = new Date()
+  
+  // 如果当前时间不在学期范围内，返回第1周
+  if (now < config.startDate || now > config.endDate) {
+    return 1
+  }
+  
+  // 计算从学期开始到现在的周数
+  const diffTime = now.getTime() - config.startDate.getTime()
+  const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000)) + 1
+  
+  return Math.max(1, Math.min(diffWeeks, config.totalWeeks))
+}
+
+// 获取指定学期和周数的周一日期
+const getWeekMondayDate = (semester: string, week: number) => {
+  const config = semesterConfig[semester as keyof typeof semesterConfig]
+  if (!config) return new Date()
+  
+  const mondayDate = new Date(config.startDate)
+  mondayDate.setDate(config.startDate.getDate() + (week - 1) * 7)
+  
+  return mondayDate
+}
+
+// 获取当前学期配置
+const getCurrentSemesterConfig = () => {
+  return semesterConfig[currentSemester.value as keyof typeof semesterConfig] || semesterConfig['2024-2025-1']
+}
+
+// 处理学期切换
+const handleSemesterChange = (newSemester: string) => {
+  console.log('学期切换到:', newSemester)
+  
+  // 重置周数到第1周
+  currentWeek.value = 1
+  
+  // 重新加载课程
+  loadCourses()
+}
+
 const isToday = (dayIndex: number) => {
-  const today = new Date().getDay()
+  const now = new Date()
+  const currentSemesterKey = getCurrentSemester()
+  
+  // 只有在当前学期才显示"今天"
+  if (currentSemester.value !== currentSemesterKey) {
+    return false
+  }
+  
+  // 只有在当前周才显示"今天"
+  const currentWeekInSemester = getCurrentWeekInSemester(currentSemester.value)
+  if (currentWeek.value !== currentWeekInSemester) {
+    return false
+  }
+  
+  const today = now.getDay()
   const targetDay = dayIndex + 1
   return today === 0 ? targetDay === 7 : today === targetDay
 }
 
 const getDayDate = (dayIndex: number) => {
-  const today = new Date()
-  const currentDayOfWeek = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - (currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1))
-  
+  const monday = getWeekMondayDate(currentSemester.value, currentWeek.value)
   const targetDate = new Date(monday)
   targetDate.setDate(monday.getDate() + dayIndex)
   
-  return targetDate.getDate()
+  // 检查是否是今天
+  const now = new Date()
+  const isCurrentDay = (
+    targetDate.getFullYear() === now.getFullYear() &&
+    targetDate.getMonth() === now.getMonth() &&
+    targetDate.getDate() === now.getDate()
+  )
+  
+  return {
+    date: targetDate.getDate(),
+    month: targetDate.getMonth() + 1,
+    isToday: isCurrentDay,
+    fullDate: targetDate
+  }
 }
 
 const getCourseForSlot = (timeIndex: number, dayIndex: number) => {
   return courses.value.find(course => {
+    // dayIndex现在是0-6，需要转换为1-7来匹配数据库
     if (course.dayOfWeek !== dayIndex + 1) return false
     
-    // 简化时间匹配逻辑
-    const courseStart = course.startTime
-    const courseEnd = course.endTime
-    const slotTime = timeSlots[timeIndex]
+    // 检查当前周是否在课程的周数范围内
+    if (currentWeek.value < course.startWeek || currentWeek.value > course.endWeek) {
+      return false
+    }
     
-    // 这里需要根据实际需求进行时间匹配
-    return slotTime.includes(courseStart.substring(0, 5))
+    // 获取当前时间段的开始和结束时间
+    const slotTimes = timeSlots[timeIndex].split('-')
+    const slotStart = slotTimes[0] // 例如: "08:00"
+    const slotEnd = slotTimes[1]   // 例如: "08:50"
+    
+    // 获取课程的开始和结束时间(移除秒数部分进行比较)
+    const courseStart = course.startTime.substring(0, 5) // "08:00:00" -> "08:00"
+    const courseEnd = course.endTime.substring(0, 5)     // "09:40:00" -> "09:40"
+    
+    // 判断当前时间段是否在课程的时间范围内
+    // 课程开始时间 <= 时间段开始时间 && 时间段结束时间 <= 课程结束时间
+    return courseStart <= slotStart && slotEnd <= courseEnd
   })
+}
+
+// 获取指定时间段和日期的日程
+const getScheduleForSlot = (timeIndex: number, dayIndex: number) => {
+  // 获取指定日期
+  const targetDate = getDayDate(dayIndex)
+  const targetDateStr = `${targetDate.fullDate.getFullYear()}-${String(targetDate.fullDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.fullDate.getDate()).padStart(2, '0')}`
+  
+  // 获取当前时间段的开始和结束时间
+  const slotTimes = timeSlots[timeIndex].split('-')
+  const slotStart = slotTimes[0] // 例如: "08:00"
+  const slotEnd = slotTimes[1]   // 例如: "08:50"
+  
+  return schedules.value.find(schedule => {
+    // 检查指定日期是否在日程的时间范围内（支持跨天日程）
+    const startDate = new Date(schedule.startTime).toISOString().split('T')[0]
+    const endDate = new Date(schedule.endTime).toISOString().split('T')[0]
+    
+    // 检查目标日期是否在日程的日期范围内
+    const isDateInRange = targetDateStr >= startDate && targetDateStr <= endDate
+    if (!isDateInRange) return false
+    
+    // 如果是全天日程，在第一个时间段显示
+    if (schedule.isAllDay === 1) {
+      return timeIndex === 0
+    }
+    
+    // 对于跨天的非全天日程，需要特殊处理时间检查
+    if (startDate !== endDate) {
+      // 跨天日程：如果是开始日期，检查时间段是否在开始时间之后
+      if (targetDateStr === startDate) {
+        const scheduleStart = new Date(schedule.startTime).toTimeString().substring(0, 5)
+        return slotStart >= scheduleStart
+      }
+      // 跨天日程：如果是结束日期，检查时间段是否在结束时间之前
+      else if (targetDateStr === endDate) {
+        const scheduleEnd = new Date(schedule.endTime).toTimeString().substring(0, 5)
+        return slotEnd <= scheduleEnd
+      }
+      // 跨天日程：如果是中间日期，整天都显示
+      else {
+        return true
+      }
+    } else {
+      // 同一天的日程：检查时间段是否重叠
+      const scheduleStart = new Date(schedule.startTime).toTimeString().substring(0, 5) // "08:00"
+      const scheduleEnd = new Date(schedule.endTime).toTimeString().substring(0, 5)     // "09:40"
+      
+      // 判断时间段是否重叠
+      return scheduleStart < slotEnd && scheduleEnd > slotStart
+    }
+  })
+}
+
+// 获取指定时间段的所有项目（课程和日程）
+const getItemsForSlot = (timeIndex: number, dayIndex: number) => {
+  const items: Array<{type: 'course' | 'schedule', data: any}> = []
+  
+  // 获取课程
+  const course = getCourseForSlot(timeIndex, dayIndex)
+  if (course) {
+    items.push({ type: 'course', data: course })
+  }
+  
+  // 获取日程
+  const schedule = getScheduleForSlot(timeIndex, dayIndex)
+  if (schedule) {
+    items.push({ type: 'schedule', data: schedule })
+  }
+  
+  return items
 }
 
 const previousWeek = () => {
@@ -552,17 +928,53 @@ const previousWeek = () => {
 }
 
 const nextWeek = () => {
-  if (currentWeek.value < 20) {
+  const maxWeeks = getCurrentSemesterConfig().totalWeeks
+  if (currentWeek.value < maxWeeks) {
     currentWeek.value++
   }
+}
+
+// 回到当前周
+const goToCurrentWeek = () => {
+  // 获取当前真实日期对应的学期
+  const currentRealSemester = getCurrentSemester()
+  const currentRealWeek = getCurrentWeekInSemester(currentRealSemester)
+  
+  // 检查是否已经在当前学期和周数
+  if (currentSemester.value === currentRealSemester && currentWeek.value === currentRealWeek) {
+    const config = getCurrentSemesterConfig()
+    ElMessage.info(`当前已经是${config.name}第${currentRealWeek}周`)
+    return
+  }
+  
+  // 如果当前选择的学期不是真实的当前学期，则切换学期
+  if (currentSemester.value !== currentRealSemester) {
+    console.log('切换到当前学期:', currentRealSemester)
+    currentSemester.value = currentRealSemester
+    // 学期切换会触发handleSemesterChange，重新加载课程
+    loadCourses()
+  }
+  
+  // 设置到当前学期的当前周
+  currentWeek.value = currentRealWeek
+  
+  console.log('回到今天 - 学期:', currentRealSemester, '周数:', currentRealWeek)
+  
+  // 显示提示信息
+  const config = getCurrentSemesterConfig()
+  ElMessage.success(`已切换到${config.name}第${currentRealWeek}周`)
 }
 
 const addCourseToSlot = (timeIndex: number, dayIndex: number) => {
   // 预设时间和星期
   courseForm.dayOfWeek = dayIndex + 1
-  const timeSlot = timeSlots[timeIndex].split('-')
-  courseForm.startTime = timeSlot[0]
-  courseForm.endTime = timeSlot[1]
+  if (timeIndex < courseTimeOptions.length) {
+    courseForm.startTime = courseTimeOptions[timeIndex].value + ':00'
+    // 不自动设置结束时间，让用户自己选择
+    courseForm.endTime = ''
+  }
+  // 预设随机颜色
+  courseForm.color = getRandomColor()
   showAddCourse.value = true
 }
 
@@ -668,11 +1080,22 @@ const handleSaveSchedule = async () => {
     
     let startTime, endTime
     if (scheduleForm.isAllDay) {
-      startTime = `${scheduleForm.date}T00:00:00`
-      endTime = `${scheduleForm.date}T23:59:59`
+      // 全天日程：使用选择的日期，时间设为00:00:00到23:59:59
+      const dateStr = scheduleForm.date
+      startTime = `${dateStr}T00:00:00`
+      endTime = `${dateStr}T23:59:59`
     } else {
+      // 非全天日程：处理日期时间格式
       startTime = scheduleForm.startTime
       endTime = scheduleForm.endTime
+      
+      // 如果是Date对象，转换为ISO字符串格式
+      if (startTime && typeof startTime === 'object') {
+        startTime = (startTime as any).toISOString().slice(0, 19)
+      }
+      if (endTime && typeof endTime === 'object') {
+        endTime = (endTime as any).toISOString().slice(0, 19)
+      }
     }
     
     const scheduleData = {
@@ -685,6 +1108,8 @@ const handleSaveSchedule = async () => {
       reminder: scheduleForm.reminder,
       color: scheduleForm.color
     }
+    
+    console.log('保存日程数据:', scheduleData)
     
     let response
     if (editingSchedule.value) {
@@ -715,8 +1140,12 @@ const editCourse = (course: Course) => {
   courseForm.teacher = course.teacher
   courseForm.location = course.location
   courseForm.dayOfWeek = course.dayOfWeek
-  courseForm.startTime = course.startTime
-  courseForm.endTime = course.endTime
+  courseForm.startTime = course.startTime.includes(':') && course.startTime.split(':').length === 3 
+    ? course.startTime 
+    : course.startTime + ':00'
+  courseForm.endTime = course.endTime.includes(':') && course.endTime.split(':').length === 3 
+    ? course.endTime 
+    : course.endTime + ':00'
   courseForm.startWeek = course.startWeek
   courseForm.endWeek = course.endWeek
   courseForm.color = course.color
@@ -733,10 +1162,15 @@ const editSchedule = (schedule: Schedule) => {
   scheduleForm.color = schedule.color
   
   if (schedule.isAllDay === 1) {
+    // 全天日程：只设置日期
     scheduleForm.date = new Date(schedule.startTime).toISOString().split('T')[0]
+    scheduleForm.startTime = ''
+    scheduleForm.endTime = ''
   } else {
-    scheduleForm.startTime = schedule.startTime
-    scheduleForm.endTime = schedule.endTime
+    // 非全天日程：设置开始和结束时间
+    scheduleForm.date = ''
+    scheduleForm.startTime = new Date(schedule.startTime)
+    scheduleForm.endTime = new Date(schedule.endTime)
   }
   
   showAddSchedule.value = true
@@ -816,7 +1250,7 @@ const resetCourseForm = () => {
   courseForm.endTime = ''
   courseForm.startWeek = 1
   courseForm.endWeek = 16
-  courseForm.color = '#409EFF'
+  courseForm.color = getRandomColor()
   courseFormRef.value?.clearValidate()
 }
 
@@ -830,7 +1264,7 @@ const resetScheduleForm = () => {
   scheduleForm.date = ''
   scheduleForm.isAllDay = false
   scheduleForm.reminder = 30
-  scheduleForm.color = '#67C23A'
+  scheduleForm.color = getRandomColor()
   scheduleFormRef.value?.clearValidate()
 }
 
@@ -870,18 +1304,69 @@ watch(showAddSchedule, (newVal) => {
   }
 })
 
+// 监听当前周数变化，触发课程表重新渲染
+watch(currentWeek, () => {
+  console.log('当前周数变化为:', currentWeek.value)
+  // 由于getCourseForSlot方法中使用了currentWeek.value，
+  // Vue的响应式系统会自动重新渲染课程表
+})
+
 // 页面加载时获取数据
 onMounted(async () => {
   console.log('课程表页面加载完成')
+  
+  // 自动选择当前学期
+  currentSemester.value = getCurrentSemester()
+  console.log('自动选择学期:', currentSemester.value)
+  
+  // 自动定位到当前周
+  currentWeek.value = getCurrentWeekInSemester(currentSemester.value)
+  console.log('自动定位到当前周:', currentWeek.value)
+  
+  console.log('开始加载课程和日程数据...')
   await loadCourses()
   await loadSchedules()
   
-  // 设置当前周（简化计算）
-  const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  const weekNumber = Math.ceil((now.getTime() - startOfYear.getTime()) / (7 * 24 * 60 * 60 * 1000))
-  currentWeek.value = Math.min(weekNumber, 20)
+  console.log('数据加载完成，当前日程数据:', schedules.value)
+  console.log('今日日程计算结果:', todaySchedules.value)
 })
+
+const createTestSchedule = async () => {
+  console.log('开始创建测试日程')
+  
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
+  
+  const testScheduleData = {
+    title: '测试日程',
+    description: '这是一个测试日程，用于验证今日日程显示功能',
+    location: '测试地点',
+    startTime: `${todayStr}T10:00:00`,
+    endTime: `${todayStr}T11:00:00`,
+    isAllDay: 0,
+    reminder: 30,
+    color: '#67C23A'
+  }
+  
+  console.log('测试日程数据:', testScheduleData)
+  
+  try {
+    const response = await createSchedule(testScheduleData) as any as ApiResponse<{ scheduleId: number }>
+    
+    if (response.code === 200) {
+      ElMessage.success('测试日程创建成功！')
+      await loadSchedules() // 重新加载日程列表
+      console.log('重新加载后的日程数据:', schedules.value)
+      console.log('重新计算的今日日程:', todaySchedules.value)
+    } else {
+      ElMessage.error(response.message || '创建测试日程失败')
+      console.error('创建测试日程失败:', response)
+    }
+  } catch (error) {
+    console.error('创建测试日程出错:', error)
+    ElMessage.error('创建测试日程出错')
+  }
+}
 </script>
 
 <style scoped>
@@ -1058,6 +1543,12 @@ onMounted(async () => {
   color: var(--primary-700);
 }
 
+.day-column.current-day {
+  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
+  border: 2px solid var(--primary-400);
+  border-radius: 8px 8px 0 0;
+}
+
 .day-name {
   font-size: 14px;
   margin-bottom: 4px;
@@ -1066,6 +1557,24 @@ onMounted(async () => {
 .day-date {
   font-size: 12px;
   opacity: 0.8;
+  position: relative;
+}
+
+.day-date.today-date {
+  opacity: 1;
+  font-weight: 700;
+  color: var(--primary-700);
+}
+
+.today-indicator {
+  display: block;
+  font-size: 10px;
+  color: var(--primary-600);
+  background: var(--primary-200);
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+  font-weight: 600;
 }
 
 .table-body {
@@ -1107,6 +1616,34 @@ onMounted(async () => {
 
 .course-cell:hover {
   background: var(--primary-50);
+}
+
+.slot-items {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slot-items .course-item,
+.slot-items .schedule-item {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px;
+}
+
+.slot-items .course-name,
+.slot-items .schedule-name {
+  font-size: 10px;
+  margin-bottom: 1px;
+}
+
+.slot-items .course-location,
+.slot-items .course-teacher,
+.slot-items .schedule-location,
+.slot-items .schedule-time {
+  font-size: 8px;
+  line-height: 1.1;
 }
 
 .course-item {
@@ -1292,5 +1829,52 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+.course-item {
+  height: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+
+.course-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.schedule-item {
+  height: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border-left: 4px dashed rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: var(--transition-base);
+  opacity: 0.9;
+}
+
+.schedule-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  opacity: 1;
+}
+
+.course-name,
+.schedule-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+}
+
+.course-location,
+.course-teacher,
+.schedule-location,
+.schedule-time {
+  font-size: 10px;
+  color: var(--gray-600);
+  line-height: 1.2;
 }
 </style> 

@@ -112,6 +112,17 @@ CREATE TABLE IF NOT EXISTS `comment_likes` (
   FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论点赞表';
 
+-- 点赞表（用户-资源）
+CREATE TABLE IF NOT EXISTS `resource_likes` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '点赞ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `resource_id` BIGINT NOT NULL COMMENT '资源ID',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY `uk_user_resource` (`user_id`, `resource_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resource_id`) REFERENCES `resources` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源点赞表';
+
 -- 资源表
 CREATE TABLE IF NOT EXISTS `resources` (
   `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源ID',
@@ -188,6 +199,3 @@ INSERT INTO `categories` (`name`, `description`, `icon`, `sort`, `status`) VALUE
 INSERT INTO `users` (`username`, `email`, `password`, `nickname`, `role`, `status`, `is_verified`) VALUES
 ('admin', 'admin@unilife.com', '123456', '系统管理员', 2, 1, 1);
 
--- 数据库迁移：为现有courses表添加semester字段
-ALTER TABLE `courses` ADD COLUMN `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2023-1）' AFTER `end_week`;
-ALTER TABLE `courses` ADD INDEX `idx_semester` (`semester`);

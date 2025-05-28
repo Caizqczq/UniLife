@@ -38,6 +38,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/resources/:id',
+      name: 'resource-detail',
+      component: () => import('@/views/resources/ResourceDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/schedule',
       name: 'schedule',
       component: () => import('@/views/schedule/ScheduleView.vue'),

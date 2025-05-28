@@ -5,6 +5,7 @@ import com.github.pagehelper.PageInfo;
 import com.unilife.common.result.Result;
 import com.unilife.mapper.CategoryMapper;
 import com.unilife.mapper.ResourceMapper;
+import com.unilife.mapper.ResourceLikeMapper;
 import com.unilife.mapper.UserMapper;
 import com.unilife.model.dto.CreateResourceDTO;
 import com.unilife.model.entity.Category;
@@ -46,6 +47,9 @@ public class ResourceServiceImpl implements ResourceService {
     
     @Autowired
     private OssService ossService;
+
+    @Autowired
+    private ResourceLikeMapper resourceLikeMapper;
 
     // 文件存储路径，实际项目中应该配置在application.yml中
     private static final String UPLOAD_DIR = "uploads/resources/";
@@ -131,7 +135,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .categoryName(category != null ? category.getName() : "未知分类")
                 .downloadCount(resource.getDownloadCount())
                 .likeCount(resource.getLikeCount())
-                .isLiked(false) // 实际项目中应该查询用户是否点赞
+                .isLiked(userId != null ? resourceLikeMapper.isLiked(resourceId, userId) : false) // 查询用户是否点赞
                 .createdAt(resource.getCreatedAt())
                 .updatedAt(resource.getUpdatedAt())
                 .build();
@@ -140,14 +144,14 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public Result getResourceList(Long categoryId, Long userId, String keyword, Integer page, Integer size) {
+    public Result getResourceList(Long categoryId, Long uploaderUserId, String keyword, Integer page, Integer size, Long currentUserId) {
         // 参数校验
         if (page == null || page < 1) page = 1;
         if (size == null || size < 1 || size > 50) size = 10;
 
         // 分页查询
         PageHelper.startPage(page, size);
-        List<Resource> resources = resourceMapper.getList(categoryId, userId, keyword);
+        List<Resource> resources = resourceMapper.getList(categoryId, uploaderUserId, keyword);
         PageInfo<Resource> pageInfo = new PageInfo<>(resources);
 
         // 转换为VO
@@ -170,7 +174,7 @@ public class ResourceServiceImpl implements ResourceService {
                     .categoryName(category != null ? category.getName() : "未知分类")
                     .downloadCount(resource.getDownloadCount())
                     .likeCount(resource.getLikeCount())
-                    .isLiked(false) // 实际项目中应该查询用户是否点赞
+                    .isLiked(currentUserId != null ? resourceLikeMapper.isLiked(resource.getId(), currentUserId) : false) // 查询当前用户是否点赞
                     .createdAt(resource.getCreatedAt())
                     .updatedAt(resource.getUpdatedAt())
                     .build();
@@ -298,17 +302,16 @@ public class ResourceServiceImpl implements ResourceService {
         }
 
         // 检查用户是否已点赞
-        // 注意：这里需要创建一个资源点赞表和相应的Mapper，实际开发中需要先创建
-        boolean isLiked = false; // resourceLikeMapper.isLiked(resourceId, userId);
+        boolean isLiked = resourceLikeMapper.isLiked(resourceId, userId);
 
         if (isLiked) {
             // 取消点赞
-            // resourceLikeMapper.delete(resourceId, userId);
+            resourceLikeMapper.delete(resourceId, userId);
             resourceMapper.decrementLikeCount(resourceId);
             return Result.success(null, "取消点赞成功");
         } else {
             // 添加点赞
-            // resourceLikeMapper.insert(resourceId, userId);
+            resourceLikeMapper.insert(resourceId, userId);
             resourceMapper.incrementLikeCount(resourceId);
             return Result.success(null, "点赞成功");
         }

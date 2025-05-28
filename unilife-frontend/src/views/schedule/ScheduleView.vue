@@ -65,8 +65,9 @@
           
           <!-- 学期选择 -->
           <div class="semester-selector">
-            <el-select v-model="currentSemester" placeholder="选择学期" size="default">
+            <el-select v-model="currentSemester" placeholder="选择学期" size="default" @change="loadCourses">
               <el-option label="2024春季学期" value="2024-1" />
+              <el-option label="2024秋季学期" value="2024-2" />
               <el-option label="2023秋季学期" value="2023-2" />
               <el-option label="2023春季学期" value="2023-1" />
             </el-select>
@@ -84,7 +85,7 @@
         </div>
 
         <!-- 课程表 -->
-        <div class="schedule-table card-light">
+        <div v-loading="loading" class="schedule-table card-light">
           <div class="table-header">
             <div class="time-column">时间</div>
             <div 
@@ -105,12 +106,12 @@
               class="time-row"
             >
               <div class="time-cell">
-                <div class="time-period">{{ timeSlot.period }}</div>
-                <div class="time-range">{{ timeSlot.time }}</div>
+                <div class="time-period">第{{ timeIndex + 1 }}节</div>
+                <div class="time-range">{{ timeSlot }}</div>
               </div>
               
               <div 
-                v-for="(day, dayIndex) in 7" 
+                v-for="dayIndex in 7" 
                 :key="dayIndex"
                 class="course-cell"
                 @click="addCourseToSlot(timeIndex, dayIndex)"
@@ -119,7 +120,7 @@
                   v-if="getCourseForSlot(timeIndex, dayIndex)"
                   class="course-item"
                   :style="{ backgroundColor: getCourseForSlot(timeIndex, dayIndex)?.color }"
-                  @click.stop="editCourse(getCourseForSlot(timeIndex, dayIndex))"
+                  @click.stop="editCourse(getCourseForSlot(timeIndex, dayIndex)!)"
                 >
                   <div class="course-name">{{ getCourseForSlot(timeIndex, dayIndex)?.name }}</div>
                   <div class="course-location">{{ getCourseForSlot(timeIndex, dayIndex)?.location }}</div>
@@ -149,6 +150,10 @@
                   <div class="course-name">{{ course.name }}</div>
                   <div class="course-details">{{ course.location }} · {{ course.teacher }}</div>
                 </div>
+                <div class="course-actions">
+                  <el-button size="small" @click="editCourse(course)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteCourseConfirm(course)">删除</el-button>
+                </div>
               </div>
             </div>
             <div v-else class="empty-message">
@@ -164,10 +169,14 @@
                 :key="schedule.id"
                 class="schedule-card"
               >
-                <div class="schedule-time">{{ schedule.startTime }}</div>
+                <div class="schedule-time">{{ formatTime(schedule.startTime) }}</div>
                 <div class="schedule-info">
                   <div class="schedule-title">{{ schedule.title }}</div>
                   <div class="schedule-location">{{ schedule.location }}</div>
+                </div>
+                <div class="schedule-actions">
+                  <el-button size="small" @click="editSchedule(schedule)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteScheduleConfirm(schedule)">删除</el-button>
                 </div>
               </div>
             </div>
@@ -182,229 +191,358 @@
     <!-- 添加课程对话框 -->
     <el-dialog
       v-model="showAddCourse"
-      title="添加课程"
+      :title="editingCourse ? '编辑课程' : '添加课程'"
       width="500px"
     >
-      <el-form label-position="top">
-        <el-form-item label="课程名称">
-          <el-input placeholder="请输入课程名称" size="large" />
+      <el-form :model="courseForm" :rules="courseRules" ref="courseFormRef" label-position="top">
+        <el-form-item label="课程名称" prop="name">
+          <el-input v-model="courseForm.name" placeholder="请输入课程名称" size="large" />
         </el-form-item>
         
-        <el-form-item label="任课教师">
-          <el-input placeholder="请输入教师姓名" size="large" />
+        <el-form-item label="任课教师" prop="teacher">
+          <el-input v-model="courseForm.teacher" placeholder="请输入教师姓名" size="large" />
         </el-form-item>
         
-        <el-form-item label="上课地点">
-          <el-input placeholder="请输入上课地点" size="large" />
+        <el-form-item label="上课地点" prop="location">
+          <el-input v-model="courseForm.location" placeholder="请输入上课地点" size="large" />
         </el-form-item>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-          <el-form-item label="星期">
-            <el-select placeholder="选择星期" size="large">
-              <el-option label="星期一" value="1" />
-              <el-option label="星期二" value="2" />
-              <el-option label="星期三" value="3" />
-              <el-option label="星期四" value="4" />
-              <el-option label="星期五" value="5" />
-              <el-option label="星期六" value="6" />
-              <el-option label="星期日" value="0" />
+        <div class="form-row">
+          <el-form-item label="星期" prop="dayOfWeek">
+            <el-select v-model="courseForm.dayOfWeek" placeholder="选择星期" style="width: 100%">
+              <el-option v-for="(day, index) in weekDays" :key="index" :label="day" :value="index + 1" />
             </el-select>
           </el-form-item>
           
-          <el-form-item label="开始时间">
+          <el-form-item label="颜色" prop="color">
+            <el-color-picker v-model="courseForm.color" />
+          </el-form-item>
+        </div>
+        
+        <div class="form-row">
+          <el-form-item label="开始时间" prop="startTime">
             <el-time-picker
-              placeholder="选择时间"
+              v-model="courseForm.startTime"
               format="HH:mm"
-              value-format="HH:mm"
-              size="large"
+              placeholder="选择开始时间"
+              style="width: 100%"
             />
           </el-form-item>
           
-          <el-form-item label="结束时间">
+          <el-form-item label="结束时间" prop="endTime">
             <el-time-picker
-              placeholder="选择时间"
+              v-model="courseForm.endTime"
               format="HH:mm"
-              value-format="HH:mm"
-              size="large"
+              placeholder="选择结束时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        
+        <div class="form-row">
+          <el-form-item label="开始周" prop="startWeek">
+            <el-input-number 
+              v-model="courseForm.startWeek" 
+              :min="1" 
+              :max="20" 
+              placeholder="开始周"
+              style="width: 100%"
+            />
+          </el-form-item>
+          
+          <el-form-item label="结束周" prop="endWeek">
+            <el-input-number 
+              v-model="courseForm.endWeek" 
+              :min="1" 
+              :max="20" 
+              placeholder="结束周"
+              style="width: 100%"
             />
           </el-form-item>
         </div>
       </el-form>
       
       <template #footer>
-        <el-button @click="showAddCourse = false">取消</el-button>
-        <el-button type="primary" @click="handleAddCourse">添加</el-button>
+        <el-button @click="cancelEditCourse">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="handleSaveCourse"
+          :loading="savingCourse"
+        >
+          {{ editingCourse ? '更新' : '保存' }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 添加日程对话框 -->
     <el-dialog
       v-model="showAddSchedule"
-      title="添加日程"
+      :title="editingSchedule ? '编辑日程' : '添加日程'"
       width="500px"
     >
-      <el-form label-position="top">
-        <el-form-item label="日程标题">
-          <el-input placeholder="请输入日程标题" size="large" />
+      <el-form :model="scheduleForm" :rules="scheduleRules" ref="scheduleFormRef" label-position="top">
+        <el-form-item label="日程标题" prop="title">
+          <el-input v-model="scheduleForm.title" placeholder="请输入日程标题" size="large" />
         </el-form-item>
         
-        <el-form-item label="日期时间">
-          <el-date-picker
-            type="datetime"
-            placeholder="选择日期时间"
-            format="YYYY-MM-DD HH:mm"
-            value-format="YYYY-MM-DD HH:mm"
-            size="large"
-            style="width: 100%"
+        <el-form-item label="日程描述" prop="description">
+          <el-input 
+            v-model="scheduleForm.description" 
+            type="textarea" 
+            :rows="3" 
+            placeholder="请输入日程描述..."
           />
         </el-form-item>
         
-        <el-form-item label="地点">
-          <el-input placeholder="请输入地点（可选）" size="large" />
+        <el-form-item label="地点" prop="location">
+          <el-input v-model="scheduleForm.location" placeholder="请输入地点" size="large" />
         </el-form-item>
         
-        <el-form-item label="备注">
-          <el-input type="textarea" :rows="3" placeholder="请输入备注信息..." />
+        <el-form-item label="是否全天">
+          <el-switch v-model="scheduleForm.isAllDay" @change="handleAllDayChange" />
         </el-form-item>
+        
+        <div v-if="!scheduleForm.isAllDay" class="form-row">
+          <el-form-item label="开始时间" prop="startTime">
+            <el-date-picker
+              v-model="scheduleForm.startTime"
+              type="datetime"
+              placeholder="选择开始时间"
+              format="YYYY-MM-DD HH:mm"
+              style="width: 100%"
+            />
+          </el-form-item>
+          
+          <el-form-item label="结束时间" prop="endTime">
+            <el-date-picker
+              v-model="scheduleForm.endTime"
+              type="datetime"
+              placeholder="选择结束时间"
+              format="YYYY-MM-DD HH:mm"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        
+        <div v-else class="form-row">
+          <el-form-item label="日期" prop="date">
+            <el-date-picker
+              v-model="scheduleForm.date"
+              type="date"
+              placeholder="选择日期"
+              format="YYYY-MM-DD"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </div>
+        
+        <div class="form-row">
+          <el-form-item label="提醒时间" prop="reminder">
+            <el-select v-model="scheduleForm.reminder" placeholder="选择提醒时间" style="width: 100%">
+              <el-option label="不提醒" :value="0" />
+              <el-option label="5分钟前" :value="5" />
+              <el-option label="15分钟前" :value="15" />
+              <el-option label="30分钟前" :value="30" />
+              <el-option label="1小时前" :value="60" />
+              <el-option label="1天前" :value="1440" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="颜色" prop="color">
+            <el-color-picker v-model="scheduleForm.color" />
+          </el-form-item>
+        </div>
       </el-form>
       
       <template #footer>
-        <el-button @click="showAddSchedule = false">取消</el-button>
-        <el-button type="primary" @click="handleAddSchedule">添加</el-button>
+        <el-button @click="cancelEditSchedule">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="handleSaveSchedule"
+          :loading="savingSchedule"
+        >
+          {{ editingSchedule ? '更新' : '保存' }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { 
-  Plus,
-  Calendar,
+  Plus, 
+  Calendar, 
   Setting,
   ArrowLeft,
   ArrowRight
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import {
+  getCourses,
+  getCoursesBySemester,
+  getCoursesByDay,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  type Course
+} from '@/api/schedule'
+import {
+  getSchedules,
+  getSchedulesByRange,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  type Schedule
+} from '@/api/schedule'
+import type { ApiResponse } from '@/types'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 // 响应式数据
+const loading = ref(false)
+const savingCourse = ref(false)
+const savingSchedule = ref(false)
 const showAddCourse = ref(false)
 const showAddSchedule = ref(false)
 const currentSemester = ref('2024-1')
 const currentWeek = ref(1)
 
+// 编辑状态
+const editingCourse = ref<Course | null>(null)
+const editingSchedule = ref<Schedule | null>(null)
+
+// 数据列表
+const courses = ref<Course[]>([])
+const schedules = ref<Schedule[]>([])
+
+// 表单引用
+const courseFormRef = ref<FormInstance>()
+const scheduleFormRef = ref<FormInstance>()
+
+// 课程表单
+const courseForm = reactive({
+  name: '',
+  teacher: '',
+  location: '',
+  dayOfWeek: null as number | null,
+  startTime: '',
+  endTime: '',
+  startWeek: 1,
+  endWeek: 16,
+  color: '#409EFF'
+})
+
+// 日程表单
+const scheduleForm = reactive({
+  title: '',
+  description: '',
+  location: '',
+  startTime: '',
+  endTime: '',
+  date: '',
+  isAllDay: false,
+  reminder: 30,
+  color: '#67C23A'
+})
+
+// 表单验证规则
+const courseRules: FormRules = {
+  name: [
+    { required: true, message: '请输入课程名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '课程名称长度在 2 到 50 个字符', trigger: 'blur' }
+  ],
+  teacher: [
+    { required: true, message: '请输入教师姓名', trigger: 'blur' }
+  ],
+  location: [
+    { required: true, message: '请输入上课地点', trigger: 'blur' }
+  ],
+  dayOfWeek: [
+    { required: true, message: '请选择星期', trigger: 'change' }
+  ],
+  startTime: [
+    { required: true, message: '请选择开始时间', trigger: 'change' }
+  ],
+  endTime: [
+    { required: true, message: '请选择结束时间', trigger: 'change' }
+  ]
+}
+
+const scheduleRules: FormRules = {
+  title: [
+    { required: true, message: '请输入日程标题', trigger: 'blur' },
+    { min: 2, max: 100, message: '标题长度在 2 到 100 个字符', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: '请输入日程描述', trigger: 'blur' }
+  ],
+  location: [
+    { required: true, message: '请输入地点', trigger: 'blur' }
+  ]
+}
+
+// 常量数据
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+const timeSlots = [
+  '08:00-09:40',
+  '10:00-11:40', 
+  '14:00-15:40',
+  '16:00-17:40',
+  '19:00-20:40'
+]
 
-const timeSlots = ref([
-  { period: '第1节', time: '08:00-08:45' },
-  { period: '第2节', time: '08:55-09:40' },
-  { period: '第3节', time: '10:00-10:45' },
-  { period: '第4节', time: '10:55-11:40' },
-  { period: '第5节', time: '14:00-14:45' },
-  { period: '第6节', time: '14:55-15:40' },
-  { period: '第7节', time: '16:00-16:45' },
-  { period: '第8节', time: '16:55-17:40' },
-  { period: '第9节', time: '19:00-19:45' },
-  { period: '第10节', time: '19:55-20:40' }
-])
+// 计算属性
+const todayCourses = computed(() => {
+  const today = new Date().getDay()
+  const dayOfWeek = today === 0 ? 7 : today // 将周日转换为7
+  return courses.value.filter(course => course.dayOfWeek === dayOfWeek)
+})
 
-// 模拟课程数据
-const courses = ref([
-  {
-    id: 1,
-    name: '高等数学',
-    teacher: '张教授',
-    location: 'A101',
-    dayOfWeek: 1,
-    startTime: '08:00',
-    endTime: '09:40',
-    timeSlots: [0, 1],
-    color: '#e3f2fd'
-  },
-  {
-    id: 2,
-    name: '数据结构',
-    teacher: '李教授',
-    location: 'B203',
-    dayOfWeek: 2,
-    startTime: '10:00',
-    endTime: '11:40',
-    timeSlots: [2, 3],
-    color: '#f3e5f5'
-  },
-  {
-    id: 3,
-    name: '计算机网络',
-    teacher: '王教授',
-    location: 'C305',
-    dayOfWeek: 3,
-    startTime: '14:00',
-    endTime: '15:40',
-    timeSlots: [4, 5],
-    color: '#e8f5e8'
-  }
-])
-
-// 今日课程
-const todayCourses = ref([
-  {
-    id: 1,
-    name: '高等数学',
-    location: 'A101',
-    teacher: '张教授',
-    startTime: '08:00',
-    endTime: '09:40'
-  },
-  {
-    id: 2,
-    name: '英语听力',
-    location: 'B205',
-    teacher: 'Smith',
-    startTime: '14:00',
-    endTime: '15:40'
-  }
-])
-
-// 今日日程
-const todaySchedules = ref([
-  {
-    id: 1,
-    title: '小组讨论',
-    location: '图书馆201',
-    startTime: '16:00'
-  },
-  {
-    id: 2,
-    title: '社团活动',
-    location: '学生活动中心',
-    startTime: '19:00'
-  }
-])
+const todaySchedules = computed(() => {
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
+  return schedules.value.filter(schedule => {
+    const scheduleDate = new Date(schedule.startTime).toISOString().split('T')[0]
+    return scheduleDate === todayStr
+  })
+})
 
 // 方法
 const isToday = (dayIndex: number) => {
   const today = new Date().getDay()
-  return dayIndex === (today === 0 ? 6 : today - 1)
+  const targetDay = dayIndex + 1
+  return today === 0 ? targetDay === 7 : today === targetDay
 }
 
 const getDayDate = (dayIndex: number) => {
   const today = new Date()
-  const currentDay = today.getDay() === 0 ? 6 : today.getDay() - 1
-  const targetDate = new Date(today)
-  targetDate.setDate(today.getDate() + (dayIndex - currentDay))
+  const currentDayOfWeek = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - (currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1))
+  
+  const targetDate = new Date(monday)
+  targetDate.setDate(monday.getDate() + dayIndex)
+  
   return targetDate.getDate()
 }
 
 const getCourseForSlot = (timeIndex: number, dayIndex: number) => {
-  return courses.value.find(course => 
-    course.dayOfWeek === dayIndex + 1 && 
-    course.timeSlots.includes(timeIndex)
-  )
+  return courses.value.find(course => {
+    if (course.dayOfWeek !== dayIndex + 1) return false
+    
+    // 简化时间匹配逻辑
+    const courseStart = course.startTime
+    const courseEnd = course.endTime
+    const slotTime = timeSlots[timeIndex]
+    
+    // 这里需要根据实际需求进行时间匹配
+    return slotTime.includes(courseStart.substring(0, 5))
+  })
 }
 
 const previousWeek = () => {
@@ -420,21 +558,294 @@ const nextWeek = () => {
 }
 
 const addCourseToSlot = (timeIndex: number, dayIndex: number) => {
+  // 预设时间和星期
+  courseForm.dayOfWeek = dayIndex + 1
+  const timeSlot = timeSlots[timeIndex].split('-')
+  courseForm.startTime = timeSlot[0]
+  courseForm.endTime = timeSlot[1]
   showAddCourse.value = true
 }
 
-const editCourse = (course: any) => {
-  ElMessage.info('编辑课程功能开发中...')
+// 课程相关方法
+const loadCourses = async () => {
+  try {
+    loading.value = true
+    const response = await getCoursesBySemester(currentSemester.value) as any as ApiResponse<{
+      total: number
+      list: Course[]
+      pages: number
+    }>
+    
+    console.log('课程列表API响应:', response)
+    
+    if (response.code === 200) {
+      courses.value = response.data.list
+      console.log('课程列表加载成功:', courses.value)
+    } else {
+      console.error('课程列表API返回错误:', response)
+      ElMessage.error(response.message || '获取课程列表失败')
+    }
+  } catch (error) {
+    console.error('获取课程列表失败:', error)
+    ElMessage.error('获取课程列表失败')
+  } finally {
+    loading.value = false
+  }
 }
 
-const handleAddCourse = () => {
+const loadSchedules = async () => {
+  try {
+    const response = await getSchedules() as any as ApiResponse<{
+      total: number
+      list: Schedule[]
+      pages: number
+    }>
+    
+    console.log('日程列表API响应:', response)
+    
+    if (response.code === 200) {
+      schedules.value = response.data.list
+      console.log('日程列表加载成功:', schedules.value)
+    } else {
+      console.error('日程列表API返回错误:', response)
+      ElMessage.error(response.message || '获取日程列表失败')
+    }
+  } catch (error) {
+    console.error('获取日程列表失败:', error)
+    ElMessage.error('获取日程列表失败')
+  }
+}
+
+const handleSaveCourse = async () => {
+  if (!courseFormRef.value) return
+  
+  try {
+    await courseFormRef.value.validate()
+    savingCourse.value = true
+    
+    const courseData = {
+      name: courseForm.name,
+      teacher: courseForm.teacher,
+      location: courseForm.location,
+      dayOfWeek: courseForm.dayOfWeek!,
+      startTime: courseForm.startTime,
+      endTime: courseForm.endTime,
+      startWeek: courseForm.startWeek,
+      endWeek: courseForm.endWeek,
+      semester: currentSemester.value,
+      color: courseForm.color
+    }
+    
+    let response
+    if (editingCourse.value) {
+      response = await updateCourse(editingCourse.value.id, courseData) as any as ApiResponse<null>
+    } else {
+      response = await createCourse(courseData) as any as ApiResponse<{ courseId: number }>
+    }
+    
+    if (response.code === 200) {
+      ElMessage.success(editingCourse.value ? '课程更新成功！' : '课程添加成功！')
+      showAddCourse.value = false
+      resetCourseForm()
+      loadCourses() // 重新加载课程列表
+    } else {
+      ElMessage.error(response.message || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存课程失败:', error)
+    ElMessage.error('保存失败')
+  } finally {
+    savingCourse.value = false
+  }
+}
+
+const handleSaveSchedule = async () => {
+  if (!scheduleFormRef.value) return
+  
+  try {
+    await scheduleFormRef.value.validate()
+    savingSchedule.value = true
+    
+    let startTime, endTime
+    if (scheduleForm.isAllDay) {
+      startTime = `${scheduleForm.date}T00:00:00`
+      endTime = `${scheduleForm.date}T23:59:59`
+    } else {
+      startTime = scheduleForm.startTime
+      endTime = scheduleForm.endTime
+    }
+    
+    const scheduleData = {
+      title: scheduleForm.title,
+      description: scheduleForm.description,
+      location: scheduleForm.location,
+      startTime,
+      endTime,
+      isAllDay: scheduleForm.isAllDay ? 1 : 0,
+      reminder: scheduleForm.reminder,
+      color: scheduleForm.color
+    }
+    
+    let response
+    if (editingSchedule.value) {
+      response = await updateSchedule(editingSchedule.value.id, scheduleData) as any as ApiResponse<null>
+    } else {
+      response = await createSchedule(scheduleData) as any as ApiResponse<{ scheduleId: number }>
+    }
+    
+    if (response.code === 200) {
+      ElMessage.success(editingSchedule.value ? '日程更新成功！' : '日程添加成功！')
+      showAddSchedule.value = false
+      resetScheduleForm()
+      loadSchedules() // 重新加载日程列表
+    } else {
+      ElMessage.error(response.message || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存日程失败:', error)
+    ElMessage.error('保存失败')
+  } finally {
+    savingSchedule.value = false
+  }
+}
+
+const editCourse = (course: Course) => {
+  editingCourse.value = course
+  courseForm.name = course.name
+  courseForm.teacher = course.teacher
+  courseForm.location = course.location
+  courseForm.dayOfWeek = course.dayOfWeek
+  courseForm.startTime = course.startTime
+  courseForm.endTime = course.endTime
+  courseForm.startWeek = course.startWeek
+  courseForm.endWeek = course.endWeek
+  courseForm.color = course.color
+  showAddCourse.value = true
+}
+
+const editSchedule = (schedule: Schedule) => {
+  editingSchedule.value = schedule
+  scheduleForm.title = schedule.title
+  scheduleForm.description = schedule.description
+  scheduleForm.location = schedule.location
+  scheduleForm.isAllDay = schedule.isAllDay === 1
+  scheduleForm.reminder = schedule.reminder
+  scheduleForm.color = schedule.color
+  
+  if (schedule.isAllDay === 1) {
+    scheduleForm.date = new Date(schedule.startTime).toISOString().split('T')[0]
+  } else {
+    scheduleForm.startTime = schedule.startTime
+    scheduleForm.endTime = schedule.endTime
+  }
+  
+  showAddSchedule.value = true
+}
+
+const deleteCourseConfirm = async (course: Course) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除课程"${course.name}"吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    const response = await deleteCourse(course.id) as any as ApiResponse<null>
+    if (response.code === 200) {
+      ElMessage.success('课程删除成功')
+      loadCourses()
+    } else {
+      ElMessage.error(response.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除课程失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+const deleteScheduleConfirm = async (schedule: Schedule) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除日程"${schedule.title}"吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    const response = await deleteSchedule(schedule.id) as any as ApiResponse<null>
+    if (response.code === 200) {
+      ElMessage.success('日程删除成功')
+      loadSchedules()
+    } else {
+      ElMessage.error(response.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除日程失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+const cancelEditCourse = () => {
   showAddCourse.value = false
-  ElMessage.success('课程添加成功！')
+  resetCourseForm()
 }
 
-const handleAddSchedule = () => {
+const cancelEditSchedule = () => {
   showAddSchedule.value = false
-  ElMessage.success('日程添加成功！')
+  resetScheduleForm()
+}
+
+const resetCourseForm = () => {
+  editingCourse.value = null
+  courseForm.name = ''
+  courseForm.teacher = ''
+  courseForm.location = ''
+  courseForm.dayOfWeek = null
+  courseForm.startTime = ''
+  courseForm.endTime = ''
+  courseForm.startWeek = 1
+  courseForm.endWeek = 16
+  courseForm.color = '#409EFF'
+  courseFormRef.value?.clearValidate()
+}
+
+const resetScheduleForm = () => {
+  editingSchedule.value = null
+  scheduleForm.title = ''
+  scheduleForm.description = ''
+  scheduleForm.location = ''
+  scheduleForm.startTime = ''
+  scheduleForm.endTime = ''
+  scheduleForm.date = ''
+  scheduleForm.isAllDay = false
+  scheduleForm.reminder = 30
+  scheduleForm.color = '#67C23A'
+  scheduleFormRef.value?.clearValidate()
+}
+
+const handleAllDayChange = (value: boolean) => {
+  if (value) {
+    scheduleForm.startTime = ''
+    scheduleForm.endTime = ''
+  } else {
+    scheduleForm.date = ''
+  }
+}
+
+const formatTime = (dateTimeString: string) => {
+  const date = new Date(dateTimeString)
+  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
 const handleCommand = (command: string) => {
@@ -446,8 +857,30 @@ const handleCommand = (command: string) => {
   }
 }
 
-onMounted(() => {
+// 监听对话框关闭，重置表单
+watch(showAddCourse, (newVal) => {
+  if (!newVal) {
+    resetCourseForm()
+  }
+})
+
+watch(showAddSchedule, (newVal) => {
+  if (!newVal) {
+    resetScheduleForm()
+  }
+})
+
+// 页面加载时获取数据
+onMounted(async () => {
   console.log('课程表页面加载完成')
+  await loadCourses()
+  await loadSchedules()
+  
+  // 设置当前周（简化计算）
+  const now = new Date()
+  const startOfYear = new Date(now.getFullYear(), 0, 1)
+  const weekNumber = Math.ceil((now.getTime() - startOfYear.getTime()) / (7 * 24 * 60 * 60 * 1000))
+  currentWeek.value = Math.min(weekNumber, 20)
 })
 </script>
 
@@ -852,5 +1285,12 @@ onMounted(() => {
   .course-teacher {
     font-size: 9px;
   }
+}
+
+/* 表单行样式 */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 </style> 

@@ -1,5 +1,25 @@
 # UniLife接口文档
 
+## 更新日志
+
+### v1.2.0 (2025-01-27)
+- **修复资源点赞功能**: 实现了完整的资源点赞表 (`resource_likes`)，防止重复点赞
+- **优化响应数据结构**: 统一时间格式为ISO 8601格式 (`yyyy-MM-ddTHH:mm:ss`)
+- **完善isLiked字段**: 资源列表和详情接口中的 `isLiked` 字段现在基于当前用户的真实点赞状态
+- **增强文件存储**: 文件存储从本地上传改为阿里云OSS，支持临时访问链接
+- **添加数据库设计说明**: 详细说明了资源表和点赞表的设计
+- **修正API参数说明**: 更新了资源列表接口中 `user` 参数的含义，改为 `uploaderUserId`
+
+### v1.1.0 (2025-01-26)
+- 完成论坛功能模块的前后端集成
+- 实现帖子、评论、点赞等核心功能
+- 添加用户认证和权限管理
+
+### v1.0.0 (2025-01-25)
+- 初始版本发布
+- 实现基础的用户认证功能
+- 定义核心数据结构和API接口
+
 ## 目录
 - [1. 基础信息](#1-基础信息)
 - [2. 用户认证模块](#2-用户认证模块)
@@ -328,7 +348,7 @@
       "title": "最新帖子标题",
       "content": "帖子内容摘要...",
       "categoryId": 1,
-      "createTime": "2024-01-15T10:30:00",
+      "createdAt": "2023-05-01T12:00:00",
       "viewsCount": 50,
       "likesCount": 10,
       "commentsCount": 5
@@ -373,7 +393,7 @@
         "viewCount": 100,
         "likeCount": 20,
         "commentCount": 5,
-        "createdAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00"
       }
     ],
     "pages": 10
@@ -404,8 +424,8 @@
     "likeCount": 20,
     "commentCount": 5,
     "isLiked": true,
-    "createdAt": "2023-05-01 12:00:00",
-    "updatedAt": "2023-05-01 12:00:00"
+    "createdAt": "2023-05-01T12:00:00",
+    "updatedAt": "2023-05-01T12:00:00"
   }
 }
 ```
@@ -521,7 +541,7 @@
         "viewCount": 100,
         "likeCount": 20,
         "commentCount": 5,
-        "createdAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00"
       }
     ],
     "pages": 3
@@ -552,7 +572,7 @@
         "avatar": "https://example.com/avatar.jpg",
         "likeCount": 5,
         "isLiked": false,
-        "createdAt": "2023-05-01 12:30:00",
+        "createdAt": "2023-05-01T12:30:00",
         "replies": [
           {
             "id": 2,
@@ -562,7 +582,7 @@
             "avatar": "https://example.com/avatar2.jpg",
             "likeCount": 2,
             "isLiked": true,
-            "createdAt": "2023-05-01 12:35:00"
+            "createdAt": "2023-05-01T12:35:00"
           }
         ]
       }
@@ -652,8 +672,8 @@
         "icon": "icon-study",
         "sort": 1,
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -677,8 +697,8 @@
     "icon": "icon-study",
     "sort": 1,
     "status": 1,
-    "createdAt": "2023-05-01 12:00:00",
-    "updatedAt": "2023-05-01 12:00:00"
+    "createdAt": "2023-05-01T12:00:00",
+    "updatedAt": "2023-05-01T12:00:00"
   }
 }
 ```
@@ -792,7 +812,7 @@
     "id": 1,
     "title": "资源标题",
     "description": "资源描述",
-    "fileUrl": "uploads/resources/file.pdf",
+    "fileUrl": "https://oss-example.aliyuncs.com/resources/file.pdf",
     "fileSize": 1024000,
     "fileType": "application/pdf",
     "userId": 12345,
@@ -803,11 +823,15 @@
     "downloadCount": 10,
     "likeCount": 5,
     "isLiked": false,
-    "createdAt": "2023-05-01 12:00:00",
-    "updatedAt": "2023-05-01 12:00:00"
+    "createdAt": "2023-05-01T12:00:00",
+    "updatedAt": "2023-05-01T12:00:00"
   }
 }
 ```
+
+**说明**: 
+- `isLiked` 字段表示当前登录用户是否已点赞该资源，未登录用户该字段为false
+- `fileUrl` 为阿里云OSS存储的文件访问URL
 
 ### 5.3 获取资源列表
 - **URL**: `/resources`
@@ -816,7 +840,7 @@
 
 请求参数：
 - **category** (query, 可选): 分类ID
-- **user** (query, 可选): 用户ID
+- **user** (query, 可选): 上传者用户ID（用于筛选特定用户上传的资源）
 - **keyword** (query, 可选): 搜索关键词
 - **page** (query, 可选): 页码，默认为1
 - **size** (query, 可选): 每页大小，默认为10
@@ -833,7 +857,7 @@
         "id": 1,
         "title": "资源标题",
         "description": "资源描述",
-        "fileUrl": "uploads/resources/file.pdf",
+        "fileUrl": "https://oss-example.aliyuncs.com/resources/file.pdf",
         "fileSize": 1024000,
         "fileType": "application/pdf",
         "userId": 12345,
@@ -844,14 +868,18 @@
         "downloadCount": 10,
         "likeCount": 5,
         "isLiked": false,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ],
     "pages": 10
   }
 }
 ```
+
+**说明**: 
+- `isLiked` 字段基于当前登录用户的点赞状态，通过查询`resource_likes`表获得
+- 未登录用户获取列表时，所有资源的`isLiked`字段均为false
 
 ### 5.4 更新资源
 - **URL**: `/resources/{id}`
@@ -892,6 +920,8 @@
 }
 ```
 
+**说明**: 删除资源时会同时删除阿里云OSS中的文件和数据库中的相关记录（包括点赞记录）
+
 ### 5.6 下载资源
 - **URL**: `/resources/{id}/download`
 - **方法**: GET
@@ -903,12 +933,16 @@
   "code": 200,
   "message": "获取下载链接成功",
   "data": {
-    "fileUrl": "uploads/resources/file.pdf",
-    "fileName": "资源标题",
+    "fileUrl": "https://oss-example.aliyuncs.com/resources/file.pdf?Expires=1684737600&OSSAccessKeyId=xxx&Signature=xxx",
+    "fileName": "资源标题.pdf",
     "fileType": "application/pdf"
   }
 }
 ```
+
+**说明**: 
+- `fileUrl` 为生成的临时访问URL，有效期为1小时
+- 每次下载会增加资源的下载计数
 
 ### 5.7 点赞/取消点赞资源
 - **URL**: `/resources/{id}/like`
@@ -924,6 +958,21 @@
   "data": null
 }
 ```
+
+或
+
+```json
+{
+  "code": 200,
+  "message": "取消点赞成功",
+  "data": null
+}
+```
+
+**实现说明**:
+- 使用`resource_likes`表记录用户点赞状态，确保一个用户对同一资源只能点赞一次
+- 点赞时会增加资源的`like_count`字段，取消点赞时会减少
+- 通过唯一键约束防止重复点赞：`UNIQUE KEY uk_user_resource (user_id, resource_id)`
 
 ### 5.8 获取用户上传的资源列表
 - **URL**: `/resources/user/{userId}`
@@ -946,7 +995,7 @@
         "id": 1,
         "title": "资源标题",
         "description": "资源描述",
-        "fileUrl": "uploads/resources/file.pdf",
+        "fileUrl": "https://oss-example.aliyuncs.com/resources/file.pdf",
         "fileSize": 1024000,
         "fileType": "application/pdf",
         "userId": 12345,
@@ -957,8 +1006,8 @@
         "downloadCount": 10,
         "likeCount": 5,
         "isLiked": false,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ],
     "pages": 2
@@ -988,7 +1037,7 @@
         "id": 1,
         "title": "资源标题",
         "description": "资源描述",
-        "fileUrl": "uploads/resources/file.pdf",
+        "fileUrl": "https://oss-example.aliyuncs.com/resources/file.pdf",
         "fileSize": 1024000,
         "fileType": "application/pdf",
         "userId": 12345,
@@ -999,14 +1048,52 @@
         "downloadCount": 10,
         "likeCount": 5,
         "isLiked": false,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ],
     "pages": 2
   }
 }
 ```
+
+### 5.10 数据库设计说明
+
+#### 资源表 (resources)
+```sql
+CREATE TABLE `resources` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源ID',
+  `user_id` BIGINT NOT NULL COMMENT '上传用户ID',
+  `title` VARCHAR(100) NOT NULL COMMENT '资源标题',
+  `description` TEXT DEFAULT NULL COMMENT '资源描述',
+  `file_url` VARCHAR(255) NOT NULL COMMENT '文件URL(OSS)',
+  `file_size` BIGINT NOT NULL COMMENT '文件大小（字节）',
+  `file_type` VARCHAR(50) NOT NULL COMMENT '文件类型',
+  `category_id` BIGINT NOT NULL COMMENT '分类ID',
+  `download_count` INT DEFAULT 0 COMMENT '下载次数',
+  `like_count` INT DEFAULT 0 COMMENT '点赞次数',
+  `status` TINYINT DEFAULT 1 COMMENT '状态（0-删除, 1-正常）',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+);
+```
+
+#### 资源点赞表 (resource_likes)
+```sql
+CREATE TABLE `resource_likes` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '点赞ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `resource_id` BIGINT NOT NULL COMMENT '资源ID',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  UNIQUE KEY `uk_user_resource` (`user_id`, `resource_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resource_id`) REFERENCES `resources` (`id`) ON DELETE CASCADE
+);
+```
+
+**特性**:
+- 通过唯一键约束确保用户不能重复点赞同一资源
+- 级联删除保证数据一致性
 
 ## 6. 课程表与日程管理模块
 
@@ -1067,10 +1154,11 @@
     "endTime": "09:40:00",
     "startWeek": 1,
     "endWeek": 16,
+    "semester": "2023-1",
     "color": "#4CAF50",
     "status": 1,
-    "createdAt": "2023-05-01 12:00:00",
-    "updatedAt": "2023-05-01 12:00:00"
+    "createdAt": "2023-05-01T12:00:00",
+    "updatedAt": "2023-05-01T12:00:00"
   }
 }
 ```
@@ -1100,10 +1188,11 @@
         "endTime": "09:40:00",
         "startWeek": 1,
         "endWeek": 16,
+        "semester": "2023-1",
         "color": "#4CAF50",
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -1135,10 +1224,11 @@
         "endTime": "09:40:00",
         "startWeek": 1,
         "endWeek": 16,
+        "semester": "2023-1",
         "color": "#4CAF50",
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -1173,8 +1263,8 @@
         "semester": "2023-1",
         "color": "#4CAF50",
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -1198,6 +1288,7 @@
   "endTime": "11:40:00",
   "startWeek": 1,
   "endWeek": 16,
+  "semester": "2023-1",
   "color": "#2196F3"
 }
 ```
@@ -1306,8 +1397,8 @@
     "reminder": 30,
     "color": "#FF5722",
     "status": 1,
-    "createdAt": "2023-05-01 12:00:00",
-    "updatedAt": "2023-05-01 12:00:00"
+    "createdAt": "2023-05-01T12:00:00",
+    "updatedAt": "2023-05-01T12:00:00"
   }
 }
 ```
@@ -1338,8 +1429,8 @@
         "reminder": 30,
         "color": "#FF5722",
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -1376,8 +1467,8 @@
         "reminder": 30,
         "color": "#FF5722",
         "status": 1,
-        "createdAt": "2023-05-01 12:00:00",
-        "updatedAt": "2023-05-01 12:00:00"
+        "createdAt": "2023-05-01T12:00:00",
+        "updatedAt": "2023-05-01T12:00:00"
       }
     ]
   }
@@ -1467,6 +1558,54 @@
   }
 }
 ```
+
+### 6.3 数据库设计说明
+
+#### 课程表 (courses)
+```sql
+CREATE TABLE `courses` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '课程ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `name` VARCHAR(100) NOT NULL COMMENT '课程名称',
+  `teacher` VARCHAR(50) DEFAULT NULL COMMENT '教师姓名',
+  `location` VARCHAR(100) DEFAULT NULL COMMENT '上课地点',
+  `day_of_week` TINYINT NOT NULL COMMENT '星期几（1-7）',
+  `start_time` TIME NOT NULL COMMENT '开始时间',
+  `end_time` TIME NOT NULL COMMENT '结束时间',
+  `start_week` TINYINT NOT NULL COMMENT '开始周次',
+  `end_week` TINYINT NOT NULL COMMENT '结束周次',
+  `semester` VARCHAR(20) DEFAULT NULL COMMENT '学期（如：2023-1）',
+  `color` VARCHAR(20) DEFAULT NULL COMMENT '显示颜色',
+  `status` TINYINT DEFAULT 1 COMMENT '状态（0-删除, 1-正常）',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+);
+```
+
+#### 日程表 (schedules)
+```sql
+CREATE TABLE `schedules` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '日程ID',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `title` VARCHAR(100) NOT NULL COMMENT '日程标题',
+  `description` TEXT DEFAULT NULL COMMENT '日程描述',
+  `start_time` DATETIME NOT NULL COMMENT '开始时间',
+  `end_time` DATETIME NOT NULL COMMENT '结束时间',
+  `location` VARCHAR(100) DEFAULT NULL COMMENT '地点',
+  `is_all_day` TINYINT DEFAULT 0 COMMENT '是否全天（0-否, 1-是）',
+  `reminder` TINYINT DEFAULT NULL COMMENT '提醒时间（分钟）',
+  `color` VARCHAR(20) DEFAULT NULL COMMENT '显示颜色',
+  `status` TINYINT DEFAULT 1 COMMENT '状态（0-删除, 1-正常）',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+);
+```
+
+**特性**:
+- 支持学期管理和多学期课程数据
+- 支持时间冲突检测
+- 支持课程和日程的颜色标记
+- 支持日程提醒功能
 
 ## 7. 待实现模块
 

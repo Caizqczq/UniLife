@@ -53,11 +53,13 @@ public class ResourceController {
     @GetMapping
     public Result<?> getResourceList(
             @RequestParam(value = "category", required = false) Long categoryId,
-            @RequestParam(value = "user", required = false) Long userId,
+            @RequestParam(value = "user", required = false) Long uploaderUserId,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size) {
-        return resourceService.getResourceList(categoryId, userId, keyword, page, size);
+        // 从当前上下文获取用户ID，可能为null（未登录用户）
+        Long currentUserId = BaseContext.getId();
+        return resourceService.getResourceList(categoryId, uploaderUserId, keyword, page, size, currentUserId);
     }
 
     @Operation(summary = "更新资源")

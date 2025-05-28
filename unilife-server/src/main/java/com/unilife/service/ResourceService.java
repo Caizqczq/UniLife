@@ -28,13 +28,14 @@ public interface ResourceService {
     /**
      * 获取资源列表
      * @param categoryId 分类ID，可为null
-     * @param userId 用户ID，可为null
+     * @param uploaderUserId 上传者用户ID，可为null（用于筛选特定用户上传的资源）
      * @param keyword 关键词，可为null
      * @param page 页码
      * @param size 每页大小
+     * @param currentUserId 当前登录用户ID，可为null（用于查询点赞状态）
      * @return 结果
      */
-    Result getResourceList(Long categoryId, Long userId, String keyword, Integer page, Integer size);
+    Result getResourceList(Long categoryId, Long uploaderUserId, String keyword, Integer page, Integer size, Long currentUserId);
     
     /**
      * 更新资源

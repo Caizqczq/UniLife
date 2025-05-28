@@ -11,9 +11,9 @@ export const useUserStore = defineStore('user', () => {
   // 登录
   const userLogin = async (loginData: LoginRequest) => {
     try {
-      const response = await login(loginData)
-      if (response.data.code === 200) {
-        token.value = response.data.data.token
+      const response = await login(loginData) as any as ApiResponse<LoginResponse>
+      if (response.code === 200) {
+        token.value = response.data.token
         localStorage.setItem('token', token.value)
         isLoggedIn.value = true
         
@@ -21,7 +21,7 @@ export const useUserStore = defineStore('user', () => {
         await fetchUserInfo()
         return response
       }
-      throw new Error(response.data.message)
+      throw new Error(response.message)
     } catch (error) {
       throw error
     }
@@ -40,9 +40,9 @@ export const useUserStore = defineStore('user', () => {
   // 获取用户信息
   const fetchUserInfo = async () => {
     try {
-      const response = await getUserInfo()
-      if (response.data.code === 200) {
-        user.value = response.data.data
+      const response = await getUserInfo() as any as ApiResponse<User>
+      if (response.code === 200) {
+        user.value = response.data
       }
     } catch (error) {
       console.error('获取用户信息失败:', error)

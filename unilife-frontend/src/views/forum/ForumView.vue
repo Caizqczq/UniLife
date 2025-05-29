@@ -17,6 +17,7 @@
           <router-link to="/resources" class="nav-item">资源</router-link>
           <router-link to="/schedule" class="nav-item">课程表</router-link>
           <router-link to="/tasks" class="nav-item">日程管理</router-link>
+          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
         </div>
         
         <div class="nav-actions">
@@ -63,6 +64,18 @@
           <div class="categories-section card-light">
             <h3 class="section-title">讨论分类</h3>
             <div class="categories-list">
+              <!-- 添加全部分类选项 -->
+              <div 
+                class="category-item"
+                :class="{ active: selectedCategory === null }"
+                @click="selectCategory(null)"
+              >
+                <el-icon class="category-icon">
+                  <School />
+                </el-icon>
+                <span class="category-name">全部分类</span>
+                <span class="post-count">{{ totalPostsCount }}</span>
+              </div>
               <div 
                 v-for="category in categories" 
                 :key="category.id"
@@ -74,7 +87,7 @@
                   <School />
                 </el-icon>
                 <span class="category-name">{{ category.name }}</span>
-                <span class="post-count">0</span>
+                <span class="post-count">{{ category.postCount || 0 }}</span>
               </div>
             </div>
           </div>
@@ -351,6 +364,7 @@ const postFormRef = ref()
 // 真实数据
 const categories = ref<Category[]>([])
 const posts = ref<Post[]>([])
+const totalPostsCount = ref(0) // 总帖子数量，用于"全部分类"显示
 const pagination = ref({
   page: 1,
   size: 10,
@@ -517,6 +531,11 @@ const loadPosts = async () => {
       pagination.value.total = response.data.total || 0
       pagination.value.pages = response.data.pages || 0
       
+      // 只有在未选择分类时才更新总数（即显示所有帖子时）
+      if (!selectedCategory.value && !searchKeyword.value.trim()) {
+        totalPostsCount.value = response.data.total || 0
+      }
+      
       // 调试信息：打印帖子的点赞状态
       console.log('加载的帖子数据:', posts.value.map(p => ({
         id: p.id,
@@ -545,6 +564,10 @@ const loadCategories = async () => {
     
     if (response.code === 200) {
       categories.value = response.data.list || []
+      console.log('分类列表加载成功:', categories.value)
+      
+      // 加载每个分类的帖子数量
+      await loadCategoryPostCounts()
     } else {
       console.error('加载分类失败:', response.message)
     }
@@ -554,10 +577,59 @@ const loadCategories = async () => {
   }
 }
 
+// 加载每个分类的帖子数量
+const loadCategoryPostCounts = async () => {
+  try {
+    for (const category of categories.value) {
+      try {
+        const response = await getPosts({ 
+          categoryId: category.id, 
+          page: 1, 
+          size: 1 
+        }) as any as ApiResponse<{
+          total: number
+          list: Post[]
+          pages: number
+        }>
+        
+        if (response.code === 200) {
+          // 直接修改分类对象的postCount属性
+          category.postCount = response.data.total || 0
+        }
+      } catch (error) {
+        console.error(`加载分类${category.name}的帖子数量失败:`, error)
+        category.postCount = 0
+      }
+    }
+    console.log('分类帖子数量加载完成:', categories.value.map(c => ({ name: c.name, count: c.postCount })))
+  } catch (error) {
+    console.error('加载分类帖子数量失败:', error)
+  }
+}
+
+// 加载总帖子数量
+const loadTotalPostsCount = async () => {
+  try {
+    const response = await getPosts({ page: 1, size: 1 }) as any as ApiResponse<{
+      total: number
+      list: Post[]
+      pages: number
+    }>
+    
+    if (response.code === 200) {
+      totalPostsCount.value = response.data.total || 0
+    }
+  } catch (error) {
+    console.error('加载总帖子数失败:', error)
+  }
+}
+
 onMounted(() => {
   console.log('论坛页面加载完成')
   loadCategories()
   loadPosts()
+  // 初始化时加载总帖子数
+  loadTotalPostsCount()
 })
 </script>
 

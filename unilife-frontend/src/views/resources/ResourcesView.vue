@@ -17,6 +17,7 @@
           <router-link to="/resources" class="nav-item active">资源</router-link>
           <router-link to="/schedule" class="nav-item">课程表</router-link>
           <router-link to="/tasks" class="nav-item">日程管理</router-link>
+          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
         </div>
         
         <div class="nav-actions">
@@ -72,7 +73,7 @@
                   <Folder />
                 </el-icon>
                 <span class="category-name">全部资源</span>
-                <span class="resource-count">{{ totalResources }}</span>
+                <span class="resource-count">{{ allResourcesCount }}</span>
               </div>
               <div 
                 v-for="category in categories" 
@@ -85,7 +86,7 @@
                   <Folder />
                 </el-icon>
                 <span class="category-name">{{ category.name }}</span>
-                <span class="resource-count">{{ category.count || 0 }}</span>
+                <span class="resource-count">{{ category.resourceCount || 0 }}</span>
               </div>
             </div>
           </div>
@@ -370,6 +371,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const totalResources = ref(0)
 const totalPages = ref(0)
+const allResourcesCount = ref(0) // 总资源数量，用于"全部资源"显示
 
 // 数据列表
 const resources = ref<ExtendedResource[]>([])
@@ -467,6 +469,11 @@ const loadResources = async () => {
       totalResources.value = response.data.total
       totalPages.value = response.data.pages
       
+      // 只有在未选择分类时才更新总数（即显示所有资源时）
+      if (!selectedCategory.value && !searchKeyword.value.trim()) {
+        allResourcesCount.value = response.data.total || 0
+      }
+      
       console.log('资源列表加载成功:', {
         total: totalResources.value,
         pages: totalPages.value,
@@ -498,6 +505,9 @@ const loadCategories = async () => {
     if (response.code === 200) {
       categories.value = response.data.list
       console.log('分类列表加载成功:', categories.value)
+      
+      // 加载每个分类的资源数量
+      await loadCategoryResourceCounts()
     } else {
       console.error('分类列表API返回错误:', response)
       ElMessage.error(response.message || '获取分类列表失败')
@@ -505,6 +515,36 @@ const loadCategories = async () => {
   } catch (error) {
     console.error('获取分类列表失败:', error)
     ElMessage.error('获取分类列表失败')
+  }
+}
+
+// 加载每个分类的资源数量
+const loadCategoryResourceCounts = async () => {
+  try {
+    for (const category of categories.value) {
+      try {
+        const response = await getResources({ 
+          category: category.id, 
+          page: 1, 
+          size: 1 
+        }) as any as ApiResponse<{
+          total: number
+          list: any[]
+          pages: number
+        }>
+        
+        if (response.code === 200) {
+          // 直接修改分类对象的resourceCount属性
+          category.resourceCount = response.data.total || 0
+        }
+      } catch (error) {
+        console.error(`加载分类${category.name}的资源数量失败:`, error)
+        category.resourceCount = 0
+      }
+    }
+    console.log('分类资源数量加载完成:', categories.value.map(c => ({ name: c.name, count: c.resourceCount })))
+  } catch (error) {
+    console.error('加载分类资源数量失败:', error)
   }
 }
 
@@ -703,7 +743,25 @@ onMounted(async () => {
   console.log('资源页面加载完成')
   await loadCategories()
   await loadResources()
+  await loadTotalResourcesCount()
 })
+
+// 加载总资源数量
+const loadTotalResourcesCount = async () => {
+  try {
+    const response = await getResources({ page: 1, size: 1 }) as any as ApiResponse<{
+      total: number
+      list: any[]
+      pages: number
+    }>
+    
+    if (response.code === 200) {
+      allResourcesCount.value = response.data.total || 0
+    }
+  } catch (error) {
+    console.error('加载总资源数失败:', error)
+  }
+}
 </script>
 
 <style scoped>

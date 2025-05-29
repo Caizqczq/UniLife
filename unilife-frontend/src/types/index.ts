@@ -110,6 +110,8 @@ export interface Category {
   status: number
   createdAt: string
   updatedAt: string
+  postCount?: number       // 该分类下的帖子数量
+  resourceCount?: number   // 该分类下的资源数量
 }
 
 // 资源相关类型

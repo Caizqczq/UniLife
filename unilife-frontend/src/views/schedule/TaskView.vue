@@ -17,6 +17,7 @@
           <router-link to="/resources" class="nav-item">资源</router-link>
           <router-link to="/schedule" class="nav-item">课程表</router-link>
           <router-link to="/tasks" class="nav-item active">日程管理</router-link>
+          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
         </div>
         
         <div class="nav-actions">

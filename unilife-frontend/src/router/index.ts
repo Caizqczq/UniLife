@@ -50,6 +50,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/tasks',
+      name: 'tasks',
+      component: () => import('@/views/schedule/TaskView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/profile/ProfileView.vue'),

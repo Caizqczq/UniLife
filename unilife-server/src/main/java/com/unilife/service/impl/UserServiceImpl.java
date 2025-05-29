@@ -543,32 +543,81 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result getUserRecentPosts(Long userId, Integer limit) {
-        // 检查用户是否存在
-        User user = userMapper.getUserById(userId);
-        if (user == null) {
-            return Result.error(404, "用户不存在");
-        }
+        try {
+            // 获取用户信息，验证用户是否存在
+            User user = userMapper.getUserById(userId);
+            if (user == null) {
+                return Result.error(404, "用户不存在");
+            }
 
-        // 参数校验
-        if (limit == null || limit <= 0) {
-            limit = 5;
-        }
-        if (limit > 20) {
-            limit = 20; // 限制最大数量
-        }
+            // 获取用户最近的帖子
+            List<Post> recentPosts = postMapper.getListByUserId(userId, "time");
+            
+            // 如果指定了限制数量，则截取
+            if (limit != null && limit > 0 && recentPosts.size() > limit) {
+                recentPosts = recentPosts.subList(0, limit);
+            }
 
-        // 获取用户最近的帖子
-        List<Post> recentPosts = postMapper.getListByUserId(userId, "latest");
-        
-        // 限制数量
-        if (recentPosts.size() > limit) {
-            recentPosts = recentPosts.subList(0, limit);
+            Map<String, Object> result = new HashMap<>();
+            result.put("posts", recentPosts);
+            result.put("totalCount", postMapper.getCountByUserId(userId));
+            
+            return Result.success(result, "获取用户最近帖子成功");
+        } catch (Exception e) {
+            log.error("获取用户最近帖子失败: userId={}", userId, e);
+            return Result.error(500, "获取用户最近帖子失败");
         }
-
-        // 返回结果
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", recentPosts);
-
-        return Result.success(data);
+    }
+    
+    @Override
+    public Result deleteUser(Long userId) {
+        try {
+            // 验证用户是否存在
+            User user = userMapper.getUserById(userId);
+            if (user == null) {
+                return Result.error(404, "用户不存在");
+            }
+            
+            // 检查用户状态，避免重复删除
+            if (user.getStatus() == 0) {
+                return Result.error(400, "用户已被删除");
+            }
+            
+            log.info("开始删除用户及其相关数据: userId={}, username={}", userId, user.getUsername());
+            
+            // 1. 软删除用户的所有帖子
+            userMapper.deleteUserPosts(userId);
+            log.info("已删除用户的所有帖子: userId={}", userId);
+            
+            // 2. 软删除用户的所有评论
+            userMapper.deleteUserComments(userId);
+            log.info("已删除用户的所有评论: userId={}", userId);
+            
+            // 3. 软删除用户的所有资源
+            userMapper.deleteUserResources(userId);
+            log.info("已删除用户的所有资源: userId={}", userId);
+            
+            // 4. 删除用户的所有课程（物理删除，因为是个人课程安排）
+            userMapper.deleteUserCourses(userId);
+            log.info("已删除用户的所有课程: userId={}", userId);
+            
+            // 5. 删除用户的所有日程（物理删除，因为是个人日程安排）
+            userMapper.deleteUserSchedules(userId);
+            log.info("已删除用户的所有日程: userId={}", userId);
+            
+            // 6. 删除用户的所有点赞记录（物理删除）
+            userMapper.deleteUserLikes(userId);
+            log.info("已删除用户的所有点赞记录: userId={}", userId);
+            
+            // 7. 最后软删除用户本身
+            userMapper.deleteUser(userId);
+            log.info("已删除用户账号: userId={}, username={}", userId, user.getUsername());
+            
+            return Result.success(null, "用户及其相关数据删除成功");
+            
+        } catch (Exception e) {
+            log.error("删除用户失败: userId={}", userId, e);
+            return Result.error(500, "删除用户失败：" + e.getMessage());
+        }
     }
 }

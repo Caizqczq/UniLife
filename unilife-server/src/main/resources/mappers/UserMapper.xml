@@ -159,4 +159,57 @@
         </if>
         ORDER BY created_at DESC
     </select>
+    
+    <!-- 删除用户及其相关数据的SQL -->
+    
+    <!-- 软删除用户 -->
+    <update id="deleteUser">
+        UPDATE users 
+        SET status = 0, 
+            updated_at = NOW() 
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 软删除用户的所有帖子 -->
+    <update id="deleteUserPosts">
+        UPDATE posts 
+        SET status = 0, 
+            updated_at = NOW() 
+        WHERE user_id = #{userId}
+    </update>
+    
+    <!-- 软删除用户的所有评论 -->
+    <update id="deleteUserComments">
+        UPDATE comments 
+        SET status = 0, 
+            updated_at = NOW() 
+        WHERE user_id = #{userId}
+    </update>
+    
+    <!-- 软删除用户的所有资源 -->
+    <update id="deleteUserResources">
+        UPDATE resources 
+        SET status = 0, 
+            updated_at = NOW() 
+        WHERE user_id = #{userId}
+    </update>
+    
+    <!-- 删除用户的所有课程 -->
+    <delete id="deleteUserCourses">
+        DELETE FROM courses 
+        WHERE user_id = #{userId}
+    </delete>
+    
+    <!-- 删除用户的所有日程 -->
+    <delete id="deleteUserSchedules">
+        DELETE FROM schedules 
+        WHERE user_id = #{userId}
+    </delete>
+    
+    <!-- 删除用户的所有点赞记录 -->
+    <delete id="deleteUserLikes">
+        DELETE FROM post_likes WHERE user_id = #{userId};
+        DELETE FROM comment_likes WHERE user_id = #{userId};
+        DELETE FROM resource_likes WHERE user_id = #{userId};
+    </delete>
 </mapper>

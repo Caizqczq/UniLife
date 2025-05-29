@@ -65,9 +65,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_category_id` (`category_id`),
   INDEX `idx_status` (`status`),
-  INDEX `idx_created_at` (`created_at`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+  INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='帖子表';
 
 -- 评论表
@@ -84,10 +82,7 @@ CREATE TABLE IF NOT EXISTS `comments` (
   INDEX `idx_post_id` (`post_id`),
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_parent_id` (`parent_id`),
-  INDEX `idx_status` (`status`),
-  FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`parent_id`) REFERENCES `comments` (`id`) ON DELETE SET NULL
+  INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论表';
 
 -- 点赞表（用户-帖子）
@@ -97,8 +92,8 @@ CREATE TABLE IF NOT EXISTS `post_likes` (
   `post_id` BIGINT NOT NULL COMMENT '帖子ID',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   UNIQUE KEY `uk_user_post` (`user_id`, `post_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_post_id` (`post_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='帖子点赞表';
 
 -- 点赞表（用户-评论）
@@ -108,8 +103,8 @@ CREATE TABLE IF NOT EXISTS `comment_likes` (
   `comment_id` BIGINT NOT NULL COMMENT '评论ID',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   UNIQUE KEY `uk_user_comment` (`user_id`, `comment_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`) ON DELETE CASCADE
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_comment_id` (`comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论点赞表';
 
 -- 点赞表（用户-资源）
@@ -119,8 +114,8 @@ CREATE TABLE IF NOT EXISTS `resource_likes` (
   `resource_id` BIGINT NOT NULL COMMENT '资源ID',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   UNIQUE KEY `uk_user_resource` (`user_id`, `resource_id`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resource_id`) REFERENCES `resources` (`id`) ON DELETE CASCADE
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_resource_id` (`resource_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源点赞表';
 
 -- 资源表
@@ -140,9 +135,7 @@ CREATE TABLE IF NOT EXISTS `resources` (
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_category_id` (`category_id`),
-  INDEX `idx_status` (`status`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+  INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源表';
 
 -- 课程表
@@ -163,8 +156,7 @@ CREATE TABLE IF NOT EXISTS `courses` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_semester` (`semester`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  INDEX `idx_semester` (`semester`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程表';
 
 -- 日程表
@@ -183,8 +175,7 @@ CREATE TABLE IF NOT EXISTS `schedules` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_user_id` (`user_id`),
-  INDEX `idx_start_time` (`start_time`),
-  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  INDEX `idx_start_time` (`start_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='日程表';
 
 -- 初始化分类数据

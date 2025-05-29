@@ -36,4 +36,12 @@ public interface UserService {
 
     // 用户最近帖子
     Result getUserRecentPosts(Long userId, Integer limit);
+    
+    /**
+     * 删除用户及其所有相关数据
+     * 使用软删除机制，保持数据一致性
+     * @param userId 用户ID
+     * @return 操作结果
+     */
+    Result deleteUser(Long userId);
 }

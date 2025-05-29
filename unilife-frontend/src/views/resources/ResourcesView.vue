@@ -16,6 +16,7 @@
           <router-link to="/forum" class="nav-item">论坛</router-link>
           <router-link to="/resources" class="nav-item active">资源</router-link>
           <router-link to="/schedule" class="nav-item">课程表</router-link>
+          <router-link to="/tasks" class="nav-item">日程管理</router-link>
         </div>
         
         <div class="nav-actions">
@@ -147,77 +148,77 @@
 
           <!-- 加载状态 -->
           <div v-loading="loading" class="loading-container">
-            <!-- 资源列表 -->
+          <!-- 资源列表 -->
             <div class="resources-list" v-if="!loading">
-              <div 
+            <div 
                 v-for="resource in resources" 
-                :key="resource.id"
-                class="resource-card card-light animate-fade-in-up"
+              :key="resource.id"
+              class="resource-card card-light animate-fade-in-up"
                 @click="goToResourceDetail(resource.id)"
-              >
-                <div class="resource-header">
-                  <div class="file-icon">
-                    <el-icon :size="32" :color="getFileTypeColor(resource.fileType)">
-                      <Document />
-                    </el-icon>
-                  </div>
+            >
+              <div class="resource-header">
+                <div class="file-icon">
+                  <el-icon :size="32" :color="getFileTypeColor(resource.fileType)">
+                    <Document />
+                  </el-icon>
+                </div>
+                
+                <div class="resource-info">
+                  <h3 class="resource-title">{{ resource.title }}</h3>
+                  <p class="resource-description">{{ resource.description }}</p>
                   
-                  <div class="resource-info">
-                    <h3 class="resource-title">{{ resource.title }}</h3>
-                    <p class="resource-description">{{ resource.description }}</p>
-                    
-                    <div class="resource-meta">
-                      <span class="file-size">{{ formatFileSize(resource.fileSize) }}</span>
-                      <span class="file-type">{{ getFileTypeLabel(resource.fileType) }}</span>
+                  <div class="resource-meta">
+                    <span class="file-size">{{ formatFileSize(resource.fileSize) }}</span>
+                    <span class="file-type">{{ getFileTypeLabel(resource.fileType) }}</span>
                       <span class="upload-time">{{ formatDate(resource.createdAt) }}</span>
-                    </div>
                   </div>
-                  
+                </div>
+                
                   <div class="resource-actions" @click.stop>
                     <el-button type="primary" @click="downloadResource(resource)" :loading="resource.downloading">
-                      <el-icon><Download /></el-icon>
-                      下载
-                    </el-button>
+                    <el-icon><Download /></el-icon>
+                    下载
+                  </el-button>
                     <el-button 
                       :text="!resource.isLiked" 
                       :type="resource.isLiked ? 'danger' : 'default'"
                       @click="toggleLike(resource)"
                       :loading="resource.liking"
                     >
-                      <el-icon><Star /></el-icon>
-                      {{ resource.likeCount }}
-                    </el-button>
-                  </div>
-                </div>
-
-                <div class="resource-footer">
-                  <div class="uploader-info">
-                    <el-avatar :size="24" :src="resource.avatar">
-                      {{ resource.nickname?.charAt(0) }}
-                    </el-avatar>
-                    <span class="uploader-name">{{ resource.nickname }}</span>
-                  </div>
-                  
-                  <div class="resource-stats">
-                    <span class="stat-item">
-                      <el-icon><Download /></el-icon>
-                      {{ resource.downloadCount }}
-                    </span>
-                    <span class="stat-item">
-                      <el-icon><Star /></el-icon>
-                      {{ resource.likeCount }}
-                    </span>
-                  </div>
+                    <el-icon><Star /></el-icon>
+                    {{ resource.likeCount }}
+                  </el-button>
                 </div>
               </div>
 
-              <!-- 空状态 -->
+              <div class="resource-footer">
+                <div class="uploader-info">
+                  <el-avatar :size="24" :src="resource.avatar">
+                    {{ resource.nickname?.charAt(0) }}
+                  </el-avatar>
+                  <span class="uploader-name">{{ resource.nickname }}</span>
+                </div>
+                
+                <div class="resource-stats">
+                  <span class="stat-item">
+                    <el-icon><Download /></el-icon>
+                    {{ resource.downloadCount }}
+                  </span>
+                  <span class="stat-item">
+                    <el-icon><Star /></el-icon>
+                    {{ resource.likeCount }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
               <div v-if="resources.length === 0 && !loading" class="empty-state">
-                <el-empty description="暂无资源">
-                  <el-button type="primary" @click="showUploadDialog = true">
-                    上传第一个资源
-                  </el-button>
-                </el-empty>
+              <el-empty description="暂无资源">
+                <el-button type="primary" @click="showUploadDialog = true">
+                  上传第一个资源
+                </el-button>
+              </el-empty>
               </div>
             </div>
 
@@ -534,7 +535,7 @@ const downloadResource = async (resource: ExtendedResource) => {
       ElMessage.success('下载开始')
     } else {
       ElMessage.error(response.message || '下载失败')
-    }
+}
   } catch (error) {
     console.error('下载失败:', error)
     ElMessage.error('下载失败')
@@ -552,9 +553,9 @@ const toggleLike = async (resource: ExtendedResource) => {
     console.log('点赞API响应:', response)
     
     if (response.code === 200) {
-      resource.isLiked = !resource.isLiked
-      resource.likeCount += resource.isLiked ? 1 : -1
-      ElMessage.success(resource.isLiked ? '点赞成功' : '取消点赞')
+  resource.isLiked = !resource.isLiked
+  resource.likeCount += resource.isLiked ? 1 : -1
+  ElMessage.success(resource.isLiked ? '点赞成功' : '取消点赞')
     } else {
       ElMessage.error(response.message || '操作失败')
     }
@@ -608,7 +609,7 @@ const handleUploadResource = async () => {
     console.log('上传资源API响应:', response)
     
     if (response.code === 200) {
-      ElMessage.success('资源上传成功！')
+  ElMessage.success('资源上传成功！')
       showUploadDialog.value = false
       resetUploadForm()
       loadResources() // 重新加载资源列表

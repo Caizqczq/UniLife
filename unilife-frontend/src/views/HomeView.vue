@@ -175,6 +175,7 @@
             <a href="#">论坛</a>
             <a href="#">资源库</a>
             <a href="#">课程表</a>
+            <a href="#">日程管理</a>
           </div>
           <div class="link-group">
             <h4>支持</h4>
@@ -206,42 +207,42 @@ import {
   ChatDotRound, 
   FolderOpened, 
   Calendar, 
-  TrendCharts,
-  School,
-  Trophy
+  Clock,
+  UserFilled,
+  TrendCharts 
 } from '@element-plus/icons-vue'
 
 // 功能特色数据
 const features = ref([
   {
     icon: ChatDotRound,
-    title: '校园论坛',
-    description: '与同学们畅所欲言，分享学习心得，讨论校园生活，建立深厚友谊'
+    title: '活跃论坛',
+    description: '与同学们自由讨论学习、生活话题，分享经验与见解，建立有意义的连接'
   },
   {
     icon: FolderOpened,
     title: '资源共享',
-    description: '海量学习资料，课件笔记，考试真题，助力学业进步'
+    description: '上传和下载学习资料、课件、笔记等，让知识在同学之间自由流转'
   },
   {
     icon: Calendar,
     title: '课程管理',
-    description: '智能课程表，日程提醒，让你的学习生活井井有条'
+    description: '智能课程表管理，清晰展示课程安排，再也不用担心忘记上课时间'
+  },
+  {
+    icon: Clock,
+    title: '日程管理',
+    description: '个人日程安排，重要事项提醒，让你的大学生活井井有条'
+  },
+  {
+    icon: UserFilled,
+    title: '个人中心',
+    description: '个性化用户资料，记录学习轨迹，展示你的大学成长历程'
   },
   {
     icon: TrendCharts,
-    title: '学习统计',
-    description: '详细的学习数据分析，帮助你更好地规划学习时间'
-  },
-  {
-    icon: School,
-    title: '校园服务',
-    description: '集成校园各类服务，让校园生活更便捷'
-  },
-  {
-    icon: Trophy,
-    title: '成就系统',
-    description: '完成任务获得成就，让学习变得更有趣'
+    title: '数据统计',
+    description: '学习数据可视化，了解自己的学习习惯，制定更好的学习计划'
   }
 ])
 

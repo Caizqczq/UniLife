@@ -46,7 +46,7 @@ public class CreateScheduleDTO {
     /**
      * 提醒时间（分钟）
      */
-    private Byte reminder;
+    private Integer reminder;
     
     /**
      * 显示颜色

@@ -80,56 +80,79 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public Result getCommentsByPostId(Long postId, Long userId) {
+        log.info("获取帖子 {} 的评论列表，当前用户: {}", postId, userId);
+        
         // 检查帖子是否存在
         Post post = postMapper.getById(postId);
         if (post == null) {
+            log.warn("帖子 {} 不存在", postId);
             return Result.error(404, "帖子不存在");
         }
 
         // 获取一级评论
         List<Comment> topLevelComments = commentMapper.getTopLevelCommentsByPostId(postId);
+        log.info("获取到 {} 条一级评论", topLevelComments.size());
 
         // 转换为VO
-        List<CommentVO> commentVOs = topLevelComments.stream().map(comment -> {
-            // 获取评论用户信息
-            User user = userMapper.getUserById(comment.getUserId());
+        List<CommentVO> commentVOs = new ArrayList<>();
+        
+        for (Comment comment : topLevelComments) {
+            try {
+                // 获取评论用户信息
+                User user = userMapper.getUserById(comment.getUserId());
+                log.debug("评论 {} 的用户信息: {}", comment.getId(), user != null ? user.getNickname() : "null");
 
-            // 获取回复列表
-            List<Comment> replies = commentMapper.getRepliesByParentId(comment.getId());
-            List<CommentVO> replyVOs = replies.stream().map(reply -> {
-                User replyUser = userMapper.getUserById(reply.getUserId());
-                return CommentVO.builder()
-                        .id(reply.getId())
-                        .postId(reply.getPostId())
-                        .userId(reply.getUserId())
-                        .nickname(replyUser != null ? replyUser.getNickname() : "未知用户")
-                        .avatar(replyUser != null ? replyUser.getAvatar() : null)
-                        .content(reply.getContent())
-                        .parentId(reply.getParentId())
-                        .likeCount(reply.getLikeCount())
+                // 获取回复列表
+                List<Comment> replies = commentMapper.getRepliesByParentId(comment.getId());
+                List<CommentVO> replyVOs = new ArrayList<>();
+                
+                for (Comment reply : replies) {
+                    try {
+                        User replyUser = userMapper.getUserById(reply.getUserId());
+                        log.debug("回复 {} 的用户信息: {}", reply.getId(), replyUser != null ? replyUser.getNickname() : "null");
+                        
+                        CommentVO replyVO = CommentVO.builder()
+                                .id(reply.getId())
+                                .postId(reply.getPostId())
+                                .userId(reply.getUserId())
+                                .nickname(replyUser != null ? replyUser.getNickname() : "未知用户")
+                                .avatar(replyUser != null ? replyUser.getAvatar() : null)
+                                .content(reply.getContent())
+                                .parentId(reply.getParentId())
+                                .likeCount(reply.getLikeCount())
+                                .isLiked(false) // 实际开发中应该查询用户是否点赞
+                                .createdAt(reply.getCreatedAt())
+                                .replies(new ArrayList<>())
+                                .build();
+                        replyVOs.add(replyVO);
+                    } catch (Exception e) {
+                        log.error("处理回复 {} 时出错: {}", reply.getId(), e.getMessage());
+                    }
+                }
+
+                CommentVO commentVO = CommentVO.builder()
+                        .id(comment.getId())
+                        .postId(comment.getPostId())
+                        .userId(comment.getUserId())
+                        .nickname(user != null ? user.getNickname() : "未知用户")
+                        .avatar(user != null ? user.getAvatar() : null)
+                        .content(comment.getContent())
+                        .parentId(comment.getParentId())
+                        .likeCount(comment.getLikeCount())
                         .isLiked(false) // 实际开发中应该查询用户是否点赞
-                        .createdAt(reply.getCreatedAt())
-                        .replies(new ArrayList<>())
+                        .createdAt(comment.getCreatedAt())
+                        .replies(replyVOs)
                         .build();
-            }).collect(Collectors.toList());
-
-            return CommentVO.builder()
-                    .id(comment.getId())
-                    .postId(comment.getPostId())
-                    .userId(comment.getUserId())
-                    .nickname(user != null ? user.getNickname() : "未知用户")
-                    .avatar(user != null ? user.getAvatar() : null)
-                    .content(comment.getContent())
-                    .parentId(comment.getParentId())
-                    .likeCount(comment.getLikeCount())
-                    .isLiked(false) // 实际开发中应该查询用户是否点赞
-                    .createdAt(comment.getCreatedAt())
-                    .replies(replyVOs)
-                    .build();
-        }).collect(Collectors.toList());
+                
+                commentVOs.add(commentVO);
+            } catch (Exception e) {
+                log.error("处理评论 {} 时出错: {}", comment.getId(), e.getMessage());
+            }
+        }
 
         // 获取评论总数
         Integer count = commentMapper.getCountByPostId(postId);
+        log.info("帖子 {} 的评论总数: {}, 实际返回: {}", postId, count, commentVOs.size());
 
         // 返回结果
         Map<String, Object> data = new HashMap<>();

@@ -1,0 +1,66 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  redis:
+    host: localhost
+    port: 6379
+    database: 1
+    timeout: 2000ms
+  
+  mail:
+    host: smtp.example.com
+    port: 587
+    username: test@example.com
+    password: testpassword
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.unilife.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.unilife: DEBUG
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# JWT配置
+jwt:
+  secret: test-secret-key-for-unit-testing-purposes-only
+  expiration: 3600000
+
+# 文件上传配置
+file:
+  upload:
+    path: /tmp/unilife-test/uploads/
+    max-size: 10MB
+
+# 测试特定配置
+test:
+  mock:
+    enabled: true
+  database:
+    cleanup: true 

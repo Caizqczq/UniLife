@@ -16,6 +16,7 @@
           <router-link to="/forum" class="nav-item">论坛</router-link>
           <router-link to="/resources" class="nav-item">资源</router-link>
           <router-link to="/schedule" class="nav-item">课程表</router-link>
+          <router-link to="/tasks" class="nav-item">日程管理</router-link>
         </div>
         
         <div class="nav-actions">
@@ -84,11 +85,19 @@
                 <div class="author-stats">发帖 {{ authorStats.postCount }} · 获赞 {{ authorStats.likeCount }}</div>
               </div>
             </div>
-            <el-button type="primary" plain size="small">关注</el-button>
+            <el-button type="primary" plain size="small" class="follow-btn">关注</el-button>
           </div>
 
           <div class="post-content">
-            <pre class="post-text">{{ post.content }}</pre>
+            <div class="markdown-content">
+              <MdPreview 
+                :model-value="post.content"
+                preview-theme="default"
+                code-theme="atom"
+                :show-code-row-number="true"
+                class="post-markdown"
+              />
+            </div>
           </div>
 
           <div class="post-footer">
@@ -219,6 +228,8 @@ import {
 import { useUserStore } from '@/stores/user'
 import { getPostDetail, likePost as likePostAPI, getComments, createComment as createCommentAPI, likeComment as likeCommentAPI } from '@/api/forum'
 import type { Post, ApiResponse } from '@/types'
+import { MdPreview } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 
 const router = useRouter()
 const route = useRoute()
@@ -570,36 +581,169 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+/* 关注按钮优化样式 */
+.follow-btn {
+  background: transparent !important;
+  border: 2px solid var(--primary-300) !important;
+  color: var(--primary-600) !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+  transition: var(--transition-base) !important;
+  min-width: 80px !important;
+}
+
+.follow-btn:hover {
+  background: var(--primary-50) !important;
+  border-color: var(--primary-400) !important;
+  color: var(--primary-700) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.2) !important;
+}
+
+.follow-btn:active {
+  transform: translateY(0) !important;
+}
+
+/* 已关注状态样式 */
+.follow-btn.following {
+  background: var(--primary-100) !important;
+  border-color: var(--primary-400) !important;
+  color: var(--primary-700) !important;
+}
+
+.follow-btn.following:hover {
+  background: var(--gray-100) !important;
+  border-color: var(--gray-400) !important;
+  color: var(--gray-600) !important;
+}
+
 .post-content {
-  color: var(--gray-700);
-  line-height: 1.8;
-  font-size: 16px;
   margin-bottom: 32px;
 }
 
-.post-content p {
-  margin-bottom: 16px;
+.markdown-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
 }
 
-.post-content ul {
-  margin: 16px 0;
-  padding-left: 24px;
+.post-markdown {
+  font-size: 16px !important;
+  line-height: 1.8 !important;
+  color: var(--gray-700) !important;
 }
 
-.post-content li {
-  margin-bottom: 8px;
+/* Markdown内容样式优化 */
+.post-markdown h1,
+.post-markdown h2,
+.post-markdown h3,
+.post-markdown h4,
+.post-markdown h5,
+.post-markdown h6 {
+  color: var(--gray-800) !important;
+  font-weight: 600 !important;
+  margin: 24px 0 16px 0 !important;
 }
 
-.post-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: inherit;
-  margin: 0;
-  background: none;
-  border: none;
-  font-size: inherit;
-  color: inherit;
-  line-height: inherit;
+.post-markdown h1 {
+  font-size: 28px !important;
+  border-bottom: 2px solid var(--primary-200) !important;
+  padding-bottom: 8px !important;
+}
+
+.post-markdown h2 {
+  font-size: 24px !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  padding-bottom: 6px !important;
+}
+
+.post-markdown h3 {
+  font-size: 20px !important;
+}
+
+.post-markdown p {
+  margin-bottom: 16px !important;
+  color: var(--gray-700) !important;
+}
+
+.post-markdown blockquote {
+  border-left: 4px solid var(--primary-400) !important;
+  background: var(--primary-50) !important;
+  padding: 16px 20px !important;
+  margin: 16px 0 !important;
+  border-radius: 6px !important;
+}
+
+.post-markdown code {
+  background: var(--gray-100) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  color: var(--primary-700) !important;
+}
+
+.post-markdown pre {
+  background: var(--gray-900) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  margin: 16px 0 !important;
+  overflow-x: auto !important;
+}
+
+.post-markdown ul,
+.post-markdown ol {
+  margin: 16px 0 !important;
+  padding-left: 24px !important;
+}
+
+.post-markdown li {
+  margin-bottom: 8px !important;
+  color: var(--gray-700) !important;
+}
+
+.post-markdown table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 16px 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.post-markdown th,
+.post-markdown td {
+  padding: 12px 16px !important;
+  text-align: left !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+}
+
+.post-markdown th {
+  background: var(--primary-50) !important;
+  font-weight: 600 !important;
+  color: var(--gray-800) !important;
+}
+
+.post-markdown a {
+  color: var(--primary-600) !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent !important;
+  transition: var(--transition-base) !important;
+}
+
+.post-markdown a:hover {
+  color: var(--primary-700) !important;
+  border-bottom-color: var(--primary-400) !important;
+}
+
+.post-markdown img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  margin: 16px 0 !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 .post-footer {

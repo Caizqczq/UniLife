@@ -220,46 +220,95 @@
     <el-dialog
       v-model="showCreatePost"
       title="发布新帖子"
-      width="600px"
+      width="800px"
       class="create-post-dialog"
+      :close-on-click-modal="false"
     >
-      <el-form label-position="top">
-        <el-form-item label="帖子标题">
-          <el-input 
-            v-model="postForm.title"
-            placeholder="请输入帖子标题" 
-            size="large" 
-          />
-        </el-form-item>
-        <el-form-item label="分类">
-          <el-select 
-            v-model="postForm.categoryId"
-            placeholder="请选择分类" 
-            size="large" 
-            style="width: 100%"
+      <div class="create-post-form">
+        <el-form label-position="top" :model="postForm" ref="postFormRef">
+          <div class="form-row">
+            <el-form-item 
+              label="帖子标题" 
+              prop="title"
+              :rules="[{ required: true, message: '请输入帖子标题', trigger: 'blur' }]"
+              class="title-field"
+            >
+              <el-input 
+                v-model="postForm.title"
+                placeholder="写一个吸引人的标题..." 
+                size="large"
+                maxlength="100"
+                show-word-limit
+                clearable
+              />
+            </el-form-item>
+            <el-form-item 
+              label="分类" 
+              prop="categoryId"
+              :rules="[{ required: true, message: '请选择分类', trigger: 'change' }]"
+              class="category-field"
+            >
+              <el-select 
+                v-model="postForm.categoryId"
+                placeholder="选择分类" 
+                size="large" 
+                style="width: 100%"
+                clearable
+              >
+                <el-option 
+                  v-for="category in categories"
+                  :key="category.id"
+                  :label="category.name" 
+                  :value="category.id" 
+                />
+              </el-select>
+            </el-form-item>
+          </div>
+          
+          <el-form-item 
+            label="帖子内容" 
+            prop="content"
+            :rules="[{ required: true, message: '请输入帖子内容', trigger: 'blur' }]"
+            class="content-field"
           >
-            <el-option 
-              v-for="category in categories"
-              :key="category.id"
-              :label="category.name" 
-              :value="category.id" 
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="帖子内容">
-          <el-input 
-            v-model="postForm.content"
-            type="textarea" 
-            :rows="6" 
-            placeholder="请输入帖子内容..." 
-          />
-        </el-form-item>
-      </el-form>
+            <div class="markdown-editor-container">
+              <MdEditor 
+                v-model="postForm.content"
+                :height="400"
+                :preview="true"
+                placeholder="支持Markdown语法，让你的内容更生动..."
+                theme="light"
+                preview-theme="default"
+                code-theme="atom"
+              />
+            </div>
+          </el-form-item>
+          
+          <div class="form-tips">
+            <div class="tip-item">
+              <el-icon><InfoFilled /></el-icon>
+              <span>支持Markdown语法：**粗体**、*斜体*、`代码`、[链接](url)等</span>
+            </div>
+          </div>
+        </el-form>
+      </div>
+      
       <template #footer>
-        <el-button @click="showCreatePost = false" :disabled="posting">取消</el-button>
-        <el-button type="primary" @click="handleCreatePost" :loading="posting">
-          {{ posting ? '发布中...' : '发布' }}
-        </el-button>
+        <div class="dialog-footer">
+          <el-button @click="showCreatePost = false" :disabled="posting" size="large">
+            取消
+          </el-button>
+          <el-button 
+            type="primary" 
+            @click="handleCreatePost" 
+            :loading="posting"
+            size="large"
+            class="publish-btn"
+          >
+            <el-icon v-if="!posting"><EditPen /></el-icon>
+            {{ posting ? '发布中...' : '发布帖子' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -277,11 +326,15 @@ import {
   ChatDotRound, 
   Star, 
   Setting,
-  School
+  School,
+  EditPen,
+  InfoFilled
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getPosts, getCategories, createPost, likePost } from '@/api/forum'
 import type { Post, Category, ApiResponse } from '@/types'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -293,6 +346,7 @@ const selectedCategory = ref<number | null>(null)
 const sortBy = ref('latest')
 const loading = ref(false)
 const posting = ref(false)
+const postFormRef = ref()
 
 // 真实数据
 const categories = ref<Category[]>([])
@@ -372,6 +426,17 @@ const toggleLike = async (post: Post) => {
 }
 
 const handleCreatePost = async () => {
+  // 表单验证
+  if (!postFormRef.value) return
+  
+  try {
+    const valid = await postFormRef.value.validate()
+    if (!valid) return
+  } catch (error) {
+    console.log('表单验证失败:', error)
+    return
+  }
+
   if (!postForm.title.trim()) {
     ElMessage.warning('请输入帖子标题')
     return
@@ -388,8 +453,8 @@ const handleCreatePost = async () => {
   try {
     posting.value = true
     const response = await createPost({
-      title: postForm.title,
-      content: postForm.content,
+      title: postForm.title.trim(),
+      content: postForm.content.trim(),
       categoryId: postForm.categoryId
     }) as any as ApiResponse<{ postId: number }>
     
@@ -400,6 +465,10 @@ const handleCreatePost = async () => {
       postForm.title = ''
       postForm.content = ''
       postForm.categoryId = null
+      // 清除验证状态
+      if (postFormRef.value) {
+        postFormRef.value.resetFields()
+      }
       // 刷新帖子列表
       loadPosts()
     }
@@ -848,6 +917,165 @@ onMounted(() => {
   
   .filter-options {
     justify-content: center;
+  }
+}
+
+/* 点赞按钮优化样式 */
+.post-actions .el-button {
+  border: none !important;
+  background: transparent !important;
+  color: var(--gray-500) !important;
+  font-weight: 500 !important;
+  transition: var(--transition-base) !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+}
+
+.post-actions .el-button:hover {
+  background: rgba(168, 85, 247, 0.1) !important;
+  color: var(--primary-600) !important;
+  transform: translateY(-1px) !important;
+}
+
+.post-actions .el-button.el-button--primary {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: var(--primary-600) !important;
+  font-weight: 600 !important;
+}
+
+.post-actions .el-button.el-button--primary:hover {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: var(--primary-700) !important;
+}
+
+.post-actions .el-button .el-icon {
+  margin-right: 4px !important;
+}
+
+.create-post-dialog {
+  border-radius: 16px !important;
+}
+
+.create-post-dialog .el-dialog__header {
+  padding: 24px 24px 16px !important;
+  background: var(--gradient-light) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+}
+
+.create-post-dialog .el-dialog__title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--gray-800) !important;
+}
+
+.create-post-dialog .el-dialog__body {
+  padding: 24px !important;
+  background: var(--gray-50) !important;
+}
+
+.create-post-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 16px;
+  align-items: start;
+}
+
+.title-field {
+  grid-column: 1;
+}
+
+.category-field {
+  grid-column: 2;
+}
+
+.content-field .el-form-item__label {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--gray-800) !important;
+  margin-bottom: 12px !important;
+}
+
+.markdown-editor-container {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid var(--gray-200);
+  transition: var(--transition-base);
+}
+
+.markdown-editor-container:hover {
+  border-color: var(--primary-300);
+}
+
+.markdown-editor-container:focus-within {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+}
+
+.form-tips {
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-700);
+  font-size: 14px;
+}
+
+.tip-item .el-icon {
+  color: var(--primary-500);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 24px !important;
+  background: var(--gray-50) !important;
+  border-top: 1px solid var(--gray-200) !important;
+}
+
+.publish-btn {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  font-weight: 600 !important;
+  padding: 12px 24px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.publish-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-purple) !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .create-post-dialog {
+    width: 95% !important;
+    margin: 20px auto !important;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .title-field,
+  .category-field {
+    grid-column: 1;
   }
 }
 </style> 

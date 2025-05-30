@@ -12,6 +12,12 @@ spring:
         options:
           model: text-embedding-v3
           dimensions: 1024
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always  # 自动初始化表结构
+            schema: classpath:schema-mysql.sql
   datasource:
     url: jdbc:mysql://localhost:3306/UniLife?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
     username: root

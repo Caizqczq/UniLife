@@ -27,14 +27,5 @@ public class AiSessionVO {
      * 更新时间
      */
     private String updatedAt;
-    
-    /**
-     * 最后消息时间
-     */
-    private String lastMessageTime;
-    
-    /**
-     * 消息总数
-     */
-    private Integer messageCount;
+
 } 

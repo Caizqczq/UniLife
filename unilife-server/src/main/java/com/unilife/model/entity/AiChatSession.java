@@ -6,6 +6,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * AI聊天会话实体
+ * 只管理会话元数据，消息存储由Spring AI ChatMemory处理
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -16,7 +20,7 @@ public class AiChatSession {
     private String id;
     
     /**
-     * 用户ID
+     * 用户ID（可选，支持匿名会话）
      */
     private Long userId;
     

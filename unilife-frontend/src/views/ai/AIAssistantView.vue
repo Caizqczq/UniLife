@@ -46,7 +46,7 @@
                 <div class="chat-title" @dblclick="openEditDialog(chat.id, chat.title)">
                   {{ chat.title }}
                 </div>
-                <div class="chat-time">{{ formatTime(chat.updatedAt) }}</div>
+              <div class="chat-time">{{ formatTime(chat.updatedAt) }}</div>
               </div>
               
               <div class="chat-actions" @click.stop>
@@ -275,7 +275,7 @@
         >
           确定
         </el-button>
-      </div>
+  </div>
     </template>
   </el-dialog>
 </template>
@@ -316,6 +316,7 @@ const userStore = useUserStore()
 const userInput = ref('')
 const isStreaming = ref(false)
 const currentChatId = ref<string | null>(null)
+const streamingChatId = ref<string | null>(null) // 跟踪当前流式响应对应的会话ID
 const messagesContainer = ref()
 const inputFocused = ref(false)
 const sidebarCollapsed = ref(false)
@@ -347,6 +348,12 @@ const editDialogInputRef = ref()
 
 // 方法
 const startNewChat = async () => {
+  // 如果正在流式响应，停止流式状态
+  if (isStreaming.value) {
+    isStreaming.value = false
+    streamingChatId.value = null
+  }
+  
   try {
     // 生成新的会话ID
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -378,6 +385,12 @@ const loadChat = async (chatId: string) => {
     return
   }
   
+  // 如果正在流式响应，停止流式状态
+  if (isStreaming.value) {
+    isStreaming.value = false
+    streamingChatId.value = null
+  }
+  
   try {
     isLoadingChat.value = true
     currentChatId.value = chatId
@@ -386,6 +399,11 @@ const loadChat = async (chatId: string) => {
     const response = await getChatMessages(chatId, 1, 50)
     if ((response as any).code === 200) {
       currentMessages.value = (response.data as any).messages || []
+      
+      // 如果有历史消息，自动滚动到底部
+      if (currentMessages.value.length > 0) {
+        await scrollToBottom()
+      }
     } else {
       ElMessage.error('加载聊天记录失败')
     }
@@ -421,6 +439,9 @@ const sendMessage = async () => {
   if (!userInput.value.trim() || isStreaming.value) return
   
   const messageContent = userInput.value.trim()
+  
+  // 检测是否为第一次发送消息
+  const isFirstMessage = currentMessages.value.length === 0
   
   // 如果没有当前会话ID，创建新的会话
   if (!currentChatId.value) {
@@ -459,6 +480,7 @@ const sendMessage = async () => {
   }
   currentMessages.value.push(assistantMessage)
   isStreaming.value = true
+  streamingChatId.value = currentChatId.value // 记录当前流式响应对应的会话ID
   
   try {
     // 使用AI API模块进行流式请求，现在确保有sessionId
@@ -471,10 +493,21 @@ const sendMessage = async () => {
         const { value, done } = await reader.read()
         if (done) break
         
+        // 检查会话是否已经切换，如果切换了就停止更新
+        if (streamingChatId.value !== currentChatId.value) {
+          console.log('会话已切换，停止流式更新')
+          break
+        }
+        
         // 累积新内容
         accumulatedContent += decoder.decode(value)
         
         await nextTick(() => {
+          // 再次检查会话是否切换
+          if (streamingChatId.value !== currentChatId.value) {
+            return
+          }
+          
           // 更新消息内容，使用累积的内容
           const updatedMessage = {
             ...assistantMessage,
@@ -491,16 +524,24 @@ const sendMessage = async () => {
     }
   } catch (error: any) {
     console.error('发送消息失败:', error)
-    assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
-    ElMessage.error('发送失败：' + (error.message || '网络错误'))
+    // 只有在没有切换会话的情况下才显示错误
+    if (streamingChatId.value === currentChatId.value) {
+      assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+      ElMessage.error('发送失败：' + (error.message || '网络错误'))
+    }
   } finally {
-    isStreaming.value = false
-    await scrollToBottom()
-    
-    // 短暂延迟后刷新会话列表，确保后端已完成数据库更新
-    setTimeout(async () => {
-      await loadChatHistory()
-    }, 300)
+    // 只有在没有切换会话的情况下才重置流式状态
+    if (streamingChatId.value === currentChatId.value) {
+      isStreaming.value = false
+      await scrollToBottom()
+      
+      // 根据是否为第一次消息选择不同的延迟时间
+      const delayTime = isFirstMessage ? 800 : 300 // 第一次消息延迟800ms，其他300ms
+      setTimeout(async () => {
+        await loadChatHistory()
+      }, delayTime)
+    }
+    streamingChatId.value = null
   }
 }
 

@@ -77,5 +77,14 @@ aliyun:
     accessKeyId: ${ALIYUN_OSS_ACCESS_KEY_ID:your-access-key-id}
     accessKeySecret: ${ALIYUN_OSS_ACCESS_KEY_SECRET:your-access-key-secret}
     bucketName: ${ALIYUN_OSS_BUCKET_NAME:your-bucket-name}
-    urlPrefix: ${ALIYUN_OSS_URL_PREFIX:https://your-bucket-name.oss-region.aliyuncs.com/}spring.profiles.active=local
+    urlPrefix: ${ALIYUN_OSS_URL_PREFIX:https://your-bucket-name.oss-region.aliyuncs.com/}
+
+# 应用自定义配置
+app:
+  ai:
+    auto-title:
+      enabled: true # 是否启用自动生成会话标题
+      strategy: ai # 标题生成策略：simple(简单算法) 或 ai(AI生成)
+
+
 

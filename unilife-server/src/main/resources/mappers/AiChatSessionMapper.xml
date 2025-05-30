@@ -69,7 +69,7 @@
     <!-- 更新会话的最后消息时间和消息数量（简化方案中保留方法但不使用） -->
     <update id="updateMessageInfo">
         UPDATE ai_chat_sessions
-        SET updated_at = CURRENT_TIMESTAMP
+        SET updated_at = #{lastMessageTime}
         WHERE id = #{id}
     </update>
     

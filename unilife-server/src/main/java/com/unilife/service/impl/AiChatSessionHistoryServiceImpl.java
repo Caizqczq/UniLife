@@ -39,7 +39,6 @@ public class AiChatSessionHistoryServiceImpl implements AiChatSessionHistoryServ
             AiChatSession existingSession = sessionMapper.selectById(sessionId);
             
             if (existingSession != null) {
-                // 更新现有会话
                 if (title != null && !title.equals(existingSession.getTitle())) {
                     sessionMapper.updateTitle(sessionId, title);
                     existingSession.setTitle(title);
@@ -132,6 +131,25 @@ public class AiChatSessionHistoryServiceImpl implements AiChatSessionHistoryServ
         } catch (Exception e) {
             log.error("更新会话标题失败: {}", e.getMessage(), e);
             return Result.error("更新会话标题失败");
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result<Void> updateSessionLastActivity(String sessionId) {
+        
+        try {
+            int updated = sessionMapper.updateMessageInfo(sessionId, LocalDateTime.now(), null);
+            if (updated > 0) {
+                log.info("成功更新会话 {} 的最后活动时间", sessionId);
+                return Result.success();
+            } else {
+                log.warn("会话 {} 不存在，无法更新活动时间", sessionId);
+                return Result.error("会话不存在");
+            }
+        } catch (Exception e) {
+            log.error("更新会话活动时间失败: {}", e.getMessage(), e);
+            return Result.error("更新会话活动时间失败");
         }
     }
 

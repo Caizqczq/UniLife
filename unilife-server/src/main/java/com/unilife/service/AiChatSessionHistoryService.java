@@ -44,6 +44,13 @@ public interface AiChatSessionHistoryService {
     Result<Void> updateSessionTitle(String sessionId, String title);
     
     /**
+     * 更新会话的最后活动时间
+     * @param sessionId 会话ID
+     * @return 更新结果
+     */
+    Result<Void> updateSessionLastActivity(String sessionId);
+    
+    /**
      * 删除会话（会话元数据和Spring AI ChatMemory中的消息）
      * @param sessionId 会话ID
      * @return 删除结果

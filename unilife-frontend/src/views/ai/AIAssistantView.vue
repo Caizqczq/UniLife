@@ -36,11 +36,39 @@
               v-for="chat in chatHistory" 
               :key="chat.id"
               class="chat-item"
-              :class="{ active: currentChatId === chat.id }"
-              @click="loadChat(chat.id)"
+              :class="{ 
+                active: currentChatId === chat.id, 
+                loading: isLoadingChat && currentChatId === chat.id
+              }"
+              @click="handleChatItemClick(chat.id)"
             >
-              <div class="chat-title">{{ chat.title }}</div>
-              <div class="chat-time">{{ formatTime(chat.updatedAt) }}</div>
+              <div class="chat-content">
+                <div class="chat-title" @dblclick="openEditDialog(chat.id, chat.title)">
+                  {{ chat.title }}
+                </div>
+                <div class="chat-time">{{ formatTime(chat.updatedAt) }}</div>
+              </div>
+              
+              <div class="chat-actions" @click.stop>
+                <el-button
+                  text
+                  size="small"
+                  class="action-btn edit-btn"
+                  @click="openEditDialog(chat.id, chat.title)"
+                  title="编辑标题"
+                >
+                  <el-icon><Edit /></el-icon>
+                </el-button>
+                <el-button
+                  text
+                  size="small"
+                  class="action-btn delete-btn"
+                  @click="confirmDeleteChat(chat.id, chat.title)"
+                  title="删除会话"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
             </div>
             
             <div v-if="chatHistory.length === 0" class="empty-history">
@@ -209,11 +237,52 @@
       </div>
     </div>
   </div>
+  
+  <!-- 编辑会话标题弹窗 -->
+  <el-dialog
+    v-model="editDialogVisible"
+    title="编辑会话标题"
+    width="450px"
+    :before-close="handleEditDialogClose"
+    :close-on-click-modal="false"
+    :close-on-press-escape="true"
+    center
+  >
+    <el-form @submit.prevent="confirmEditTitle">
+      <el-form-item label="会话标题" label-width="80px">
+        <el-input
+          v-model="editDialogTitle"
+          placeholder="请输入会话标题"
+          maxlength="50"
+          show-word-limit
+          ref="editDialogInputRef"
+          @keyup.enter="confirmEditTitle"
+          @keyup.escape="cancelEditTitle"
+          clearable
+        />
+      </el-form-item>
+    </el-form>
+    
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="cancelEditTitle" size="large">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="confirmEditTitle"
+          :disabled="!editDialogTitle.trim()"
+          :loading="isEditingTitle"
+          size="large"
+        >
+          确定
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus,
   ChatDotRound,
@@ -223,7 +292,9 @@ import {
   Right,
   ArrowLeft,
   Loading,
-  Promotion
+  Promotion,
+  Edit,
+  Delete
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { MdPreview } from 'md-editor-v3'
@@ -248,6 +319,7 @@ const currentChatId = ref<string | null>(null)
 const messagesContainer = ref()
 const inputFocused = ref(false)
 const sidebarCollapsed = ref(false)
+const isLoadingChat = ref(false)
 
 // 聊天数据
 const chatHistory = ref<ChatSession[]>([])
@@ -265,6 +337,13 @@ const quickActions = ref([
 const canSend = computed(() => {
   return userInput.value.trim() && !isStreaming.value
 })
+
+// 编辑弹窗相关
+const editDialogVisible = ref(false)
+const editDialogTitle = ref('')
+const editDialogChatId = ref<string | null>(null)
+const isEditingTitle = ref(false)
+const editDialogInputRef = ref()
 
 // 方法
 const startNewChat = async () => {
@@ -294,27 +373,36 @@ const startNewChat = async () => {
 }
 
 const loadChat = async (chatId: string) => {
+  // 防止重复点击同一个会话
+  if (currentChatId.value === chatId || isLoadingChat.value) {
+    return
+  }
+  
   try {
+    isLoadingChat.value = true
     currentChatId.value = chatId
     
     // 加载历史消息
     const response = await getChatMessages(chatId, 1, 50)
-    if (response.data.code === 200) {
-      currentMessages.value = response.data.data.messages || []
+    if ((response as any).code === 200) {
+      currentMessages.value = (response.data as any).messages || []
     } else {
       ElMessage.error('加载聊天记录失败')
     }
   } catch (error: any) {
     console.error('加载聊天记录失败:', error)
     ElMessage.error('加载聊天记录失败')
+  } finally {
+    isLoadingChat.value = false
   }
 }
 
 const loadChatHistory = async () => {
   try {
     const response = await getChatHistory(1, 20)
-    if (response.data.code === 200) {
-      chatHistory.value = response.data.data.sessions || []
+    if ((response as any).code === 200) {
+      // 后端已经在数据库查询中按updated_at DESC排序，直接使用返回的数据
+      chatHistory.value = (response.data as any).sessions || []
     } else {
       console.error('加载聊天历史失败:', response.data.message)
     }
@@ -408,6 +496,11 @@ const sendMessage = async () => {
   } finally {
     isStreaming.value = false
     await scrollToBottom()
+    
+    // 短暂延迟后刷新会话列表，确保后端已完成数据库更新
+    setTimeout(async () => {
+      await loadChatHistory()
+    }, 300)
   }
 }
 
@@ -441,6 +534,106 @@ const toggleSidebar = () => {
 
 const formatTime = (timestamp: string) => {
   return new Date(timestamp).toLocaleString()
+}
+
+const confirmDeleteChat = async (chatId: string, title: string) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除会话"${title}"吗？此操作不可撤销。`,
+      '删除会话',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+    
+    // 执行删除
+    await deleteChatSession(chatId)
+    
+    // 如果删除的是当前会话，清空当前会话状态
+    if (currentChatId.value === chatId) {
+      currentChatId.value = null
+      currentMessages.value = []
+    }
+    
+    // 刷新会话列表
+    await loadChatHistory()
+    
+    ElMessage.success('会话已删除')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除会话失败:', error)
+      ElMessage.error('删除会话失败')
+    }
+  }
+}
+
+const handleChatItemClick = (chatId: string) => {
+  // 如果正在加载，则忽略点击
+  if (isLoadingChat.value) {
+    return
+  }
+  
+  loadChat(chatId)
+}
+
+const openEditDialog = (chatId: string, title: string) => {
+  editDialogChatId.value = chatId
+  editDialogTitle.value = title
+  editDialogVisible.value = true
+  
+  // 下一帧自动聚焦
+  nextTick(() => {
+    if (editDialogInputRef.value) {
+      editDialogInputRef.value.focus()
+      editDialogInputRef.value.select()
+    }
+  })
+}
+
+const handleEditDialogClose = () => {
+  if (isEditingTitle.value) {
+    return false // 编辑中阻止关闭
+  }
+  // 调用取消逻辑，保持一致性
+  cancelEditTitle()
+  return true
+}
+
+const confirmEditTitle = async () => {
+  if (!editDialogChatId.value || !editDialogTitle.value.trim() || isEditingTitle.value) {
+    return
+  }
+  
+  try {
+    isEditingTitle.value = true
+    await updateSessionTitle(editDialogChatId.value, editDialogTitle.value.trim())
+    await loadChatHistory()
+    ElMessage.success('会话标题已更新')
+    editDialogVisible.value = false
+    resetEditDialog()
+  } catch (error: any) {
+    console.error('更新会话标题失败:', error)
+    ElMessage.error('更新会话标题失败')
+  } finally {
+    isEditingTitle.value = false
+  }
+}
+
+const cancelEditTitle = () => {
+  if (isEditingTitle.value) {
+    return
+  }
+  editDialogVisible.value = false
+  resetEditDialog()
+}
+
+const resetEditDialog = () => {
+  editDialogChatId.value = null
+  editDialogTitle.value = ''
+  isEditingTitle.value = false
 }
 
 onMounted(() => {
@@ -525,15 +718,59 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
 }
 
 .chat-item:hover {
   background: rgba(102, 126, 234, 0.05);
 }
 
+.chat-item:hover .chat-actions {
+  opacity: 1;
+}
+
 .chat-item.active {
-  background: rgba(102, 126, 234, 0.1);
-  border-left: 3px solid #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.08));
+  border-left: 4px solid #667eea;
+  border-radius: 12px 8px 8px 12px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  transform: translateX(2px);
+}
+
+.chat-item.active .chat-title {
+  color: #4f46e5;
+  font-weight: 700;
+}
+
+.chat-item.active .chat-time {
+  color: #6366f1;
+}
+
+.chat-item.active .chat-actions {
+  opacity: 1;
+}
+
+.chat-item.loading {
+  background: rgba(102, 126, 234, 0.05);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.chat-item.editing {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.chat-item.editing .chat-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-title {
@@ -549,6 +786,44 @@ onMounted(() => {
 .chat-time {
   color: #9ca3af;
   font-size: 12px;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+  color: #6b7280 !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+  color: #374151 !important;
+}
+
+.edit-btn:hover {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
 }
 
 .empty-history {
@@ -1061,5 +1336,45 @@ onMounted(() => {
   .message-content {
     max-width: 90%;
   }
+}
+</style>
+
+<!-- 弹窗样式优化 -->
+<style>
+.el-dialog {
+  border-radius: 12px !important;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15) !important;
+}
+
+.el-dialog__header {
+  padding: 24px 24px 16px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.el-dialog__title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+}
+
+.el-dialog__body {
+  padding: 24px !important;
+}
+
+.el-dialog__footer {
+  padding: 16px 24px 24px !important;
+  border-top: 1px solid #f0f0f0 !important;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-footer .el-button {
+  min-width: 80px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 </style> 

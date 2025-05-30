@@ -41,21 +41,28 @@ public class AiServiceImpl implements AiService {
         log.info("发送消息给AI: {}, 会话ID: {}", sendMessageDTO.getMessage(), sendMessageDTO.getSessionId());
         
         String sessionId = sendMessageDTO.getSessionId();
-        if (sessionId == null || sessionId.trim().isEmpty()) {
-            // 如果没有提供会话ID，生成一个新的
-            sessionId = "session_" + System.currentTimeMillis();
-            log.info("生成新的会话ID: {}", sessionId);
-        }
-        
+
         // 确保会话元数据存在
         sessionHistoryService.createOrUpdateSession(sessionId, BaseContext.getId(), "新对话");
         
         // 使用ChatClient的流式响应，Spring AI会自动处理记忆
-        return chatClient.prompt()
+        Flux<String> responseFlux = chatClient.prompt()
                 .user(sendMessageDTO.getMessage())
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, sendMessageDTO.getSessionId()))
                 .stream()
                 .content();
+        
+        // 在消息发送完成后更新会话的活跃时间
+        final String finalSessionId = sessionId;
+        return responseFlux.doOnComplete(() -> {
+            try {
+                // 更新会话的最后活动时间
+                sessionHistoryService.updateSessionLastActivity(finalSessionId);
+                log.info("已更新会话 {} 的最后活动时间", finalSessionId);
+            } catch (Exception e) {
+                log.warn("更新会话活动时间失败: {}", e.getMessage());
+            }
+        });
     }
 
     @Override

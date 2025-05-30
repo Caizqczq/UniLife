@@ -271,16 +271,25 @@ const startNewChat = async () => {
   try {
     // 生成新的会话ID
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    await createChatSession(newSessionId, '新对话')
     
+    // 先更新当前状态
     currentChatId.value = newSessionId
     currentMessages.value = []
     
+    // 创建会话
+    await createChatSession(newSessionId, '新对话')
+    
     // 刷新会话列表
     await loadChatHistory()
+    
+    // 确保界面滚动到顶部
+    await scrollToBottom()
+    
+    ElMessage.success('新对话已创建')
   } catch (error: any) {
     console.error('创建新会话失败:', error)
     ElMessage.error('创建新会话失败')
+    // 即使失败也保持当前状态，用户可以正常发送消息
   }
 }
 

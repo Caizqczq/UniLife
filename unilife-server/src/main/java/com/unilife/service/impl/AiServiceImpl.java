@@ -62,8 +62,7 @@ public class AiServiceImpl implements AiService {
     public Result<AiSessionListVO> getSessionList(Integer page, Integer size) {
         log.info("获取会话列表: page={}, size={}", page, size);
         
-        // 使用会话历史服务获取会话列表（支持匿名会话）
-        return sessionHistoryService.getSessionList(null, page, size);
+        return sessionHistoryService.getSessionList(BaseContext.getId(), page, size);
     }
 
     @Override

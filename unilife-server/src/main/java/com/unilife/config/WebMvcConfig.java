@@ -24,8 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/users/register",
                         "/users/code",
                         "/users/login/code",
-                        
-
+                        "/ai/**",
                         
                         // 静态资源访问
                         "/api/files/**",

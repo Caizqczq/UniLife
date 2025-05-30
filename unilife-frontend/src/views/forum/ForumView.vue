@@ -1,46 +1,7 @@
 <template>
   <div class="forum-container">
-    <!-- 顶部导航栏 -->
-    <nav class="forum-navbar glass-light">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link to="/" class="brand-link">
-            <div class="logo-circle">
-              <i class="el-icon-star-filled"></i>
-            </div>
-            <span class="brand-name gradient-text">UniLife</span>
-          </router-link>
-        </div>
-        
-        <div class="nav-menu">
-          <router-link to="/forum" class="nav-item active">论坛</router-link>
-          <router-link to="/resources" class="nav-item">资源</router-link>
-          <router-link to="/schedule" class="nav-item">课程表</router-link>
-          <router-link to="/tasks" class="nav-item">日程管理</router-link>
-          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
-        </div>
-        
-        <div class="nav-actions">
-          <div class="user-info">
-            <el-avatar :size="36" :src="userStore.user?.avatar">
-              {{ userStore.user?.nickname?.charAt(0) }}
-            </el-avatar>
-            <span class="username">{{ userStore.user?.nickname }}</span>
-          </div>
-          <el-dropdown @command="handleCommand">
-            <el-button circle>
-              <el-icon><Setting /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
-    </nav>
+    <!-- 使用通用顶部导航栏组件 -->
+    <TopNavbar />
 
     <!-- 主要内容区域 -->
     <div class="forum-main">
@@ -338,7 +299,6 @@ import {
   View, 
   ChatDotRound, 
   Star, 
-  Setting,
   School,
   EditPen,
   InfoFilled
@@ -348,6 +308,7 @@ import { getPosts, getCategories, createPost, likePost } from '@/api/forum'
 import type { Post, Category, ApiResponse } from '@/types'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
+import TopNavbar from '@/components/TopNavbar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -493,15 +454,6 @@ const handleCreatePost = async () => {
   }
 }
 
-const handleCommand = (command: string) => {
-  if (command === 'logout') {
-    userStore.logout()
-    router.push('/login')
-  } else if (command === 'profile') {
-    router.push('/profile')
-  }
-}
-
 // 加载帖子列表
 const loadPosts = async () => {
   try {
@@ -639,94 +591,13 @@ onMounted(() => {
   background: var(--gradient-bg);
 }
 
-/* 导航栏样式 */
-.forum-navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brand-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.logo-circle {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
-  box-shadow: var(--shadow-light);
-}
-
-.brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  text-decoration: none;
-  color: var(--gray-600);
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: var(--transition-base);
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: var(--primary-600);
-  background: var(--primary-50);
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.username {
-  font-weight: 600;
-  color: var(--gray-700);
-}
-
 /* 主要内容区域 */
 .forum-main {
   padding: 32px 24px;
 }
 
 .forum-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -970,10 +841,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .nav-menu {
-    display: none;
-  }
-  
   .forum-main {
     padding: 16px;
   }

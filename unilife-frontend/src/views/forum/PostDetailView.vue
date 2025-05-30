@@ -1,35 +1,7 @@
 <template>
   <div class="post-detail-container">
-    <!-- 顶部导航栏 -->
-    <nav class="forum-navbar glass-light">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link to="/" class="brand-link">
-            <div class="logo-circle">
-              <i class="el-icon-star-filled"></i>
-            </div>
-            <span class="brand-name gradient-text">UniLife</span>
-          </router-link>
-        </div>
-        
-        <div class="nav-menu">
-          <router-link to="/forum" class="nav-item">论坛</router-link>
-          <router-link to="/resources" class="nav-item">资源</router-link>
-          <router-link to="/schedule" class="nav-item">课程表</router-link>
-          <router-link to="/tasks" class="nav-item">日程管理</router-link>
-          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
-        </div>
-        
-        <div class="nav-actions">
-          <div class="user-info">
-            <el-avatar :size="36" :src="userStore.user?.avatar">
-              {{ userStore.user?.nickname?.charAt(0) }}
-            </el-avatar>
-            <span class="username">{{ userStore.user?.nickname }}</span>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <!-- 使用通用顶部导航栏组件 -->
+    <TopNavbar />
 
     <!-- 主要内容区域 -->
     <div class="post-detail-main">
@@ -231,6 +203,7 @@ import { getPostDetail, likePost as likePostAPI, getComments, createComment as c
 import type { Post, ApiResponse } from '@/types'
 import { MdPreview } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
+import TopNavbar from '@/components/TopNavbar.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -406,86 +379,6 @@ onMounted(async () => {
 .post-detail-container {
   min-height: 100vh;
   background: var(--gradient-bg);
-}
-
-/* 导航栏样式 - 复用论坛页面的样式 */
-.forum-navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brand-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.logo-circle {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
-  box-shadow: var(--shadow-light);
-}
-
-.brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  text-decoration: none;
-  color: var(--gray-600);
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: var(--transition-base);
-}
-
-.nav-item:hover {
-  color: var(--primary-600);
-  background: var(--primary-50);
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.username {
-  font-weight: 600;
-  color: var(--gray-700);
 }
 
 /* 主要内容区域 */
@@ -893,10 +786,6 @@ onMounted(async () => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .nav-menu {
-    display: none;
-  }
-  
   .post-detail-main {
     padding: 16px;
   }

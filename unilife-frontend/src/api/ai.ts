@@ -24,13 +24,6 @@ export interface SendMessageRequest {
   conversationHistory?: ChatMessage[]
 }
 
-export interface SendMessageResponse {
-  messageId: string
-  content: string
-  sessionId: string
-  timestamp: string
-}
-
 export interface ChatHistoryResponse {
   sessions: ChatSession[]
   total: number
@@ -42,9 +35,30 @@ export interface ChatMessagesResponse {
   sessionInfo: ChatSession
 }
 
-// 发送消息给AI
-export const sendMessage = (data: SendMessageRequest) => {
-  return api.post<ApiResponse<SendMessageResponse>>('/ai/chat', data)
+// 发送消息给AI（流式响应）
+export const sendMessage = async (
+  data: SendMessageRequest
+): Promise<ReadableStreamDefaultReader<Uint8Array>> => {
+  const token = localStorage.getItem('token')
+  
+  const response = await fetch(`${api.defaults.baseURL}/ai/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify(data)
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  if (!response.body) {
+    throw new Error('Response body is not readable')
+  }
+
+  return response.body.getReader()
 }
 
 // 获取聊天历史列表
@@ -62,8 +76,11 @@ export const getChatMessages = (sessionId: string, page = 1, size = 50) => {
 }
 
 // 创建新的聊天会话
-export const createChatSession = (title?: string) => {
-  return api.post<ApiResponse<{ sessionId: string; title: string }>>('/ai/sessions', { title })
+export const createChatSession = (sessionId: string, title?: string) => {
+  return api.post<ApiResponse<{ sessionId: string; title: string }>>('/ai/sessions', { 
+    sessionId,
+    title 
+  })
 }
 
 // 删除聊天会话

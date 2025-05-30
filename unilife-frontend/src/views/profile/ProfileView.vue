@@ -1,49 +1,10 @@
 <template>
   <div class="profile-container">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar glass-light">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link to="/" class="brand-link">
-            <div class="logo-circle">
-              <i class="el-icon-star-filled"></i>
-            </div>
-            <span class="brand-name gradient-text">UniLife</span>
-          </router-link>
-        </div>
-        
-        <div class="nav-menu">
-          <router-link to="/forum" class="nav-item">论坛</router-link>
-          <router-link to="/resources" class="nav-item">资源</router-link>
-          <router-link to="/schedule" class="nav-item">课程表</router-link>
-          <router-link to="/tasks" class="nav-item">日程管理</router-link>
-          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
-        </div>
-        
-        <div class="nav-actions">
-          <div class="user-info">
-            <el-avatar :size="36" :src="userStore.user?.avatar">
-              {{ userStore.user?.nickname?.charAt(0) }}
-            </el-avatar>
-            <span class="username">{{ userStore.user?.nickname }}</span>
-          </div>
-          <el-dropdown @command="handleCommand">
-            <el-button circle>
-              <el-icon><Setting /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
-    </nav>
+    <!-- 使用通用顶部导航栏组件 -->
+    <TopNavbar />
 
     <!-- 主要内容区域 -->
-    <div class="profile-main">
+    <div class="profile-main" v-loading="loading" element-loading-text="正在加载用户信息...">
       <div class="profile-content">
         <!-- 个人信息卡片 -->
         <div class="profile-header card-light">
@@ -58,11 +19,11 @@
             </div>
             
             <div class="user-basic-info">
-              <h1 class="user-name">{{ userProfile.nickname }}</h1>
+              <h1 class="user-name">{{ userProfile.nickname || '加载中...' }}</h1>
               <p class="user-title">{{ userProfile.department }} · {{ userProfile.major }}</p>
               <p class="user-grade">{{ userProfile.grade }}</p>
               
-              <div class="user-stats">
+              <div class="user-stats" v-loading="statsLoading" element-loading-text="加载统计中...">
                 <div class="stat-item">
                   <span class="stat-number">{{ userStats.postsCount }}</span>
                   <span class="stat-label">发帖</span>
@@ -103,15 +64,15 @@
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">用户名</span>
-                <span class="info-value">{{ userProfile.username }}</span>
+                <span class="info-value">{{ userProfile.username || '未设置' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">邮箱</span>
-                <span class="info-value">{{ userProfile.email }}</span>
+                <span class="info-value">{{ userProfile.email || '未设置' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">学号</span>
-                <span class="info-value">{{ userProfile.studentId }}</span>
+                <span class="info-value">{{ userProfile.studentId || '未设置' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">性别</span>
@@ -119,11 +80,11 @@
               </div>
               <div class="info-item">
                 <span class="info-label">学院</span>
-                <span class="info-value">{{ userProfile.department }}</span>
+                <span class="info-value">{{ userProfile.department || '未设置' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">专业</span>
-                <span class="info-value">{{ userProfile.major }}</span>
+                <span class="info-value">{{ userProfile.major || '未设置' }}</span>
               </div>
             </div>
             
@@ -139,45 +100,59 @@
             <div class="activity-tabs">
               <el-tabs v-model="activeTab">
                 <el-tab-pane label="我的帖子" name="posts">
-                  <div class="posts-list">
-                    <div 
-                      v-for="post in recentPosts" 
-                      :key="post.id"
-                      class="post-item"
-                      @click="viewPost(post.id)"
-                    >
-                      <div class="post-info">
-                        <h4 class="post-title">{{ post.title }}</h4>
-                        <p class="post-summary">{{ post.content }}</p>
-                        <div class="post-meta">
-                          <span class="post-time">{{ post.createTime }}</span>
-                          <div class="post-stats">
-                            <span>{{ post.viewsCount }} 浏览</span>
-                            <span>{{ post.likesCount }} 点赞</span>
-                            <span>{{ post.commentsCount }} 评论</span>
+                  <div class="activity-content" v-loading="postsLoading" element-loading-text="加载帖子中...">
+                    <div v-if="recentPosts.length > 0" class="posts-list">
+                      <div 
+                        v-for="post in recentPosts" 
+                        :key="post.id"
+                        class="post-item"
+                        @click="viewPost(post.id)"
+                      >
+                        <div class="post-info">
+                          <h4 class="post-title">{{ post.title }}</h4>
+                          <p class="post-summary">{{ getPostSummary(post.content) }}</p>
+                          <div class="post-meta">
+                            <span class="post-time">{{ post.createdAt }}</span>
+                            <div class="post-stats">
+                              <span>{{ post.viewCount }} 浏览</span>
+                              <span>{{ post.likeCount }} 点赞</span>
+                              <span>{{ post.commentCount }} 评论</span>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <div v-else-if="!postsLoading" class="empty-state">
+                      <el-icon class="empty-icon"><Document /></el-icon>
+                      <p>还没有发布任何帖子</p>
+                      <el-button type="primary" @click="$router.push('/forum')">去发帖</el-button>
                     </div>
                   </div>
                 </el-tab-pane>
                 
                 <el-tab-pane label="我的资源" name="resources">
-                  <div class="resources-list">
-                    <div 
-                      v-for="resource in recentResources" 
-                      :key="resource.id"
-                      class="resource-item"
-                    >
-                      <el-icon class="resource-icon"><Document /></el-icon>
-                      <div class="resource-info">
-                        <h4 class="resource-title">{{ resource.title }}</h4>
-                        <p class="resource-desc">{{ resource.description }}</p>
-                        <div class="resource-meta">
-                          <span class="resource-time">{{ resource.createdAt }}</span>
-                          <span class="resource-downloads">{{ resource.downloadCount }} 下载</span>
+                  <div class="activity-content" v-loading="resourcesLoading" element-loading-text="加载资源中...">
+                    <div v-if="recentResources.length > 0" class="resources-list">
+                      <div 
+                        v-for="resource in recentResources" 
+                        :key="resource.id"
+                        class="resource-item"
+                      >
+                        <el-icon class="resource-icon"><Document /></el-icon>
+                        <div class="resource-info">
+                          <h4 class="resource-title">{{ resource.title }}</h4>
+                          <p class="resource-desc">{{ resource.description }}</p>
+                          <div class="resource-meta">
+                            <span class="resource-time">{{ resource.createdAt }}</span>
+                            <span class="resource-downloads">{{ resource.downloadCount }} 下载</span>
+                          </div>
                         </div>
                       </div>
+                    </div>
+                    <div v-else-if="!resourcesLoading" class="empty-state">
+                      <el-icon class="empty-icon"><Document /></el-icon>
+                      <p>还没有上传任何资源</p>
+                      <el-button type="primary" @click="$router.push('/resources')">去上传</el-button>
                     </div>
                   </div>
                 </el-tab-pane>
@@ -331,6 +306,18 @@ import {
   Plus
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { 
+  getUserInfo, 
+  getUserStats, 
+  getUserRecentPosts,
+  updateUserProfile,
+  changePassword,
+  uploadAvatar,
+  sendEmailCode
+} from '@/api/user'
+import { getMyResources } from '@/api/resources'
+import type { ApiResponse } from '@/types'
+import TopNavbar from '@/components/TopNavbar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -341,74 +328,44 @@ const showChangePassword = ref(false)
 const showAvatarUpload = ref(false)
 const activeTab = ref('posts')
 const codeCountdown = ref(0)
+const loading = ref(false)
+const statsLoading = ref(false)
+const postsLoading = ref(false)
+const resourcesLoading = ref(false)
 
-// 用户资料数据
+// 用户资料数据 - 使用空对象，待API加载
 const userProfile = ref({
-  id: 12345,
-  username: 'student123',
-  email: 'student@school.edu',
-  nickname: '测试用户',
+  id: 0,
+  username: '',
+  email: '',
+  nickname: '',
   avatar: '',
-  bio: '这是一个热爱学习的大学生，喜欢分享知识和经验。',
-  gender: 1,
-  studentId: '20220101001',
-  department: '计算机学院',
-  major: '软件工程',
-  grade: '2023级',
-  points: 1250,
+  bio: '',
+  gender: 0,
+  studentId: '',
+  department: '',
+  major: '',
+  grade: '',
+  points: 0,
   role: 0,
-  isVerified: 1
+  isVerified: 0
 })
 
-// 用户统计数据
+// 用户统计数据 - 使用空对象，待API加载
 const userStats = ref({
-  postsCount: 25,
-  commentsCount: 150,
-  resourcesCount: 10,
-  likesReceived: 300,
-  coursesCount: 8,
-  schedulesCount: 15
+  postsCount: 0,
+  commentsCount: 0,
+  resourcesCount: 0,
+  likesReceived: 0,
+  coursesCount: 0,
+  schedulesCount: 0
 })
 
-// 最近帖子
-const recentPosts = ref([
-  {
-    id: 1,
-    title: '分享一些高效学习方法',
-    content: '经过一学期的摸索，总结了一些比较有效的学习方法...',
-    createTime: '2024-01-15 10:30',
-    viewsCount: 234,
-    likesCount: 89,
-    commentsCount: 23
-  },
-  {
-    id: 2,
-    title: '大学生活时间管理心得',
-    content: '作为一名大二学生，想和大家分享一些时间管理的经验...',
-    createTime: '2024-01-12 16:20',
-    viewsCount: 156,
-    likesCount: 45,
-    commentsCount: 12
-  }
-])
+// 最近帖子 - 使用空数组，待API加载
+const recentPosts = ref<any[]>([])
 
-// 最近资源
-const recentResources = ref([
-  {
-    id: 1,
-    title: '数据结构课件整理',
-    description: '完整的数据结构课程课件，包含所有章节',
-    createdAt: '2024-01-10 14:30',
-    downloadCount: 89
-  },
-  {
-    id: 2,
-    title: '高等数学期末复习资料',
-    description: '精心整理的高数复习重点和练习题',
-    createdAt: '2024-01-08 09:15',
-    downloadCount: 156
-  }
-])
+// 最近资源 - 使用空数组，待API加载
+const recentResources = ref<any[]>([])
 
 // 编辑表单
 const editForm = reactive({
@@ -427,52 +384,239 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
+// 加载用户信息
+const loadUserProfile = async () => {
+  try {
+    loading.value = true
+    const response = await getUserInfo() as any as ApiResponse<typeof userProfile.value>
+    
+    if (response.code === 200) {
+      userProfile.value = response.data
+      console.log('用户信息加载成功:', userProfile.value)
+      
+      // 更新编辑表单数据
+      Object.assign(editForm, {
+        nickname: userProfile.value.nickname,
+        department: userProfile.value.department,
+        major: userProfile.value.major,
+        grade: userProfile.value.grade,
+        gender: userProfile.value.gender,
+        bio: userProfile.value.bio
+      })
+    } else {
+      console.error('获取用户信息失败:', response.message)
+      ElMessage.error(response.message || '获取用户信息失败')
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+    ElMessage.error('获取用户信息失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 加载用户统计数据
+const loadUserStats = async () => {
+  try {
+    statsLoading.value = true
+    const response = await getUserStats() as any as ApiResponse<{
+      totalPosts: number
+      totalLikes: number
+      totalComments: number
+      totalViews: number
+    }>
+    
+    if (response.code === 200) {
+      // 映射后端字段到前端期望的字段
+      userStats.value = {
+        postsCount: response.data.totalPosts || 0,
+        commentsCount: response.data.totalComments || 0,
+        resourcesCount: 0, // 后端暂未返回，使用默认值
+        likesReceived: response.data.totalLikes || 0,
+        coursesCount: 0, // 后端暂未返回，使用默认值
+        schedulesCount: 0 // 后端暂未返回，使用默认值
+      }
+      console.log('用户统计数据加载成功:', userStats.value)
+    } else {
+      console.error('获取用户统计失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取用户统计失败:', error)
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+// 加载用户最近帖子
+const loadRecentPosts = async () => {
+  try {
+    postsLoading.value = true
+    const response = await getUserRecentPosts(5) as any as ApiResponse<{
+      posts: any[]
+      totalCount: number
+    }>
+    
+    if (response.code === 200) {
+      recentPosts.value = response.data.posts || []
+      console.log('最近帖子加载成功:', recentPosts.value)
+    } else {
+      console.error('获取最近帖子失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取最近帖子失败:', error)
+  } finally {
+    postsLoading.value = false
+  }
+}
+
+// 加载用户最近资源
+const loadRecentResources = async () => {
+  try {
+    resourcesLoading.value = true
+    const response = await getMyResources({ page: 1, size: 5 }) as any as ApiResponse<{
+      total: number
+      list: any[]
+      pages: number
+    }>
+    
+    if (response.code === 200) {
+      recentResources.value = response.data.list
+      console.log('最近资源加载成功:', recentResources.value)
+    } else {
+      console.error('获取最近资源失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取最近资源失败:', error)
+  } finally {
+    resourcesLoading.value = false
+  }
+}
+
 // 方法
 const getGenderText = (gender: number) => {
   const genderMap = { 0: '保密', 1: '男', 2: '女' }
   return genderMap[gender as keyof typeof genderMap] || '保密'
 }
 
+const getPostSummary = (content: string) => {
+  if (!content) return '无内容'
+  
+  // 移除markdown语法
+  let summary = content
+    .replace(/#{1,6}\s+/g, '') // 移除标题
+    .replace(/\*\*(.*?)\*\*/g, '$1') // 移除粗体
+    .replace(/\*(.*?)\*/g, '$1') // 移除斜体
+    .replace(/`(.*?)`/g, '$1') // 移除行内代码
+    .replace(/```[\s\S]*?```/g, '') // 移除代码块
+    .replace(/!\[.*?\]\(.*?\)/g, '') // 移除图片
+    .replace(/\[.*?\]\(.*?\)/g, '') // 移除链接
+    .replace(/\n+/g, ' ') // 将换行替换为空格
+    .trim()
+  
+  // 限制长度
+  return summary.length > 120 ? summary.substring(0, 120) + '...' : summary
+}
+
 const viewPost = (postId: number) => {
   router.push(`/forum/post/${postId}`)
 }
 
-const handleUpdateProfile = () => {
-  // 更新用户资料
-  Object.assign(userProfile.value, editForm)
-  showEditProfile.value = false
-  ElMessage.success('资料更新成功！')
-}
-
-const sendVerificationCode = () => {
-  // 发送验证码
-  codeCountdown.value = 60
-  const timer = setInterval(() => {
-    codeCountdown.value--
-    if (codeCountdown.value <= 0) {
-      clearInterval(timer)
+const handleUpdateProfile = async () => {
+  try {
+    const response = await updateUserProfile({
+      username: editForm.nickname, // 注意：API可能需要username字段
+      bio: editForm.bio,
+      gender: editForm.gender,
+      department: editForm.department,
+      major: editForm.major,
+      grade: editForm.grade
+    }) as any as ApiResponse<null>
+    
+    if (response.code === 200) {
+      // 更新本地数据
+      Object.assign(userProfile.value, editForm)
+      showEditProfile.value = false
+      ElMessage.success('资料更新成功！')
+      
+      // 重新加载用户信息
+      await loadUserProfile()
+    } else {
+      ElMessage.error(response.message || '更新失败')
     }
-  }, 1000)
-  ElMessage.success('验证码已发送到您的邮箱')
+  } catch (error) {
+    console.error('更新用户资料失败:', error)
+    ElMessage.error('更新失败')
+  }
 }
 
-const handleChangePassword = () => {
+const sendVerificationCode = async () => {
+  try {
+    const response = await sendEmailCode(userProfile.value.email) as any as ApiResponse<null>
+    
+    if (response.code === 200) {
+      // 开始倒计时
+      codeCountdown.value = 60
+      const timer = setInterval(() => {
+        codeCountdown.value--
+        if (codeCountdown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+      ElMessage.success('验证码已发送到您的邮箱')
+    } else {
+      ElMessage.error(response.message || '发送验证码失败')
+    }
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    ElMessage.error('发送验证码失败')
+  }
+}
+
+const handleChangePassword = async () => {
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     ElMessage.error('两次输入的密码不一致')
     return
   }
   
-  showChangePassword.value = false
-  ElMessage.success('密码修改成功！')
+  try {
+    const response = await changePassword({
+      code: passwordForm.code,
+      newPassword: passwordForm.newPassword
+    }) as any as ApiResponse<null>
+    
+    if (response.code === 200) {
+      showChangePassword.value = false
+      // 重置表单
+      passwordForm.code = ''
+      passwordForm.newPassword = ''
+      passwordForm.confirmPassword = ''
+      ElMessage.success('密码修改成功！')
+    } else {
+      ElMessage.error(response.message || '密码修改失败')
+    }
+  } catch (error) {
+    console.error('修改密码失败:', error)
+    ElMessage.error('修改密码失败')
+  }
 }
 
 const handleAvatarChange = (file: any) => {
   console.log('选择的头像文件:', file)
+  // TODO: 处理头像上传逻辑
 }
 
-const handleUploadAvatar = () => {
-  showAvatarUpload.value = false
-  ElMessage.success('头像上传成功！')
+const handleUploadAvatar = async () => {
+  try {
+    // TODO: 实现头像上传逻辑
+    showAvatarUpload.value = false
+    ElMessage.success('头像上传成功！')
+    
+    // 重新加载用户信息
+    await loadUserProfile()
+  } catch (error) {
+    console.error('上传头像失败:', error)
+    ElMessage.error('头像上传失败')
+  }
 }
 
 const handleCommand = (command: string) => {
@@ -484,18 +628,16 @@ const handleCommand = (command: string) => {
   }
 }
 
-onMounted(() => {
-  // 初始化编辑表单
-  Object.assign(editForm, {
-    nickname: userProfile.value.nickname,
-    department: userProfile.value.department,
-    major: userProfile.value.major,
-    grade: userProfile.value.grade,
-    gender: userProfile.value.gender,
-    bio: userProfile.value.bio
-  })
+onMounted(async () => {
+  console.log('个人资料页面加载完成，开始加载数据...')
   
-  console.log('个人资料页面加载完成')
+  // 并行加载所有数据
+  await Promise.all([
+    loadUserProfile(),
+    loadUserStats(),
+    loadRecentPosts(),
+    loadRecentResources()
+  ])
 })
 </script>
 
@@ -503,86 +645,6 @@ onMounted(() => {
 .profile-container {
   min-height: 100vh;
   background: var(--gradient-bg);
-}
-
-/* 导航栏样式 - 复用之前的样式 */
-.navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brand-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.logo-circle {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
-  box-shadow: var(--shadow-light);
-}
-
-.brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  text-decoration: none;
-  color: var(--gray-600);
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: var(--transition-base);
-}
-
-.nav-item:hover {
-  color: var(--primary-600);
-  background: var(--primary-50);
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.username {
-  font-weight: 600;
-  color: var(--gray-700);
 }
 
 /* 主要内容区域 */
@@ -741,6 +803,34 @@ onMounted(() => {
   padding: 24px;
 }
 
+.activity-tabs {
+  height: 100%;
+}
+
+.activity-content {
+  height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.activity-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-content::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 3px;
+}
+
+.activity-content::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+
+.activity-content::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
 .posts-list,
 .resources-list {
   display: flex;
@@ -872,47 +962,84 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
-  .profile-details {
-    grid-template-columns: 1fr;
+  .profile-content {
+    max-width: 800px;
   }
   
   .profile-header {
     flex-direction: column;
-    gap: 24px;
-    align-items: center;
     text-align: center;
   }
   
   .avatar-section {
     flex-direction: column;
     text-align: center;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-menu {
-    display: none;
-  }
-  
-  .profile-main {
-    padding: 16px;
-  }
-  
-  .profile-header {
-    padding: 24px 16px;
-  }
-  
-  .info-grid {
-    grid-template-columns: 1fr;
+    gap: 20px;
   }
   
   .user-stats {
     justify-content: center;
   }
   
-  .profile-actions {
-    width: 100%;
-    justify-content: center;
+  .profile-details {
+    flex-direction: column;
   }
+  
+  .info-section,
+  .activity-section {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-main {
+    padding: 24px 16px;
+  }
+  
+  .user-stats {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .stat-item {
+    min-width: calc(50% - 8px);
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: var(--gray-400);
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin-bottom: 20px;
+  color: var(--gray-600);
+}
+
+.empty-state .el-button {
+  border-radius: 8px;
+  font-weight: 600;
 }
 </style> 

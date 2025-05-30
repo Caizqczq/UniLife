@@ -1,175 +1,144 @@
 <template>
   <div class="schedule-container">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar glass-light">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link to="/" class="brand-link">
-            <div class="logo-circle">
-              <i class="el-icon-star-filled"></i>
-            </div>
-            <span class="brand-name gradient-text">UniLife</span>
-          </router-link>
-        </div>
-        
-        <div class="nav-menu">
-          <router-link to="/forum" class="nav-item">论坛</router-link>
-          <router-link to="/resources" class="nav-item">资源</router-link>
-          <router-link to="/schedule" class="nav-item active">课程表</router-link>
-          <router-link to="/tasks" class="nav-item">日程管理</router-link>
-          <router-link to="/ai-assistant" class="nav-item">AI助手</router-link>
-        </div>
-        
-        <div class="nav-actions">
-          <div class="user-info">
-            <el-avatar :size="36" :src="userStore.user?.avatar">
-              {{ userStore.user?.nickname?.charAt(0) }}
-            </el-avatar>
-            <span class="username">{{ userStore.user?.nickname }}</span>
-          </div>
-          <el-dropdown @command="handleCommand">
-            <el-button circle>
-              <el-icon><Setting /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
-    </nav>
+    <!-- 使用通用顶部导航栏组件 -->
+    <TopNavbar />
 
     <!-- 主要内容区域 -->
     <div class="schedule-main">
       <div class="schedule-content">
-        <!-- 页面标题和操作 -->
-        <div class="page-header card-light">
-          <div class="header-content">
-            <div class="title-section">
-              <h1 class="page-title">我的课程表</h1>
-              <p class="page-subtitle">管理你的课程安排</p>
-            </div>
-            
-            <div class="header-actions">
-              <el-button type="primary" @click="showAddCourse = true">
-                <el-icon><Plus /></el-icon>
-                添加课程
-              </el-button>
-              <el-button @click="loadCourses">
-                <el-icon><Refresh /></el-icon>
-                刷新
-              </el-button>
-              <router-link to="/tasks">
-                <el-button>
-                <el-icon><Calendar /></el-icon>
-                  日程管理
-              </el-button>
-              </router-link>
-            </div>
-          </div>
-          
-          <!-- 学期选择 -->
-          <div class="semester-selector">
-            <el-select v-model="currentSemester" placeholder="选择学期" size="default" @change="handleSemesterChange">
-              <el-option 
-                v-for="(config, key) in semesterConfig" 
-                :key="key" 
-                :label="config.name" 
-                :value="key" 
-              />
-            </el-select>
-            
-            <div class="week-selector">
-              <el-button @click="previousWeek" circle size="small">
-                <el-icon><ArrowLeft /></el-icon>
-              </el-button>
-              
-              <el-select 
-                v-model="currentWeek" 
-                placeholder="选择周数" 
-                size="small"
-                style="width: 120px;"
-              >
-                <el-option 
-                  v-for="week in getCurrentSemesterConfig().totalWeeks" 
-                  :key="week" 
-                  :label="`第 ${week} 周`" 
-                  :value="week"
-                />
-              </el-select>
-              
-              <el-button @click="nextWeek" circle size="small">
-                <el-icon><ArrowRight /></el-icon>
-              </el-button>
-              
-              <el-button @click="goToCurrentWeek" size="small" type="primary" plain>
-                <el-icon><Calendar /></el-icon>
-                回到今天
-              </el-button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 课程表 -->
-        <div v-loading="loading" class="schedule-table card-light">
-          <div class="table-header">
-            <div class="time-column">时间</div>
-            <div 
-              v-for="(day, index) in weekDays" 
-              :key="index"
-              class="day-column"
-              :class="{ 
-                today: getDayDate(index).isToday,
-                'current-day': getDayDate(index).isToday 
-              }"
-            >
-              <div class="day-name">{{ day }}</div>
-              <div class="day-date" :class="{ 'today-date': getDayDate(index).isToday }">
-                {{ getDayDate(index).month }}/{{ getDayDate(index).date }}
-                <span v-if="getDayDate(index).isToday" class="today-indicator">今天</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="table-body">
-            <div 
-              v-for="(timeSlot, timeIndex) in timeSlots" 
-              :key="timeIndex"
-              class="time-row"
-            >
-              <div class="time-cell">
-                <div class="time-period">{{ timeSlot }}</div>
+        <!-- 主要内容区域 -->
+        <div class="schedule-main-content">
+          <!-- 页面标题和操作 -->
+          <div class="page-header card-light">
+            <div class="header-content">
+              <div class="title-section">
+                <h1 class="page-title">我的课程表</h1>
+                <p class="page-subtitle">管理你的课程安排</p>
               </div>
               
-              <div 
-                v-for="dayIndex in 7" 
-                :key="dayIndex"
-                class="course-cell"
-                @click="addCourseToSlot(timeIndex, dayIndex - 1)"
-              >
-                <!-- 显示课程 -->
-                <div v-if="getCourseForSlot(timeIndex, dayIndex - 1)" class="course-item" 
-                     :style="{ backgroundColor: getCourseForSlot(timeIndex, dayIndex - 1)?.color }"
-                     @click.stop="editCourse(getCourseForSlot(timeIndex, dayIndex - 1)!)">
-                  <div class="course-name">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.name }}</div>
-                  <div class="course-location">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.location }}</div>
-                  <div class="course-teacher">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.teacher }}</div>
+              <div class="header-actions">
+                <el-button type="primary" @click="showAddCourse = true">
+                  <el-icon><Plus /></el-icon>
+                  添加课程
+                </el-button>
+                <el-button @click="loadCourses">
+                  <el-icon><Refresh /></el-icon>
+                  刷新
+                </el-button>
+              </div>
+            </div>
+            
+            <!-- 学期选择和周次导航 -->
+            <div class="semester-selector">
+              <div class="semester-info">
+                <el-select v-model="currentSemester" placeholder="选择学期" size="default" @change="handleSemesterChange" class="semester-select">
+                  <el-option 
+                    v-for="(config, key) in semesterConfig" 
+                    :key="key" 
+                    :label="config.name" 
+                    :value="key" 
+                  />
+                </el-select>
+              </div>
+              
+              <div class="week-navigation">
+                <div class="week-controls">
+                  <el-button @click="previousWeek" circle size="small" class="nav-btn">
+                    <el-icon><ArrowLeft /></el-icon>
+                  </el-button>
+                  
+                  <div class="week-info">
+                    <span class="week-label">第</span>
+                    <el-select 
+                      v-model="currentWeek" 
+                      placeholder="选择周数" 
+                      size="small"
+                      class="week-select"
+                    >
+                      <el-option 
+                        v-for="week in getCurrentSemesterConfig().totalWeeks" 
+                        :key="week" 
+                        :label="week" 
+                        :value="week"
+                      />
+                    </el-select>
+                    <span class="week-label">周</span>
+                  </div>
+                  
+                  <el-button @click="nextWeek" circle size="small" class="nav-btn">
+                    <el-icon><ArrowRight /></el-icon>
+                  </el-button>
                 </div>
                 
-                <!-- 空白时间段 -->
-                <div v-else class="empty-slot">
-                  <el-icon class="add-icon"><Plus /></el-icon>
+                <el-button @click="goToCurrentWeek" size="small" class="today-btn">
+                  <el-icon><Calendar /></el-icon>
+                  今天
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 课程表 -->
+          <div v-loading="loading" class="schedule-table card-light">
+            <div class="table-header">
+              <div class="time-column">时间</div>
+              <div 
+                v-for="(day, index) in weekDays" 
+                :key="index"
+                class="day-column"
+                :class="{ 
+                  today: getDayDate(index).isToday,
+                  'current-day': getDayDate(index).isToday 
+                }"
+              >
+                <div class="day-name">{{ day }}</div>
+                <div class="day-date" :class="{ 'today-date': getDayDate(index).isToday }">
+                  {{ getDayDate(index).month }}/{{ getDayDate(index).date }}
+                  <span v-if="getDayDate(index).isToday" class="today-indicator">今天</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="table-body">
+              <div 
+                v-for="(timeSlot, timeIndex) in timeSlots" 
+                :key="timeIndex"
+                class="time-row"
+              >
+                <div class="time-cell">
+                  <div class="time-period">{{ timeIndex + 1 }}</div>
+                  <div class="time-range">{{ getTimeRange(timeIndex) }}</div>
+                </div>
+                
+                <div 
+                  v-for="dayIndex in 7" 
+                  :key="dayIndex"
+                  class="course-cell"
+                  @click="addCourseToSlot(timeIndex, dayIndex - 1)"
+                >
+                  <!-- 显示课程 -->
+                  <div v-if="getCourseForSlot(timeIndex, dayIndex - 1)" 
+                       class="course-item" 
+                       :style="getCourseStyle(getCourseForSlot(timeIndex, dayIndex - 1))"
+                       @click.stop="editCourse(getCourseForSlot(timeIndex, dayIndex - 1)!)">
+                    <div class="course-name">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.name }}</div>
+                    <div class="course-location">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.location }}</div>
+                    <div class="course-teacher">{{ getCourseForSlot(timeIndex, dayIndex - 1)?.teacher }}</div>
+                  </div>
+                  
+                  <!-- 空白时间段 -->
+                  <div v-else class="empty-slot">
+                    <el-icon class="add-icon"><Plus /></el-icon>
+                    <span class="add-text">点击添加</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 今日课程 -->
-        <div class="today-section">
+        <!-- 右侧边栏 - 今日课程 -->
+        <div class="schedule-sidebar">
           <div class="today-courses card-light">
             <h3 class="section-title">今日课程</h3>
             <div v-if="todayCourses.length > 0" class="courses-list">
@@ -322,6 +291,7 @@ import {
   type Course
 } from '@/api/schedule'
 import type { ApiResponse } from '@/types'
+import TopNavbar from '@/components/TopNavbar.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -553,6 +523,44 @@ const getCourseForSlot = (timeIndex: number, dayIndex: number) => {
   })
 }
 
+const getTimeRange = (timeIndex: number) => {
+  if (timeIndex < timeSlots.length) {
+    return timeSlots[timeIndex]
+  }
+  return ''
+}
+
+const getCourseStyle = (course: Course | undefined) => {
+  if (!course?.color) {
+    return {
+      '--course-color': '#6366f1',
+      '--course-color-light': '#818cf8'
+    }
+  }
+  
+  // 根据主色生成稍浅的颜色
+  const lighterColor = adjustColorBrightness(course.color, 20)
+  
+  return {
+    '--course-color': course.color,
+    '--course-color-light': lighterColor
+  }
+}
+
+// 辅助函数：调整颜色亮度
+const adjustColorBrightness = (color: string, percent: number) => {
+  const hex = color.replace('#', '')
+  const r = parseInt(hex.substr(0, 2), 16)
+  const g = parseInt(hex.substr(2, 2), 16)
+  const b = parseInt(hex.substr(4, 2), 16)
+  
+  const newR = Math.min(255, Math.max(0, r + (r * percent / 100)))
+  const newG = Math.min(255, Math.max(0, g + (g * percent / 100)))
+  const newB = Math.min(255, Math.max(0, b + (b * percent / 100)))
+  
+  return `#${Math.round(newR).toString(16).padStart(2, '0')}${Math.round(newG).toString(16).padStart(2, '0')}${Math.round(newB).toString(16).padStart(2, '0')}`
+}
+
 const previousWeek = () => {
   if (currentWeek.value > 1) {
     currentWeek.value--
@@ -764,180 +772,259 @@ onMounted(async () => {
   background: var(--gradient-bg);
 }
 
-/* 导航栏样式 */
-.navbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.brand-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.logo-circle {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
-  box-shadow: var(--shadow-light);
-}
-
-.brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 32px;
-}
-
-.nav-item {
-  text-decoration: none;
-  color: var(--gray-600);
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: var(--transition-base);
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: var(--primary-600);
-  background: var(--primary-50);
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.username {
-  font-weight: 600;
-  color: var(--gray-700);
-}
-
 /* 主要内容区域 */
 .schedule-main {
-  padding: 32px 24px;
+  padding: 16px;
+  height: calc(100vh - 88px);
+  overflow: hidden;
 }
 
 .schedule-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+
+.schedule-main-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 8px;
+  min-height: 0;
+}
+
+.schedule-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* 页面标题 */
 .page-header {
-  padding: 32px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 6px;
 }
 
 .title-section h1 {
-  font-size: 2rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--gray-800);
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
 .page-subtitle {
-  color: var(--gray-600);
-  margin: 0;
+  display: none;
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
 }
 
 .semester-selector {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
 }
 
-.week-selector {
+.semester-selector:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.semester-info {
+  flex: 1;
+}
+
+.semester-select {
+  width: 100%;
+}
+
+.semester-select .el-input__wrapper {
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.semester-select .el-input__wrapper:hover {
+  border-color: #94a3b8 !important;
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.week-controls {
   display: flex;
   align-items: center;
   gap: 12px;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.nav-btn {
+  background: white !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.nav-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #334155 !important;
+  transform: scale(1.05);
+}
+
+.nav-btn .el-icon {
+  color: #64748b !important;
+}
+
+.week-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.week-select {
+  width: 80px;
+}
+
+.week-select .el-input__wrapper {
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: white !important;
+  transition: all 0.2s ease !important;
+}
+
+.week-select .el-input__wrapper:hover {
+  border-color: #94a3b8 !important;
+}
+
+.today-btn {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+  border-radius: 10px !important;
+  padding: 8px 16px !important;
+}
+
+.today-btn:hover {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1) !important;
+  border-color: #94a3b8 !important;
+  color: #334155 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.today-btn .el-icon {
+  color: #3b82f6 !important;
 }
 
 /* 课程表样式 */
 .schedule-table {
   padding: 0;
   overflow: hidden;
+  border-radius: 12px;
+  box-shadow: var(--shadow-light);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .table-header {
   display: grid;
-  grid-template-columns: 120px repeat(7, 1fr);
-  background: var(--primary-50);
-  border-bottom: 2px solid var(--primary-200);
+  grid-template-columns: 80px repeat(7, 1fr);
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-.time-column,
+.time-column {
+  padding: 8px 4px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--gray-600);
+  font-size: 11px;
+  background: #f8fafc;
+  border-right: 1px solid var(--gray-200);
+}
+
 .day-column {
-  padding: 16px 12px;
+  padding: 6px 4px;
   text-align: center;
   font-weight: 600;
   color: var(--gray-700);
+  border-right: 1px solid var(--gray-200);
+  transition: var(--transition-base);
 }
 
 .day-column.today {
-  background: var(--primary-100);
-  color: var(--primary-700);
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
 }
 
 .day-column.current-day {
-  background: linear-gradient(135deg, var(--primary-100), var(--primary-200));
-  border: 2px solid var(--primary-400);
-  border-radius: 8px 8px 0 0;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
+  position: relative;
+}
+
+.day-column.current-day::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: #3b82f6;
+  border-radius: 2px;
 }
 
 .day-name {
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 12px;
+  margin-bottom: 2px;
+  font-weight: 600;
 }
 
 .day-date {
-  font-size: 12px;
+  font-size: 10px;
   opacity: 0.8;
   position: relative;
 }
@@ -945,112 +1032,198 @@ onMounted(async () => {
 .day-date.today-date {
   opacity: 1;
   font-weight: 700;
-  color: var(--primary-700);
+  color: #1d4ed8;
 }
 
 .today-indicator {
-  display: block;
-  font-size: 10px;
-  color: var(--primary-600);
-  background: var(--primary-200);
+  display: inline-block;
+  font-size: 8px;
+  color: #ffffff;
+  background: #3b82f6;
   padding: 1px 4px;
-  border-radius: 4px;
-  margin-top: 2px;
+  border-radius: 6px;
+  margin-left: 2px;
   font-weight: 600;
 }
 
 .table-body {
   display: flex;
   flex-direction: column;
+  background: white;
+  flex: 1;
 }
 
 .time-row {
   display: grid;
-  grid-template-columns: 120px repeat(7, 1fr);
-  border-bottom: 1px solid var(--gray-200);
+  grid-template-columns: 80px repeat(7, 1fr);
+  border-bottom: 1px solid #f1f5f9;
+  flex: 1;
+  min-height: 35px;
+}
+
+.time-row:last-child {
+  border-bottom: none;
 }
 
 .time-cell {
-  padding: 12px;
+  padding: 6px 3px;
   text-align: center;
-  background: var(--gray-50);
-  border-right: 1px solid var(--gray-200);
+  background: #fafbfc;
+  border-right: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .time-period {
   font-size: 12px;
-  color: var(--gray-600);
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--gray-700);
+  line-height: 1;
+  margin-bottom: 1px;
+}
+
+.time-range {
+  font-size: 7px;
+  color: var(--gray-500);
+  margin-top: 1px;
 }
 
 .course-cell {
-  padding: 4px;
-  border-right: 1px solid var(--gray-200);
-  min-height: 60px;
+  padding: 2px;
+  border-right: 1px solid #f1f5f9;
   cursor: pointer;
   transition: var(--transition-base);
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .course-cell:hover {
-  background: var(--primary-50);
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .course-item {
+  width: 100%;
   height: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  padding: 6px 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: var(--transition-base);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--course-color, #6366f1), var(--course-color-light, #818cf8));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.course-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .course-item:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .course-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--gray-800);
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
   margin-bottom: 2px;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  word-break: break-word;
 }
 
-.course-location,
+.course-location {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1px;
+  display: block;
+  text-align: center;
+  word-break: break-word;
+}
+
+.course-location::before {
+  content: '📍 ';
+  font-size: 8px;
+}
+
 .course-teacher {
-  font-size: 10px;
-  color: var(--gray-600);
-  line-height: 1.2;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.1;
+  text-align: center;
+  word-break: break-word;
 }
 
 .empty-slot {
+  width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   opacity: 0;
   transition: var(--transition-base);
+  border: 2px dashed transparent;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+  position: relative;
 }
 
 .course-cell:hover .empty-slot {
   opacity: 1;
+  border-color: #cbd5e1;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.empty-slot .add-text {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
+  opacity: 0;
+  transition: var(--transition-base);
+}
+
+.course-cell:hover .empty-slot .add-text {
+  opacity: 1;
 }
 
 .add-icon {
-  color: var(--primary-400);
+  color: #94a3b8;
   font-size: 16px;
 }
 
 /* 今日课程 */
 .today-section {
-  display: flex;
-  justify-content: center;
+  width: 100%;
 }
 
 .today-courses {
-  padding: 24px;
-  width: 100%;
-  max-width: 800px;
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border: 1px solid #e2e8f0;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .section-title {
@@ -1058,6 +1231,14 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 700;
   margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title::before {
+  content: '📅';
+  font-size: 18px;
 }
 
 .courses-list {
@@ -1068,30 +1249,37 @@ onMounted(async () => {
 
 .course-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  padding: 12px;
-  background: var(--primary-50);
-  border-radius: 12px;
-  border-left: 4px solid var(--primary-400);
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: var(--transition-base);
+}
+
+.course-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .course-time {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--primary-600);
-  min-width: 80px;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #dbeafe;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-align: center;
+  align-self: flex-start;
 }
 
-.course-info {
-  flex: 1;
-}
-
-.course-name {
+.course-info .course-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--gray-800);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .course-details {
@@ -1099,11 +1287,20 @@ onMounted(async () => {
   color: var(--gray-600);
 }
 
+.course-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .empty-message {
   text-align: center;
   color: var(--gray-500);
   font-size: 14px;
-  padding: 32px;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e1;
 }
 
 /* 表单行样式 */
@@ -1115,6 +1312,21 @@ onMounted(async () => {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
+  .schedule-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .schedule-sidebar {
+    order: -1;
+    height: auto;
+  }
+  
+  .today-courses {
+    height: auto;
+    overflow-y: visible;
+  }
+  
   .header-content {
     flex-direction: column;
     gap: 16px;

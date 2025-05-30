@@ -346,7 +346,7 @@ const steps = ref([
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
@@ -426,7 +426,7 @@ const steps = ref([
 }
 
 .hero-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -663,7 +663,7 @@ const steps = ref([
 }
 
 .section-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -806,7 +806,7 @@ const steps = ref([
 }
 
 .footer-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 2fr;

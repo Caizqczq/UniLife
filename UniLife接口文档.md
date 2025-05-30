@@ -2,6 +2,16 @@
 
 ## 更新日志
 
+### v1.3.0 (2025-01-27)
+- **新增AI辅助学习模块**: 实现了完整的AI聊天助手功能
+- **AI会话管理**: 支持创建、查询、更新、删除聊天会话
+- **AI消息系统**: 支持发送消息、获取回复、查看历史记录
+- **上下文感知**: AI可以根据会话历史提供连贯的对话体验
+- **Markdown支持**: AI回复支持丰富的格式化内容
+- **会话标题编辑**: 支持双击编辑或点击编辑按钮修改会话标题
+- **数据库设计**: 新增ai_chat_sessions和ai_chat_messages表
+- **多会话支持**: 用户可以同时进行多个独立的AI对话会话
+
 ### v1.2.0 (2025-01-27)
 - **修复资源点赞功能**: 实现了完整的资源点赞表 (`resource_likes`)，防止重复点赞
 - **优化响应数据结构**: 统一时间格式为ISO 8601格式 (`yyyy-MM-ddTHH:mm:ss`)
@@ -31,7 +41,8 @@
     - [4.3 分类管理](#43-分类管理)
 - [5. 学习资源共享模块](#5-学习资源共享模块)
 - [6. 课程表与日程管理模块](#6-课程表与日程管理模块)
-- [7. 待实现模块](#7-待实现模块)
+- [7. AI辅助学习模块](#7-AI辅助学习模块)
+- [8. 待实现模块](#8-待实现模块)
 
 ## 1. 基础信息
 
@@ -1646,10 +1657,295 @@ CREATE TABLE `schedules` (
 - 第12节课: 19:20-20:10
 - 第13节课: 20:10-21:00
 
-## 7. 待实现模块
+## 7. AI辅助学习模块
+
+### 7.1 核心接口
+
+#### 7.1.1 发送消息给AI（流式响应）
+- **URL**: `/ai/chat`
+- **方法**: POST
+- **描述**: 向AI发送消息并获取流式回复
+- **认证**: 需要JWT Token
+- **响应类型**: `text/event-stream`（Server-Sent Events）
+
+请求参数：
+```json
+{
+  "message": "如何学好Python编程？",
+  "sessionId": "session_1234567890",
+  "conversationHistory": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "你好",
+      "timestamp": "2025-01-27T10:00:00"
+    }
+  ]
+}
+```
+
+**参数说明**:
+- `message`: 用户发送的消息内容
+- `sessionId` (可选): 会话ID，如果不提供则创建新会话
+- `conversationHistory` (可选): 会话历史记录，用于AI理解上下文
+
+**流式响应**:
+接口返回Server-Sent Events流，每个事件包含AI回复的一部分内容：
+```
+data: 学好Python编程需要
+data: 循序渐进地学习
+data: ，首先掌握基础语法
+data: ，然后通过实际项目练习
+data: [END]
+```
+
+**前端处理示例**:
+```javascript
+const response = await fetch('/ai/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token
+  },
+  body: JSON.stringify(requestData)
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  // 处理流式数据块
+  console.log(chunk);
+}
+```
+
+#### 7.1.2 获取聊天会话列表
+- **URL**: `/ai/sessions`
+- **方法**: GET
+- **描述**: 获取当前用户的聊天会话列表
+- **认证**: 需要JWT Token
+
+请求参数：
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为20
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "sessions": [
+      {
+        "id": "session_1234567890",
+        "title": "Python学习咨询",
+        "createdAt": "2025-01-27T10:00:00",
+        "updatedAt": "2025-01-27T15:30:00",
+        "lastMessageTime": "2025-01-27T15:30:00",
+        "messageCount": 8
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+#### 7.1.3 获取会话消息历史
+- **URL**: `/ai/sessions/{sessionId}/messages`
+- **方法**: GET
+- **描述**: 获取指定会话的消息历史
+- **认证**: 需要JWT Token
+
+请求参数：
+- **page** (query, 可选): 页码，默认为1
+- **size** (query, 可选): 每页大小，默认为50
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "messages": [
+      {
+        "id": "msg_001",
+        "role": "user",
+        "content": "如何学好Python编程？",
+        "timestamp": "2025-01-27T10:00:00"
+      },
+      {
+        "id": "msg_002",
+        "role": "assistant", 
+        "content": "学好Python编程需要循序渐进...",
+        "timestamp": "2025-01-27T10:00:30"
+      }
+    ],
+    "total": 8,
+    "sessionInfo": {
+      "id": "session_1234567890",
+      "title": "Python学习咨询",
+      "createdAt": "2025-01-27T10:00:00",
+      "updatedAt": "2025-01-27T15:30:00",
+      "lastMessageTime": "2025-01-27T15:30:00",
+      "messageCount": 8
+    }
+  }
+}
+```
+
+#### 7.1.4 创建聊天会话
+- **URL**: `/ai/sessions`
+- **方法**: POST
+- **描述**: 创建新的AI聊天会话（sessionId由前端生成）
+- **认证**: 需要JWT Token
+
+请求参数：
+```json
+{
+  "sessionId": "session_1706177600_abc123",
+  "title": "新对话"
+}
+```
+
+**参数说明**:
+- `sessionId`: 会话ID，由前端生成（格式：session_<timestamp>_<random>）
+- `title` (可选): 会话标题，默认为"新对话"
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "创建会话成功",
+  "data": {
+    "sessionId": "session_1706177600_abc123",
+    "title": "新对话"
+  }
+}
+```
+
+#### 7.1.5 更新会话标题
+- **URL**: `/ai/sessions/{sessionId}`
+- **方法**: PUT
+- **描述**: 更新会话标题
+- **认证**: 需要JWT Token
+
+请求参数：
+```json
+{
+  "title": "更新后的标题"
+}
+```
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": null
+}
+```
+
+#### 7.1.6 清空会话消息
+- **URL**: `/ai/sessions/{sessionId}/messages`
+- **方法**: DELETE
+- **描述**: 清空指定会话的所有消息（保留会话）
+- **认证**: 需要JWT Token
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "清空成功",
+  "data": null
+}
+```
+
+#### 7.1.7 删除会话
+- **URL**: `/ai/sessions/{sessionId}`
+- **方法**: DELETE
+- **描述**: 删除指定会话及其所有消息
+- **认证**: 需要JWT Token
+
+响应结果：
+```json
+{
+  "code": 200,
+  "message": "删除成功",
+  "data": null
+}
+```
+
+### 7.2 数据库设计说明
+
+#### AI聊天会话表 (ai_chat_sessions)
+```sql
+CREATE TABLE `ai_chat_sessions` (
+  `id` VARCHAR(64) PRIMARY KEY COMMENT '会话ID（前端生成）',
+  `user_id` BIGINT NOT NULL COMMENT '用户ID',
+  `title` VARCHAR(100) NOT NULL DEFAULT '新对话' COMMENT '会话标题',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  INDEX `idx_user_id` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+);
+```
+
+#### AI聊天消息表 (ai_chat_messages)
+```sql
+CREATE TABLE `ai_chat_messages` (
+  `id` VARCHAR(64) PRIMARY KEY COMMENT '消息ID（前端生成）',
+  `session_id` VARCHAR(64) NOT NULL COMMENT '会话ID',
+  `role` ENUM('user', 'assistant', 'system') NOT NULL COMMENT '角色',
+  `content` TEXT NOT NULL COMMENT '消息内容',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  INDEX `idx_session_id` (`session_id`),
+  FOREIGN KEY (`session_id`) REFERENCES `ai_chat_sessions` (`id`) ON DELETE CASCADE
+);
+```
+
+### 7.3 流式响应特性说明
+
+**核心特性**:
+- 支持多会话管理，每个用户可以有多个独立的对话会话
+- 消息按时间顺序存储，支持完整的对话历史记录
+- 级联删除保证数据一致性
+- 支持用户、助手和系统三种角色的消息
+- 会话ID和消息ID由前端生成，确保前端能够立即使用
+- ID格式：session_<timestamp>_<random> 和 msg_<timestamp>_<random>
+- **流式响应**: 使用Server-Sent Events实现实时的AI回复流式传输
+
+**前端流式处理示例**:
+```typescript
+import { sendMessage } from '@/api/ai'
+
+// 使用流式API
+await sendMessage({
+  message: '你好',
+  sessionId: 'session_123',
+  conversationHistory: []
+}, (chunk: string) => {
+  // 处理每个数据块
+  currentMessage.content += chunk
+  // 实时更新UI
+  updateMessageDisplay()
+})
+```
+
+**后端流式实现**:
+```java
+@PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux<String> sendMessage(@RequestBody AiSendMessageDTO sendMessageDTO) {
+    return aiService.sendMessage(sendMessageDTO);
+}
+```
+
+## 8. 待实现模块
 
 以下模块尚未实现，将在后续开发中完成：
 
 - 搜索功能模块
-- AI辅助学习模块
 - 积分系统模块

@@ -37,17 +37,30 @@ export interface ChatMessagesResponse {
 
 // 发送消息给AI（流式响应）
 export const sendMessage = async (
-  data: SendMessageRequest
+  prompt: string,
+  sessionId?: string | null
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> => {
   const token = localStorage.getItem('token')
   
+  // 使用URLSearchParams构建请求参数
+  const params = new URLSearchParams()
+  params.append('prompt', prompt)
+  if (sessionId && sessionId.trim()) {
+    params.append('sessionId', sessionId.trim())
+    console.log('API请求包含sessionId:', sessionId.trim())
+  } else {
+    console.log('API请求不包含sessionId')
+  }
+  
+  console.log('发送到后端的参数:', params.toString())
+
   const response = await fetch(`${api.defaults.baseURL}/ai/chat`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': token ? `Bearer ${token}` : ''
     },
-    body: JSON.stringify(data)
+    body: params
   })
 
   if (!response.ok) {

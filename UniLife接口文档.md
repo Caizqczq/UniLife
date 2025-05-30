@@ -2,6 +2,14 @@
 
 ## 更新日志
 
+### v1.4.0 (2025-05-30)
+- **重构AI助手流式响应**: 完全重构AI聊天功能，实现真正的流式显示
+- **优化接口参数格式**: AI聊天接口改用`application/x-www-form-urlencoded`格式，简化参数传递
+- **改进前端实现**: 使用原生fetch API替代axios，确保流式响应的稳定性
+- **参考成功案例**: 基于已验证的流式响应实现模式进行重构
+- **UI体验提升**: 保持美观界面的同时，实现真正的实时流式文字显示
+- **响应格式优化**: 从Server-Sent Events改为直接文本流，提高兼容性
+
 ### v1.3.0 (2025-01-27)
 - **新增AI辅助学习模块**: 实现了完整的AI聊天助手功能
 - **AI会话管理**: 支持创建、查询、更新、删除聊天会话
@@ -1666,62 +1674,26 @@ CREATE TABLE `schedules` (
 - **方法**: POST
 - **描述**: 向AI发送消息并获取流式回复
 - **认证**: 需要JWT Token
-- **响应类型**: `text/event-stream`（Server-Sent Events）
+- **Content-Type**: `application/x-www-form-urlencoded`
+- **响应类型**: `text/html;charset=UTF-8`（流式文本响应）
 
-请求参数：
-```json
-{
-  "message": "如何学好Python编程？",
-  "sessionId": "session_1234567890",
-  "conversationHistory": [
-    {
-      "id": "msg_001",
-      "role": "user",
-      "content": "你好",
-      "timestamp": "2025-01-27T10:00:00"
-    }
-  ]
-}
+请求参数（Form Data格式）：
+```
+prompt=如何学好Python编程？
+sessionId=session_1234567890
 ```
 
 **参数说明**:
-- `message`: 用户发送的消息内容
-- `sessionId` (可选): 会话ID，如果不提供则创建新会话
-- `conversationHistory` (可选): 会话历史记录，用于AI理解上下文
+- `prompt`: 用户发送的消息内容（必填）
+- `sessionId`: 会话ID，如果不提供则由后端创建新会话（可选）
 
 **流式响应**:
-接口返回Server-Sent Events流，每个事件包含AI回复的一部分内容：
+接口返回原始文本流，AI的回复内容会逐字符或逐词流式返回：
 ```
-data: 学好Python编程需要
-data: 循序渐进地学习
-data: ，首先掌握基础语法
-data: ，然后通过实际项目练习
-data: [END]
+学好Python编程需要循序渐进地学习，首先掌握基础语法，然后通过实际项目练习...
 ```
 
-**前端处理示例**:
-```javascript
-const response = await fetch('/ai/chat', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + token
-  },
-  body: JSON.stringify(requestData)
-});
 
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  
-  const chunk = decoder.decode(value);
-  // 处理流式数据块
-  console.log(chunk);
-}
-```
 
 #### 7.1.2 获取聊天会话列表
 - **URL**: `/ai/sessions`
@@ -1937,9 +1909,45 @@ await sendMessage({
 
 **后端流式实现**:
 ```java
-@PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-public Flux<String> sendMessage(@RequestBody AiSendMessageDTO sendMessageDTO) {
-    return aiService.sendMessage(sendMessageDTO);
+@RestController
+@RequestMapping("/ai")
+public class AiController {
+    
+    private final AiService aiService;
+
+    @Operation(summary = "发送消息给AI")
+    @RequestMapping(value = "/chat", produces = "text/html;charset=UTF-8")
+    public Flux<String> sendMessage(
+            @RequestParam("prompt") String prompt,
+            @RequestParam(value = "sessionId", required = false) String sessionId) {
+        log.info("发送消息给AI: {}", prompt);
+        
+        AiSendMessageDTO sendMessageDTO = new AiSendMessageDTO();
+        sendMessageDTO.setMessage(prompt);
+        sendMessageDTO.setSessionId(sessionId);
+        
+        return aiService.sendMessage(sendMessageDTO);
+    }
+}
+```
+
+**Service层实现**:
+```java
+@Service
+public class AiServiceImpl implements AiService {
+    
+    @Autowired
+    private ChatClient chatClient;
+
+    @Override
+    public Flux<String> sendMessage(AiSendMessageDTO sendMessageDTO) {
+        log.info("发送消息给AI: {}", sendMessageDTO.getMessage());
+        
+        // 使用Spring AI ChatClient的流式响应
+        return chatClient.prompt(sendMessageDTO.getMessage())
+                .stream()
+                .content();
+    }
 }
 ```
 

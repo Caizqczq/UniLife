@@ -27,9 +27,16 @@ public class AiController {
     private final AiService aiService;
 
     @Operation(summary = "发送消息给AI")
-    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> sendMessage(@RequestBody AiSendMessageDTO sendMessageDTO) {
-        log.info("发送消息给AI: {}", sendMessageDTO.getMessage());
+    @RequestMapping(value = "/chat", produces = "text/html;charset=UTF-8")
+    public Flux<String> sendMessage(
+            @RequestParam("prompt") String prompt,
+            @RequestParam(value = "sessionId", required = false) String sessionId) {
+        log.info("发送消息给AI: {}", prompt);
+        
+        AiSendMessageDTO sendMessageDTO = new AiSendMessageDTO();
+        sendMessageDTO.setMessage(prompt);
+        sendMessageDTO.setSessionId(sessionId);
+        
         return aiService.sendMessage(sendMessageDTO);
     }
 

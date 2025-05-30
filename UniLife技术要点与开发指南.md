@@ -153,32 +153,86 @@ public class Result<T> {
 
 ### 🤖 AI辅助学习模块
 #### 技术选型建议
-- **AI服务**：百度文心一言、阿里通义千问
-- **集成方式**：HTTP API调用
-- **功能设计**：
-  - 学习计划生成
-  - 智能问答
-  - 学习进度分析
+- **AI服务**：Spring AI + ChatClient（支持多种AI提供商）
+- **流式响应**：WebFlux Flux<String>
+- **集成方式**：Spring Boot ReactiveWeb
+
+#### 流式响应核心技术
+```java
+// 后端实现要点
+@RequestMapping(value = "/chat", produces = "text/html;charset=UTF-8")
+public Flux<String> sendMessage(@RequestParam("prompt") String prompt) {
+    return chatClient.prompt(prompt)
+            .stream()
+            .content();
+}
+```
+
+```javascript
+// 前端实现要点
+const sendMessage = async (prompt) => {
+  const params = new URLSearchParams()
+  params.append('prompt', prompt)
+  
+  const response = await fetch('/ai/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params
+  })
+  
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let accumulatedContent = ''
+  
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    
+    accumulatedContent += decoder.decode(value)
+    // 实时更新UI
+    updateMessage(accumulatedContent)
+  }
+}
+```
+
+#### 关键技术要点
+1. **使用原生fetch而不是axios**: axios对流式响应支持有限
+2. **URLSearchParams参数传递**: 比JSON格式更稳定
+3. **UTF-8编码处理**: 确保中文字符正确显示
+4. **累积内容渲染**: 避免字符被截断
+5. **错误处理机制**: 流式传输中的异常捕获
+
+#### 功能设计
+- 实时流式AI对话
+- 多会话管理
+- 学习计划生成
+- 智能问答
+- 学习进度分析
 
 #### 数据库设计
 ```sql
--- 学习计划表
-CREATE TABLE study_plans (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    title VARCHAR(100) NOT NULL,
-    content TEXT,
-    ai_generated TINYINT DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+-- AI聊天会话表
+CREATE TABLE ai_chat_sessions (
+    id VARCHAR(64) PRIMARY KEY COMMENT '会话ID（前端生成）',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    title VARCHAR(100) NOT NULL DEFAULT '新对话' COMMENT '会话标题',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
--- AI对话记录
-CREATE TABLE ai_conversations (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+-- AI聊天消息表
+CREATE TABLE ai_chat_messages (
+    id VARCHAR(64) PRIMARY KEY COMMENT '消息ID（前端生成）',
+    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
+    role ENUM('user', 'assistant', 'system') NOT NULL COMMENT '角色',
+    content TEXT NOT NULL COMMENT '消息内容',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    INDEX idx_session_id (session_id),
+    FOREIGN KEY (session_id) REFERENCES ai_chat_sessions (id) ON DELETE CASCADE
 );
 ```
 

@@ -52,24 +52,6 @@
             了解更多
           </a>
         </div>
-        
-        <!-- 用户统计 -->
-        <div class="stats-container animate-fade-in-up delay-500">
-          <div class="stat-item">
-            <div class="stat-number">1000+</div>
-            <div class="stat-label">活跃用户</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-number">500+</div>
-            <div class="stat-label">讨论话题</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-number">200+</div>
-            <div class="stat-label">学习资源</div>
-          </div>
-        </div>
       </div>
       
       <!-- Hero图片 -->
@@ -167,28 +149,6 @@
             <span class="brand-name gradient-text">UniLife</span>
           </div>
           <p class="footer-description">为大学生打造的综合性生活平台</p>
-        </div>
-        
-        <div class="footer-links">
-          <div class="link-group">
-            <h4>产品</h4>
-            <a href="#">论坛</a>
-            <a href="#">资源库</a>
-            <a href="#">课程表</a>
-            <a href="#">日程管理</a>
-          </div>
-          <div class="link-group">
-            <h4>支持</h4>
-            <a href="#">帮助中心</a>
-            <a href="#">用户协议</a>
-            <a href="#">隐私政策</a>
-          </div>
-          <div class="link-group">
-            <h4>联系我们</h4>
-            <a href="#">反馈建议</a>
-            <a href="#">商务合作</a>
-            <a href="#">关于我们</a>
-          </div>
         </div>
       </div>
       
@@ -518,42 +478,6 @@ const steps = ref([
 .cta-button.large {
   padding: 20px 40px;
   font-size: 18px;
-}
-
-/* 统计数据 */
-.stats-container {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-600);
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  color: var(--gray-600);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.stat-divider {
-  width: 1px;
-  height: 40px;
-  background: var(--gray-200);
 }
 
 /* Hero Visual */
@@ -894,16 +818,6 @@ const steps = ref([
   .hero-actions {
     flex-direction: column;
     align-items: center;
-  }
-  
-  .stats-container {
-    flex-direction: column;
-    gap: 20px;
-  }
-  
-  .stat-divider {
-    width: 80%;
-    height: 1px;
   }
   
   .features-grid {

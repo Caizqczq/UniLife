@@ -69,7 +69,7 @@ logging:
     org.springframework.ai: debug
 jwt:
   secret: qwertyuiopasdfghjklzxcvbnm
-  expiration: 86400
+  expiration: 300  # 5分钟过期时间（5 * 60 = 300秒），用于测试
 # 添加阿里云OSS配置
 aliyun:
   oss:

@@ -106,7 +106,7 @@
             <label class="input-label">确认密码</label>
                          <el-form-item prop="confirmPassword">
                <el-input 
-                 v-model="confirmPassword"
+                 v-model="registerForm.confirmPassword"
                 placeholder="请再次输入密码"
                 type="password"
                 size="large"
@@ -265,7 +265,7 @@ const codeLoading = ref(false)
 const countdown = ref(0)
 const agreeTerms = ref(false)
 
-const registerForm = reactive<RegisterRequest>({
+const registerForm = reactive<RegisterRequest & { confirmPassword: string }>({
   username: '',
   email: '',
   password: '',
@@ -274,10 +274,9 @@ const registerForm = reactive<RegisterRequest>({
   department: '',
   major: '',
   grade: '',
-  code: ''
+  code: '',
+  confirmPassword: ''
 })
-
-const confirmPassword = ref('')
 
 // 自定义验证规则
 const validateConfirmPassword = (rule: any, value: any, callback: any) => {
@@ -369,7 +368,20 @@ const handleRegister = async () => {
     
     loading.value = true
     
-    await userStore.userRegister(registerForm)
+    // 构造注册请求数据，排除confirmPassword字段
+    const registerData: RegisterRequest = {
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password,
+      nickname: registerForm.nickname,
+      studentId: registerForm.studentId,
+      department: registerForm.department,
+      major: registerForm.major,
+      grade: registerForm.grade,
+      code: registerForm.code
+    }
+    
+    await userStore.userRegister(registerData)
     ElMessage.success('注册成功！欢迎加入UniLife 🎉')
     router.push('/login')
   } catch (error: any) {

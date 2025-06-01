@@ -45,7 +45,7 @@ public class AiServiceImpl implements AiService {
         log.info("发送消息给AI: {}, 会话ID: {}", sendMessageDTO.getMessage(), sendMessageDTO.getSessionId());
         
         String sessionId = sendMessageDTO.getSessionId();
-
+        
         // 确保会话元数据存在
         sessionHistoryService.createOrUpdateSession(sessionId, BaseContext.getId(), "新对话");
         

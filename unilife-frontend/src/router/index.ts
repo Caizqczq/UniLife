@@ -84,7 +84,7 @@ router.beforeEach((to) => {
     return '/login'
   }
   
-  if ((to.name === 'login' || to.name === 'register') && userStore.isLoggedIn) {
+  if (to.name === 'login' && userStore.isLoggedIn) {
     return '/forum'
   }
 })

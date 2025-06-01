@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginDTO {
-    private String email;
+    private String account;  // 支持用户名或邮箱
     private String password;
 }

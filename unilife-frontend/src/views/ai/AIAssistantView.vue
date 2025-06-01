@@ -526,14 +526,14 @@ const sendMessage = async () => {
     console.error('发送消息失败:', error)
     // 只有在没有切换会话的情况下才显示错误
     if (streamingChatId.value === currentChatId.value) {
-      assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
-      ElMessage.error('发送失败：' + (error.message || '网络错误'))
+    assistantMessage.content = '抱歉，发生了错误，请稍后重试。'
+    ElMessage.error('发送失败：' + (error.message || '网络错误'))
     }
   } finally {
     // 只有在没有切换会话的情况下才重置流式状态
     if (streamingChatId.value === currentChatId.value) {
-      isStreaming.value = false
-      await scrollToBottom()
+    isStreaming.value = false
+    await scrollToBottom()
       
       // 根据是否为第一次消息选择不同的延迟时间
       const delayTime = isFirstMessage ? 800 : 300 // 第一次消息延迟800ms，其他300ms

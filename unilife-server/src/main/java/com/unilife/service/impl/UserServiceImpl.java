@@ -125,6 +125,12 @@ public class UserServiceImpl implements UserService {
         String username = StringUtils.isNotEmpty(registerDTO.getUsername()) ? registerDTO.getUsername() : email.substring(0, Math.min(email.indexOf('@'), 10)) + "_" + RandomUtil.randomString(4);
         user.setUsername(username);
 
+        // 设置学生信息
+        user.setStudentId(registerDTO.getStudentId());
+        user.setDepartment(registerDTO.getDepartment());
+        user.setMajor(registerDTO.getMajor());
+        user.setGrade(registerDTO.getGrade());
+
         // 设置其他默认值
         user.setRole((byte) 0);      // 普通用户
         user.setStatus((byte) 1);    // 启用状态
@@ -162,11 +168,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result login(LoginDTO loginDTO,HttpServletRequest request) {
-        if(loginDTO==null|| StringUtils.isEmpty(loginDTO.getEmail())||StringUtils.isEmpty(loginDTO.getPassword())){
-            return Result.error(400,"邮箱或密码不能为空");
+        if(loginDTO==null|| StringUtils.isEmpty(loginDTO.getAccount())||StringUtils.isEmpty(loginDTO.getPassword())){
+            return Result.error(400,"账号或密码不能为空");
         }
 
-        User user = userMapper.findByEmail(loginDTO.getEmail());
+        String account = loginDTO.getAccount();
+        User user = null;
+        
+        // 判断输入的是邮箱还是用户名
+        if (RegexUtils.isEmailInvalid(account)) {
+            // 不是邮箱格式，按用户名查询
+            user = userMapper.findByUsername(account);
+        } else {
+            // 是邮箱格式，按邮箱查询
+            user = userMapper.findByEmail(account);
+        }
+        
         if (user == null) {
             return Result.error(400, "账号或密码错误");
         }
@@ -179,7 +196,6 @@ public class UserServiceImpl implements UserService {
             return Result.error(403, "账号已被禁用，请联系管理员");
         }
 
-
         String LastLogIpLocation = user.getLoginIp();
         String currentIp = ipLocationService.getClientIP(request);
         String ipLocation = ipLocationService.getIPLocation(currentIp);
@@ -191,7 +207,6 @@ public class UserServiceImpl implements UserService {
         BeanUtil.copyProperties(user,loginVO);
         String message = StringUtils.isEmpty(LastLogIpLocation) ? "首次登录" : "上次登录IP归属地为" + LastLogIpLocation;
         return Result.success(loginVO, message);
-
     }
 
     @Override

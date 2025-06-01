@@ -31,7 +31,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string
+  account: string  // 支持用户名或邮箱
   password: string
 }
 

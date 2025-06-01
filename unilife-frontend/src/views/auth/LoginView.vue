@@ -30,14 +30,13 @@
           @submit.prevent="handleLogin"
           class="form-container"
         >
-          <!-- 邮箱输入 -->
+          <!-- 账号输入 -->
           <div class="input-group animate-fade-in-up delay-100">
-            <label class="input-label">邮箱地址</label>
-            <el-form-item prop="email">
+            <label class="input-label">账号</label>
+            <el-form-item prop="account">
               <el-input 
-                v-model="loginForm.email"
-                placeholder="请输入您的邮箱地址"
-                type="email"
+                v-model="loginForm.account"
+                placeholder="请输入用户名或邮箱地址"
                 size="large"
                 class="modern-input"
               >
@@ -138,14 +137,14 @@ const loading = ref(false)
 const rememberMe = ref(false)
 
 const loginForm = reactive<LoginRequest>({
-  email: '',
+  account: '',
   password: ''
 })
 
 const loginRules = {
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+  account: [
+    { required: true, message: '请输入账号', trigger: 'blur' },
+    { min: 3, message: '账号长度不能少于3位', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -164,7 +163,7 @@ const handleLogin = async () => {
     ElMessage.success('登录成功！欢迎回来 🎉')
     router.push('/forum')
   } catch (error: any) {
-    ElMessage.error(error.message || '登录失败，请检查邮箱和密码')
+    ElMessage.error(error.message || '登录失败，请检查账号和密码')
   } finally {
     loading.value = false
   }

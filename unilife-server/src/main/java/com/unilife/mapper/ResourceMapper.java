@@ -100,4 +100,42 @@ public interface ResourceMapper {
     List<Resource> searchResources(@Param("keyword") String keyword, 
                                   @Param("categoryId") Long categoryId, 
                                   @Param("sortBy") String sortBy);
+    
+    // ========== 管理员后台相关方法 ==========
+    
+    /**
+     * 获取资源总数
+     */
+    int getTotalCount();
+    
+    /**
+     * 获取今日新增资源数
+     */
+    int getNewResourceCountToday();
+    
+    /**
+     * 根据ID获取资源（管理员用）
+     */
+    Resource getResourceById(Long id);
+    
+    /**
+     * 管理员获取资源列表（支持筛选和分页）
+     */
+    List<Resource> getAdminResourceList(@Param("offset") int offset,
+                                       @Param("size") int size,
+                                       @Param("keyword") String keyword,
+                                       @Param("categoryId") Long categoryId,
+                                       @Param("status") Integer status);
+    
+    /**
+     * 管理员获取资源总数（支持筛选）
+     */
+    int getAdminResourceCount(@Param("keyword") String keyword,
+                             @Param("categoryId") Long categoryId,
+                             @Param("status") Integer status);
+    
+    /**
+     * 删除资源（管理员用）
+     */
+    void deleteResource(Long resourceId);
 }

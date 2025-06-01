@@ -161,7 +161,15 @@ const handleLogin = async () => {
     
     await userStore.userLogin(loginForm)
     ElMessage.success('登录成功！欢迎回来 🎉')
+    
+    // 根据用户角色跳转到不同页面
+    if (userStore.user?.role === 2) {
+      // 管理员跳转到后台
+      router.push('/admin')
+    } else {
+      // 普通用户跳转到论坛
     router.push('/forum')
+    }
   } catch (error: any) {
     ElMessage.error(error.message || '登录失败，请检查账号和密码')
   } finally {

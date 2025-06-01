@@ -203,8 +203,9 @@ INSERT INTO `categories` (`name`, `description`, `icon`, `sort`, `status`) VALUE
 ('资源共享', '分享各类学习资源', 'icon-resource', 5, 1);
 
 -- 初始化管理员账号
-INSERT INTO `users` (`username`, `email`, `password`, `nickname`, `role`, `status`, `is_verified`) VALUES
-('admin', 'admin@unilife.com', '123456', '系统管理员', 2, 1, 1);
+INSERT INTO `users` (`username`, `email`, `password`, `nickname`, `role`, `status`, `is_verified`, `created_at`) VALUES
+('admin', 'admin@unilife.com', '123456', '系统管理员', 2, 1, 1, '2024-01-01 00:00:00'),
+('superadmin', 'superadmin@unilife.com', 'admin123', '超级管理员', 2, 1, 1, '2024-01-01 00:00:00');
 
 -- ==========================================
 -- 第四步：插入测试数据

@@ -116,4 +116,67 @@
         FROM resources
         WHERE category_id = #{categoryId} AND status != 0
     </select>
+    
+    <!-- ========== 管理员后台相关方法 ========== -->
+    
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM resources
+        WHERE status != 0
+    </select>
+    
+    <select id="getNewResourceCountToday" resultType="int">
+        SELECT COUNT(*)
+        FROM resources
+        WHERE status != 0 AND DATE(created_at) = CURDATE()
+    </select>
+    
+    <select id="getResourceById" resultMap="resourceResultMap">
+        SELECT id, user_id, title, description, file_url, file_size, file_type, category_id, 
+               download_count, like_count, status, created_at, updated_at
+        FROM resources
+        WHERE id = #{id}
+    </select>
+    
+    <select id="getAdminResourceList" resultMap="resourceResultMap">
+        SELECT r.id, r.user_id, r.title, r.description, r.file_url, r.file_size, r.file_type, r.category_id, 
+               r.download_count, r.like_count, r.status, r.created_at, r.updated_at
+        FROM resources r
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryId != null">
+                AND r.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                AND r.status = #{status}
+            </if>
+        </where>
+        ORDER BY r.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+    
+    <select id="getAdminResourceCount" resultType="int">
+        SELECT COUNT(*)
+        FROM resources r
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{keyword}, '%') OR r.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryId != null">
+                AND r.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                AND r.status = #{status}
+            </if>
+        </where>
+    </select>
+    
+    <update id="deleteResource">
+        UPDATE resources
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{resourceId}
+    </update>
 </mapper>

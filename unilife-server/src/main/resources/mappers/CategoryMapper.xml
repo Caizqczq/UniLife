@@ -64,4 +64,50 @@
             </if>
         </where>
     </select>
+    
+    <!-- ========== 管理员后台相关方法 ========== -->
+    
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM categories
+        WHERE status != 0
+    </select>
+    
+    <select id="getAllCategories" resultMap="categoryResultMap">
+        SELECT id, name, description, icon, sort, status, created_at, updated_at
+        FROM categories
+        ORDER BY sort ASC, id ASC
+    </select>
+    
+    <select id="getCategoryById" resultMap="categoryResultMap">
+        SELECT id, name, description, icon, sort, status, created_at, updated_at
+        FROM categories
+        WHERE id = #{id}
+    </select>
+    
+    <insert id="insertCategory" parameterType="com.unilife.model.entity.Category" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO categories (
+            name, description, icon, sort, status, created_at, updated_at
+        ) VALUES (
+            #{name}, #{description}, #{icon}, #{sort}, #{status}, NOW(), NOW()
+        )
+    </insert>
+    
+    <update id="updateCategory" parameterType="com.unilife.model.entity.Category">
+        UPDATE categories
+        SET name = #{name},
+            description = #{description},
+            icon = #{icon},
+            sort = #{sort},
+            status = #{status},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <update id="deleteCategory">
+        UPDATE categories
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{categoryId}
+    </update>
 </mapper>

@@ -68,4 +68,42 @@ public interface CommentMapper {
      * @param id 评论ID
      */
     void decrementLikeCount(Long id);
+    
+    // ========== 管理员后台相关方法 ==========
+    
+    /**
+     * 获取评论总数
+     */
+    int getTotalCount();
+    
+    /**
+     * 获取今日新增评论数
+     */
+    int getNewCommentCountToday();
+    
+    /**
+     * 根据ID获取评论（管理员用）
+     */
+    Comment getCommentById(Long id);
+    
+    /**
+     * 管理员获取评论列表（支持筛选和分页）
+     */
+    List<Comment> getAdminCommentList(@Param("offset") int offset,
+                                     @Param("size") int size,
+                                     @Param("keyword") String keyword,
+                                     @Param("postId") Long postId,
+                                     @Param("status") Integer status);
+    
+    /**
+     * 管理员获取评论总数（支持筛选）
+     */
+    int getAdminCommentCount(@Param("keyword") String keyword,
+                            @Param("postId") Long postId,
+                            @Param("status") Integer status);
+    
+    /**
+     * 删除评论（管理员用）
+     */
+    void deleteComment(Long commentId);
 }

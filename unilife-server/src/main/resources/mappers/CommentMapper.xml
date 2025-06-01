@@ -72,4 +72,65 @@
         SET like_count = GREATEST(like_count - 1, 0)
         WHERE id = #{id}
     </update>
+    
+    <!-- ========== 管理员后台相关方法 ========== -->
+    
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM comments
+        WHERE status != 0
+    </select>
+    
+    <select id="getNewCommentCountToday" resultType="int">
+        SELECT COUNT(*)
+        FROM comments
+        WHERE status != 0 AND DATE(created_at) = CURDATE()
+    </select>
+    
+    <select id="getCommentById" resultMap="commentResultMap">
+        SELECT id, post_id, user_id, content, parent_id, like_count, status, created_at, updated_at
+        FROM comments
+        WHERE id = #{id}
+    </select>
+    
+    <select id="getAdminCommentList" resultMap="commentResultMap">
+        SELECT c.id, c.post_id, c.user_id, c.content, c.parent_id, c.like_count, c.status, c.created_at, c.updated_at
+        FROM comments c
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND c.content LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="postId != null">
+                AND c.post_id = #{postId}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+        ORDER BY c.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+    
+    <select id="getAdminCommentCount" resultType="int">
+        SELECT COUNT(*)
+        FROM comments c
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND c.content LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="postId != null">
+                AND c.post_id = #{postId}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+    </select>
+    
+    <update id="deleteComment">
+        UPDATE comments
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
 </mapper>

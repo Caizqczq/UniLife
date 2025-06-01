@@ -1,5 +1,6 @@
 package com.unilife.config;
 
+import com.unilife.interceptor.AdminInterceptor;
 import com.unilife.interceptor.JwtInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +15,18 @@ import java.io.File;
 public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private JwtInterceptor jwtInterceptor;
+    
+    @Autowired
+    private AdminInterceptor adminInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 管理员权限拦截器 - 优先级最高
+        registry.addInterceptor(adminInterceptor)
+                .addPathPatterns("/admin/**")
+                .order(1);
+        
+        // JWT拦截器
         registry.addInterceptor(jwtInterceptor).addPathPatterns("/**")
                 .excludePathPatterns(
                         // 用户登录注册相关
@@ -28,6 +38,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         // 静态资源访问
                         "/api/files/**",
                         
+                        // 管理员接口（由AdminInterceptor处理）
+                        "/admin/**",
+                        
                         // Swagger文档相关
                         "/swagger-resources/**",
                         "/v3/api-docs/**",
@@ -35,7 +48,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/webjars/**",
                         "/favicon.ico",
                         "/knife4j/**"
-                        );
+                        )
+                .order(2);
     }
 
     @Override

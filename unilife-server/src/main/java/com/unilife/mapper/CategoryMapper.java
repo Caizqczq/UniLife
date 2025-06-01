@@ -49,4 +49,36 @@ public interface CategoryMapper {
      * @return 分类总数
      */
     Integer getCount(@Param("status") Byte status);
+    
+    // ========== 管理员后台相关方法 ==========
+    
+    /**
+     * 获取分类总数（管理员用）
+     */
+    int getTotalCount();
+    
+    /**
+     * 获取所有分类（管理员用）
+     */
+    List<Category> getAllCategories();
+    
+    /**
+     * 根据ID获取分类（管理员用）
+     */
+    Category getCategoryById(Long id);
+    
+    /**
+     * 插入分类（管理员用）
+     */
+    void insertCategory(Category category);
+    
+    /**
+     * 更新分类（管理员用）
+     */
+    void updateCategory(Category category);
+    
+    /**
+     * 删除分类（管理员用）
+     */
+    void deleteCategory(Long categoryId);
 }

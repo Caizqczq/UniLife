@@ -155,4 +155,78 @@
             </otherwise>
         </choose>
     </select>
+    
+    <!-- ========== 管理员后台相关方法 ========== -->
+    
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM posts
+        WHERE status != 0
+    </select>
+    
+    <select id="getNewPostCountToday" resultType="int">
+        SELECT COUNT(*)
+        FROM posts
+        WHERE status != 0 AND DATE(created_at) = CURDATE()
+    </select>
+    
+    <select id="getPostById" resultMap="postResultMap">
+        SELECT id, user_id, title, content, category_id, view_count, like_count, comment_count, status, created_at, updated_at
+        FROM posts
+        WHERE id = #{id}
+    </select>
+    
+    <select id="getAdminPostList" resultMap="postResultMap">
+        SELECT p.id, p.user_id, p.title, p.content, p.category_id, p.view_count, p.like_count, p.comment_count, p.status, p.created_at, p.updated_at
+        FROM posts p
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryId != null">
+                AND p.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+        ORDER BY p.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+    
+    <select id="getAdminPostCount" resultType="int">
+        SELECT COUNT(*)
+        FROM posts p
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (p.title LIKE CONCAT('%', #{keyword}, '%') OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryId != null">
+                AND p.category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+    </select>
+    
+    <update id="updatePostStatus">
+        UPDATE posts
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE id = #{postId}
+    </update>
+    
+    <update id="deletePost">
+        UPDATE posts
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{postId}
+    </update>
+    
+    <select id="getCountByCategoryId" resultType="int">
+        SELECT COUNT(*)
+        FROM posts
+        WHERE category_id = #{categoryId} AND status != 0
+    </select>
 </mapper>

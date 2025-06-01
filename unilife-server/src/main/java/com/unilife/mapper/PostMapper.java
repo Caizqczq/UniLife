@@ -105,4 +105,52 @@ public interface PostMapper {
     List<Post> searchPosts(@Param("keyword") String keyword, 
                           @Param("categoryId") Long categoryId, 
                           @Param("sortBy") String sortBy);
+    
+    // ========== 管理员后台相关方法 ==========
+    
+    /**
+     * 获取帖子总数
+     */
+    int getTotalCount();
+    
+    /**
+     * 获取今日新增帖子数
+     */
+    int getNewPostCountToday();
+    
+    /**
+     * 根据ID获取帖子（管理员用）
+     */
+    Post getPostById(Long id);
+    
+    /**
+     * 管理员获取帖子列表（支持筛选和分页）
+     */
+    List<Post> getAdminPostList(@Param("offset") int offset,
+                               @Param("size") int size,
+                               @Param("keyword") String keyword,
+                               @Param("categoryId") Long categoryId,
+                               @Param("status") Integer status);
+    
+    /**
+     * 管理员获取帖子总数（支持筛选）
+     */
+    int getAdminPostCount(@Param("keyword") String keyword,
+                         @Param("categoryId") Long categoryId,
+                         @Param("status") Integer status);
+    
+    /**
+     * 更新帖子状态
+     */
+    void updatePostStatus(@Param("postId") Long postId, @Param("status") Integer status);
+    
+    /**
+     * 删除帖子（管理员用）
+     */
+    void deletePost(Long postId);
+    
+    /**
+     * 获取指定分类下的帖子数量
+     */
+    int getCountByCategoryId(Long categoryId);
 }

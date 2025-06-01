@@ -66,6 +66,12 @@ const router = createRouter({
       name: 'profile',
       component: () => import('@/views/profile/ProfileView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/admin/AdminDashboard.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
     // {
     //   path: '/courses',
@@ -77,14 +83,37 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const userStore = useUserStore()
   
+  // 如果需要认证但未登录，跳转到登录页
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     return '/login'
   }
   
+  // 如果已登录但用户信息为空，先获取用户信息
+  if (userStore.isLoggedIn && !userStore.user) {
+    try {
+      await userStore.fetchUserInfo()
+    } catch (error) {
+      // 如果获取用户信息失败，可能token已过期，清除登录状态
+      userStore.logout()
+      return '/login'
+    }
+  }
+  
+  // 检查管理员权限
+  if (to.meta.requiresAdmin && userStore.user?.role !== 2) {
+    return '/forum'
+  }
+  
+  // 只限制已登录用户访问登录页面，允许访问注册页面
   if (to.name === 'login' && userStore.isLoggedIn) {
+    // 如果是管理员，跳转到管理后台
+    if (userStore.user?.role === 2) {
+      return '/admin'
+    }
+    // 普通用户跳转到论坛
     return '/forum'
   }
 })

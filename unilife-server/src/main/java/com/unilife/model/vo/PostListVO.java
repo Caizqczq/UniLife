@@ -71,6 +71,11 @@ public class PostListVO {
     private Integer commentCount;
     
     /**
+     * 帖子状态（0-删除, 1-正常, 2-置顶）
+     */
+    private Byte status;
+    
+    /**
      * 当前用户是否点赞
      */
     private Boolean isLiked;

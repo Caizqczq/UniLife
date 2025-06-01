@@ -54,6 +54,11 @@ export const adminApi = {
     return request.delete(`/admin/posts/${postId}`)
   },
 
+  // 永久删除帖子
+  permanentDeletePost(postId: number): Promise<ApiResponse> {
+    return request.delete(`/admin/posts/${postId}/permanent`)
+  },
+
   // 获取评论列表
   getCommentList(params: {
     page?: number

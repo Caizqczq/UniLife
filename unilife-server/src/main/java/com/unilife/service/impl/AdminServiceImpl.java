@@ -191,6 +191,23 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public Result permanentDeletePost(Long postId) {
+        try {
+            Post post = postMapper.getPostById(postId);
+            if (post == null) {
+                return Result.error(404, "帖子不存在");
+            }
+            
+            // 永久删除帖子（物理删除）
+            postMapper.permanentDeletePost(postId);
+            return Result.success(null, "帖子永久删除成功");
+        } catch (Exception e) {
+            log.error("永久删除帖子失败", e);
+            return Result.error(500, "永久删除帖子失败");
+        }
+    }
+
+    @Override
     public Result getCommentList(Integer page, Integer size, String keyword, Long postId, Integer status) {
         try {
             int offset = (page - 1) * size;

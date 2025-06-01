@@ -39,16 +39,16 @@
         </where>
         <choose>
             <when test="sort == 'hot'">
-                ORDER BY view_count DESC
+                ORDER BY status DESC, view_count DESC
             </when>
             <when test="sort == 'likes'">
-                ORDER BY like_count DESC
+                ORDER BY status DESC, like_count DESC
             </when>
             <when test="sort == 'comments'">
-                ORDER BY comment_count DESC
+                ORDER BY status DESC, comment_count DESC
             </when>
             <otherwise>
-                ORDER BY created_at DESC
+                ORDER BY status DESC, created_at DESC
             </otherwise>
         </choose>
     </select>
@@ -114,16 +114,16 @@
         WHERE user_id = #{userId} AND status != 0
         <choose>
             <when test="sort == 'hot'">
-                ORDER BY view_count DESC
+                ORDER BY status DESC, view_count DESC
             </when>
             <when test="sort == 'likes'">
-                ORDER BY like_count DESC
+                ORDER BY status DESC, like_count DESC
             </when>
             <when test="sort == 'comments'">
-                ORDER BY comment_count DESC
+                ORDER BY status DESC, comment_count DESC
             </when>
             <otherwise>
-                ORDER BY created_at DESC
+                ORDER BY status DESC, created_at DESC
             </otherwise>
         </choose>
     </select>
@@ -145,13 +145,13 @@
         </if>
         <choose>
             <when test="sortBy == 'time'">
-                ORDER BY created_at DESC
+                ORDER BY status DESC, created_at DESC
             </when>
             <when test="sortBy == 'popularity'">
-                ORDER BY like_count DESC, view_count DESC
+                ORDER BY status DESC, like_count DESC, view_count DESC
             </when>
             <otherwise>
-                ORDER BY created_at DESC
+                ORDER BY status DESC, created_at DESC
             </otherwise>
         </choose>
     </select>
@@ -223,6 +223,11 @@
             updated_at = NOW()
         WHERE id = #{postId}
     </update>
+    
+    <delete id="permanentDeletePost">
+        DELETE FROM posts
+        WHERE id = #{postId}
+    </delete>
     
     <select id="getCountByCategoryId" resultType="int">
         SELECT COUNT(*)

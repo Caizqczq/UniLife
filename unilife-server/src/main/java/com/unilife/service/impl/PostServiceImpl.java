@@ -191,6 +191,7 @@ public class PostServiceImpl implements PostService {
                     .viewCount(post.getViewCount())
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())
+                    .status(post.getStatus())
                     .isLiked(isLiked)
                     .createdAt(post.getCreatedAt())
                     .build();
@@ -346,6 +347,9 @@ public class PostServiceImpl implements PostService {
                         .replaceAll("&[^;]+;", ""); // 去除HTML实体
                 vo.setSummary(StrUtil.maxLength(content, 100));
             }
+            
+            // 确保status字段被正确复制
+            vo.setStatus(post.getStatus());
             
             return vo;
         }).collect(Collectors.toList());

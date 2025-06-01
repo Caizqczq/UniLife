@@ -70,6 +70,7 @@ export interface Post {
   viewCount: number
   likeCount: number
   commentCount: number
+  status?: number  // 帖子状态：0-删除, 1-正常, 2-置顶
   isLiked?: boolean
   createdAt: string
   updatedAt?: string

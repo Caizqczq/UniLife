@@ -80,6 +80,12 @@ public class AdminController {
         return adminService.deletePost(postId);
     }
 
+    @Operation(summary = "永久删除帖子")
+    @DeleteMapping("/posts/{postId}/permanent")
+    public Result permanentDeletePost(@PathVariable Long postId) {
+        return adminService.permanentDeletePost(postId);
+    }
+
     @Operation(summary = "获取评论列表")
     @GetMapping("/comments")
     public Result getCommentList(

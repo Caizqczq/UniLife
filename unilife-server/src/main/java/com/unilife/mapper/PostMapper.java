@@ -150,6 +150,11 @@ public interface PostMapper {
     void deletePost(Long postId);
     
     /**
+     * 永久删除帖子（物理删除）
+     */
+    void permanentDeletePost(Long postId);
+    
+    /**
      * 获取指定分类下的帖子数量
      */
     int getCountByCategoryId(Long categoryId);

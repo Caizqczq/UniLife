@@ -110,6 +110,7 @@
               v-for="post in posts" 
               :key="post.id"
               class="post-card card-light animate-fade-in-up"
+              :class="{ 'top-post': post.status === 2 }"
               @click="viewPost(post.id)"
             >
               <div class="post-header">
@@ -131,7 +132,13 @@
               </div>
 
               <div class="post-content">
-                <h3 class="post-title">{{ post.title }}</h3>
+                <h3 class="post-title">
+                  <el-tag v-if="post.status === 2" type="danger" size="small" class="top-tag">
+                    <el-icon><Top /></el-icon>
+                    置顶
+                  </el-tag>
+                  {{ post.title }}
+                </h3>
                 <p class="post-summary">{{ post.summary }}</p>
               </div>
 
@@ -301,7 +308,8 @@ import {
   Star, 
   School,
   EditPen,
-  InfoFilled
+  InfoFilled,
+  Top
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getPosts, getCategories, createPost, likePost } from '@/api/forum'
@@ -823,6 +831,36 @@ onMounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
+}
+
+/* 置顶帖子样式 */
+.top-post {
+  border: 2px solid var(--primary-300) !important;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(59, 130, 246, 0.05)) !important;
+  position: relative;
+}
+
+.top-post::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 12px 12px 0 0;
+}
+
+.top-tag {
+  margin-right: 8px !important;
+  font-weight: 600 !important;
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.top-tag .el-icon {
+  margin-right: 4px !important;
 }
 
 /* 响应式设计 */

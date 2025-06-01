@@ -47,6 +47,11 @@ public interface AdminService {
     Result deletePost(Long postId);
     
     /**
+     * 永久删除帖子
+     */
+    Result permanentDeletePost(Long postId);
+    
+    /**
      * 获取评论列表
      */
     Result getCommentList(Integer page, Integer size, String keyword, Long postId, Integer status);

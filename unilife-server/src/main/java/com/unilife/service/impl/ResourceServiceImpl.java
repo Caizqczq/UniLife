@@ -15,22 +15,16 @@ import com.unilife.model.vo.ResourceVO;
 import com.unilife.service.ResourceService;
 import com.unilife.utils.OssService;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -50,6 +44,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Autowired
     private ResourceLikeMapper resourceLikeMapper;
+
+
+
+    @Autowired
+    private PdfVectorAsyncService pdfVectorAsyncService;
 
     // 文件存储路径，实际项目中应该配置在application.yml中
     private static final String UPLOAD_DIR = "uploads/resources/";
@@ -95,6 +94,18 @@ public class ResourceServiceImpl implements ResourceService {
 
             // 保存资源记录
             resourceMapper.insert(resource);
+
+            // 异步处理PDF文件的向量存储
+            if ("application/pdf".equals(file.getContentType())) {
+                try {
+                    // 先读取文件内容到字节数组，避免异步处理时临时文件被删除
+                    byte[] fileBytes = file.getBytes();
+                    pdfVectorAsyncService.processPdfVectorAsync(fileBytes, file.getOriginalFilename(), resource);
+                    log.info("PDF文件已提交异步向量化处理，资源ID: {}", resource.getId());
+                } catch (Exception e) {
+                    log.error("读取PDF文件内容失败，跳过向量化处理，资源ID: {}", resource.getId(), e);
+                }
+            }
 
             Map<String, Object> data = new HashMap<>();
             data.put("resourceId", resource.getId());
@@ -236,6 +247,13 @@ public class ResourceServiceImpl implements ResourceService {
             return Result.error(403, "无权限删除此资源");
         }
 
+        // 先启动异步删除向量库中的相关文档（仅针对PDF文件）
+        // 在删除数据库记录之前启动，确保异步方法能获取到资源信息
+        if ("application/pdf".equals(resource.getFileType())) {
+            pdfVectorAsyncService.deleteVectorDocumentsAsync(resourceId, resource.getTitle());
+            log.info("PDF文件已提交异步删除向量文档，资源ID: {}", resourceId);
+        }
+
         // 删除OSS中的文件
         try {
             String fileUrl = resource.getFileUrl();
@@ -247,7 +265,7 @@ public class ResourceServiceImpl implements ResourceService {
             // 继续执行，不影响数据库记录的删除
         }
 
-        // 删除资源（逻辑删除）
+        // 最后删除资源（逻辑删除）
         resourceMapper.delete(resourceId);
 
         return Result.success(null, "删除成功");
@@ -361,4 +379,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         return Result.success(data);
     }
+
+
+
 }

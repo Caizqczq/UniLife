@@ -8,7 +8,7 @@
       <div class="resource-detail-content" v-loading="loading">
         <!-- 返回按钮 -->
         <div class="back-section">
-          <el-button @click="goBack" type="primary" text>
+          <el-button @click="goBack" text class="back-button">
             <el-icon><ArrowLeft /></el-icon>
             返回资源列表
           </el-button>
@@ -64,6 +64,17 @@
                 <el-icon><Star /></el-icon>
                 {{ resource.isLiked ? '已点赞' : '点赞' }}
                 ({{ resource.likeCount }})
+              </el-button>
+              <!-- 如果是当前用户上传的资源，显示删除按钮 -->
+              <el-button 
+                v-if="isOwner"
+                type="danger" 
+                size="large"
+                @click="confirmDeleteResource"
+                :loading="deleting"
+              >
+                <el-icon><Delete /></el-icon>
+                删除资源
               </el-button>
             </div>
           </div>
@@ -137,9 +148,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ArrowLeft, 
   Document, 
@@ -149,13 +160,15 @@ import {
   User,
   Calendar,
   Folder,
-  View
+  View,
+  Delete
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { 
   getResourceDetail, 
   downloadResource as downloadResourceAPI,
   likeResource,
+  deleteResource,
   type Resource as BaseResource
 } from '@/api/resources'
 import type { ApiResponse } from '@/types'
@@ -175,7 +188,13 @@ const userStore = useUserStore()
 const loading = ref(false)
 const downloading = ref(false)
 const liking = ref(false)
+const deleting = ref(false)
 const resource = ref<ExtendedResource | null>(null)
+
+// 计算属性
+const isOwner = computed(() => {
+  return resource.value && userStore.user && resource.value.userId === userStore.user.id
+})
 
 // 方法
 const goBack = () => {
@@ -271,6 +290,39 @@ const toggleLike = async () => {
   }
 }
 
+const confirmDeleteResource = async () => {
+  if (!resource.value) return
+  
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个资源吗？删除后无法恢复。',
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    deleting.value = true
+    const response = await deleteResource(resource.value.id) as any as ApiResponse<null>
+    
+    if (response.code === 200) {
+      ElMessage.success('资源删除成功')
+      goBack()
+    } else {
+      ElMessage.error(response.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除资源失败:', error)
+      ElMessage.error('删除失败')
+    }
+  } finally {
+    deleting.value = false
+  }
+}
+
 // 格式化文件大小
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 B'
@@ -356,6 +408,17 @@ onMounted(() => {
 .back-section {
   display: flex;
   align-items: center;
+}
+
+.back-button {
+  color: var(--gray-600) !important;
+  font-weight: 400 !important;
+  padding: 8px 12px !important;
+}
+
+.back-button:hover {
+  color: var(--primary-600) !important;
+  background-color: var(--gray-50) !important;
 }
 
 .resource-detail-card {

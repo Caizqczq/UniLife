@@ -39,7 +39,8 @@ export const uploadResource = (data: {
   }>>('/resources', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 60000 // 文件上传60秒超时
   })
 }
 

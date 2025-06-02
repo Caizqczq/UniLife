@@ -1,10 +1,17 @@
 server:
   port: 8087
+  # 超时配置
+  tomcat:
+    connection-timeout: 60000   # 连接超时60秒
+    threads:
+      max: 100                  # 最大线程数
 spring:
+  main:
+    allow-bean-definition-overriding: true  # 允许Bean定义覆盖
   ai:
     openai:
       base-url: https://dashscope.aliyuncs.com/compatible-mode
-      api-key: ${OPENAI_API_KEY:}
+      api-key: ${OPENAI_API_KEY:sk-temp-key-for-testing}
       chat:
         options:
           model: qwen-max-latest
@@ -18,6 +25,14 @@ spring:
           jdbc:
             initialize-schema: always  # 自动初始化表结构
             schema: classpath:schema-mysql.sql
+    # Chroma向量存储配置
+    vectorstore:
+      chroma:
+        client:
+          host: http://localhost
+          port: 8000
+        collection-name: unilife_collection
+        initialize-schema: true
   datasource:
     url: jdbc:mysql://localhost:3306/UniLife?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
     username: root
@@ -37,10 +52,26 @@ spring:
           socketFactory:
             port: 465
             class: javax.net.ssl.SSLSocketFactory
-  data:
-    redis:
-      port: 6379
-      host: 127.0.0.1
+    # Redis基本配置（用于缓存等功能）
+    data:
+      redis:
+        port: 6379
+        host: 127.0.0.1
+        database: 0
+        timeout: 10000ms
+        lettuce:
+          pool:
+            max-active: 8
+            max-wait: -1ms
+            max-idle: 8
+            min-idle: 0
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+    session:
+      timeout: 30m              # 会话超时30分钟
 knife4j:
   enable: true
   openapi:

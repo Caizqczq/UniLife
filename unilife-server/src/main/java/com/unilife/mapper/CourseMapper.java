@@ -74,4 +74,49 @@ public interface CourseMapper {
                          @Param("startTime") String startTime, 
                          @Param("endTime") String endTime,
                          @Param("excludeCourseId") Long excludeCourseId);
+    
+    // ========== 管理员后台相关方法 ==========
+    
+    /**
+     * 获取课程总数
+     */
+    int getTotalCount();
+    
+    /**
+     * 获取今日新增课程数
+     */
+    int getNewCourseCountToday();
+    
+    /**
+     * 根据ID获取课程（管理员用）
+     */
+    Course getCourseById(Long id);
+    
+    /**
+     * 管理员获取课程列表（支持筛选和分页）
+     */
+    List<Course> getAdminCourseList(@Param("offset") int offset,
+                                   @Param("size") int size,
+                                   @Param("keyword") String keyword,
+                                   @Param("userId") Long userId,
+                                   @Param("semester") String semester,
+                                   @Param("status") Integer status);
+    
+    /**
+     * 管理员获取课程总数（支持筛选）
+     */
+    int getAdminCourseCount(@Param("keyword") String keyword,
+                           @Param("userId") Long userId,
+                           @Param("semester") String semester,
+                           @Param("status") Integer status);
+    
+    /**
+     * 管理员删除课程
+     */
+    void deleteCourse(Long courseId);
+    
+    /**
+     * 物理删除课程（永久删除）
+     */
+    void permanentDeleteCourse(Long courseId);
 }

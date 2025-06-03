@@ -20,6 +20,7 @@ import com.unilife.model.vo.LoginVO;
 import com.unilife.service.IPLocationService;
 import com.unilife.service.UserService;
 import com.unilife.utils.JwtUtil;
+import com.unilife.utils.OssService;
 import com.unilife.utils.RegexUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -72,6 +73,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private OssService ossService;
 
     @Value("${spring.mail.username}")
     private String from;
@@ -455,26 +459,36 @@ public class UserServiceImpl implements UserService {
             return Result.error(400, "只能上传图片文件");
         }
 
+        // 检查文件大小（限制为2MB）
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return Result.error(400, "文件大小不能超过2MB");
+        }
+
         try {
-            // 生成文件名
-            String originalFilename = file.getOriginalFilename();
-            String suffix = originalFilename != null ? originalFilename.substring(originalFilename.lastIndexOf(".")) : ".jpg";
-            String filename = "avatar_" + userId + "_" + System.currentTimeMillis() + suffix;
+            // 删除旧头像（如果存在且不是默认头像）
+            String oldAvatarUrl = user.getAvatar();
+            if (StringUtils.isNotEmpty(oldAvatarUrl) && oldAvatarUrl.contains("oss")) {
+                try {
+                    ossService.deleteFile(oldAvatarUrl);
+                } catch (Exception e) {
+                    log.warn("删除旧头像失败: {}", oldAvatarUrl, e);
+                }
+            }
 
-            // TODO: 实际项目中应该将文件保存到云存储或服务器指定目录
-            // 这里简化处理，假设保存成功并返回URL
-            String avatarUrl = "https://example.com/avatars/" + filename;
-
+            // 上传新头像到OSS
+            String avatarUrl = ossService.uploadFile(file, "avatars");
+            
             // 更新用户头像URL
             userMapper.updateAvatar(userId, avatarUrl);
 
             Map<String, String> data = new HashMap<>();
-            data.put("avatar", avatarUrl);
+            data.put("avatarUrl", avatarUrl);
 
+            log.info("用户头像上传成功: userId={}, avatarUrl={}", userId, avatarUrl);
             return Result.success(data, "头像上传成功");
         } catch (Exception e) {
-            log.error("头像上传失败", e);
-            return Result.error(500, "头像上传失败");
+            log.error("头像上传失败: userId={}", userId, e);
+            return Result.error(500, "头像上传失败: " + e.getMessage());
         }
     }
 
@@ -631,6 +645,18 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             log.error("删除用户失败: userId={}", userId, e);
             return Result.error(500, "删除用户失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public int getOnlineUserCount() {
+        try {
+            // 这里可以实现实际的在线用户统计逻辑
+            // 例如从Redis中获取在线session数量
+            return userMapper.getActiveUserCount();
+        } catch (Exception e) {
+            log.error("获取在线用户数量失败", e);
+            return 0;
         }
     }
 }

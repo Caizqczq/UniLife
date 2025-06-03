@@ -179,4 +179,9 @@
             updated_at = NOW()
         WHERE id = #{resourceId}
     </update>
+    
+    <delete id="permanentDeleteResource">
+        DELETE FROM resources
+        WHERE id = #{resourceId}
+    </delete>
 </mapper>

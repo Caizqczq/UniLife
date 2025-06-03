@@ -138,4 +138,9 @@ public interface ResourceMapper {
      * 删除资源（管理员用）
      */
     void deleteResource(Long resourceId);
+    
+    /**
+     * 物理删除资源（永久删除）
+     */
+    void permanentDeleteResource(Long resourceId);
 }

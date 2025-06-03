@@ -90,4 +90,91 @@ public interface AdminService {
      * 删除资源
      */
     Result deleteResource(Long resourceId);
+    
+    /**
+     * 获取系统监控信息
+     */
+    Result getSystemStatus();
+    
+    /**
+     * 获取系统日志
+     */
+    Result getSystemLogs(Integer page, Integer size, String level, String keyword, String startDate, String endDate);
+    
+    /**
+     * 获取系统设置
+     */
+    Result getSystemSettings();
+    
+    /**
+     * 更新系统设置
+     */
+    Result updateSystemSettings(Map<String, Object> settings);
+    
+    /**
+     * 获取系统公告列表
+     */
+    Result getAnnouncements();
+    
+    /**
+     * 创建系统公告
+     */
+    Result createAnnouncement(Map<String, Object> announcement);
+    
+    /**
+     * 更新系统公告
+     */
+    Result updateAnnouncement(Long id, Map<String, Object> announcement);
+    
+    /**
+     * 删除系统公告
+     */
+    Result deleteAnnouncement(Long id);
+    
+    /**
+     * 获取系统通知
+     */
+    Result getNotifications();
+    
+    /**
+     * 标记通知已读
+     */
+    Result markNotificationAsRead(Long id);
+    
+    /**
+     * 测试邮件发送
+     */
+    Result testEmail(Map<String, String> request);
+    
+    /**
+     * 获取数据统计
+     */
+    Result getStatistics();
+    
+    /**
+     * 数据备份
+     */
+    Result backupData();
+    
+    // ========== 课表管理相关方法 ==========
+    
+    /**
+     * 获取课程列表
+     */
+    Result getCourseList(Integer page, Integer size, String keyword, Long userId, String semester, Integer status);
+    
+    /**
+     * 获取课程详情
+     */
+    Result getCourseDetail(Long courseId);
+    
+    /**
+     * 删除课程
+     */
+    Result deleteCourse(Long courseId);
+    
+    /**
+     * 获取用户的课表
+     */
+    Result getUserSchedule(Long userId, String semester);
 } 

@@ -332,6 +332,7 @@ const loading = ref(false)
 const statsLoading = ref(false)
 const postsLoading = ref(false)
 const resourcesLoading = ref(false)
+const selectedAvatarFile = ref<File | null>(null)
 
 // 用户资料数据 - 使用空对象，待API加载
 const userProfile = ref({
@@ -602,17 +603,48 @@ const handleChangePassword = async () => {
 
 const handleAvatarChange = (file: any) => {
   console.log('选择的头像文件:', file)
-  // TODO: 处理头像上传逻辑
+  
+  // 验证文件类型
+  if (!file.raw.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+  
+  // 验证文件大小（2MB限制）
+  if (file.raw.size > 2 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过2MB')
+    return
+  }
+  
+  selectedAvatarFile.value = file.raw
 }
 
 const handleUploadAvatar = async () => {
+  if (!selectedAvatarFile.value) {
+    ElMessage.error('请先选择头像文件')
+    return
+  }
+  
   try {
-    // TODO: 实现头像上传逻辑
+    const response = await uploadAvatar(selectedAvatarFile.value) as any as ApiResponse<{ avatarUrl: string }>
+    
+    if (response.code === 200) {
+      // 更新本地头像
+      userProfile.value.avatar = response.data.avatarUrl
     showAvatarUpload.value = false
+      selectedAvatarFile.value = null
     ElMessage.success('头像上传成功！')
+      
+      // 更新用户store中的头像信息
+      if (userStore.user) {
+        userStore.user.avatar = response.data.avatarUrl
+      }
     
     // 重新加载用户信息
     await loadUserProfile()
+    } else {
+      ElMessage.error(response.message || '头像上传失败')
+    }
   } catch (error) {
     console.error('上传头像失败:', error)
     ElMessage.error('头像上传失败')

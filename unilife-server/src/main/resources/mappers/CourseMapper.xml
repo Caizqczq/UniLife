@@ -96,4 +96,78 @@
               AND id != #{excludeCourseId}
           </if>
     </select>
+    
+    <!-- ========== 管理员后台相关方法 ========== -->
+    
+    <select id="getTotalCount" resultType="int">
+        SELECT COUNT(*)
+        FROM courses
+        WHERE status != 0
+    </select>
+    
+    <select id="getNewCourseCountToday" resultType="int">
+        SELECT COUNT(*)
+        FROM courses
+        WHERE status != 0 AND DATE(created_at) = CURDATE()
+    </select>
+    
+    <select id="getCourseById" resultMap="courseResultMap">
+        SELECT id, user_id, name, teacher, location, day_of_week, start_time, end_time, 
+               start_week, end_week, semester, color, status, created_at, updated_at
+        FROM courses
+        WHERE id = #{id}
+    </select>
+    
+    <select id="getAdminCourseList" resultMap="courseResultMap">
+        SELECT c.id, c.user_id, c.name, c.teacher, c.location, c.day_of_week, c.start_time, c.end_time, 
+               c.start_week, c.end_week, c.semester, c.color, c.status, c.created_at, c.updated_at
+        FROM courses c
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.name LIKE CONCAT('%', #{keyword}, '%') OR c.teacher LIKE CONCAT('%', #{keyword}, '%') OR c.location LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="userId != null">
+                AND c.user_id = #{userId}
+            </if>
+            <if test="semester != null and semester != ''">
+                AND c.semester = #{semester}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+        ORDER BY c.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+    
+    <select id="getAdminCourseCount" resultType="int">
+        SELECT COUNT(*)
+        FROM courses c
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (c.name LIKE CONCAT('%', #{keyword}, '%') OR c.teacher LIKE CONCAT('%', #{keyword}, '%') OR c.location LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="userId != null">
+                AND c.user_id = #{userId}
+            </if>
+            <if test="semester != null and semester != ''">
+                AND c.semester = #{semester}
+            </if>
+            <if test="status != null">
+                AND c.status = #{status}
+            </if>
+        </where>
+    </select>
+    
+    <update id="deleteCourse">
+        UPDATE courses
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{courseId}
+    </update>
+    
+    <delete id="permanentDeleteCourse">
+        DELETE FROM courses
+        WHERE id = #{courseId}
+    </delete>
 </mapper>

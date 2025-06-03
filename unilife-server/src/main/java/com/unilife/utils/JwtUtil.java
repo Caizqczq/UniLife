@@ -25,9 +25,10 @@ public class JwtUtil {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("userId", id);
-        payload.put("created", now.getTime());
+        payload.put("iat", now.getTime() / 1000); // 签发时间（秒）
         payload.put("exp", expireTime.getTime() / 1000); // JWT标准过期时间字段（秒）
-        return JWTUtil.createToken(payload, secret.getBytes());
+        String token = JWTUtil.createToken(payload, secret.getBytes());
+        return token;
     }
 
     public boolean verifyToken(String token) {
@@ -38,18 +39,26 @@ public class JwtUtil {
             // 验证过期时间
             JWT jwt = JWTUtil.parseToken(token);
             Object expObj = jwt.getPayload("exp");
+            Object iatObj = jwt.getPayload("iat");
+            
             if (expObj != null) {
                 long exp = Long.parseLong(expObj.toString());
                 long currentTime = System.currentTimeMillis() / 1000;
+                
                 if (currentTime > exp) {
-                    log.debug("Token已过期: exp={}, current={}", exp, currentTime);
+                    log.warn("Token已过期: exp={} ({}), current={} ({})", 
+                            exp, new DateTime(exp * 1000),
+                            currentTime, new DateTime(currentTime * 1000));
                     return false;
                 }
+            } else {
+                log.warn("Token中没有过期时间字段");
+                return false;
             }
-            
+
             return true;
         } catch (Exception e) {
-            log.debug("Token验证失败: {}", e.getMessage());
+            log.warn("Token验证失败: {}", e.getMessage());
             return false;
         }
     }
@@ -58,11 +67,14 @@ public class JwtUtil {
         try {
             // 先验证token是否有效
             if (!verifyToken(token)) {
+                log.warn("Token验证失败，无法获取用户ID");
                 return null;
             }
-            return Long.valueOf(JWTUtil.parseToken(token).getPayload("userId").toString());
+            Long userId = Long.valueOf(JWTUtil.parseToken(token).getPayload("userId").toString());
+            log.debug("从Token获取用户ID: {}", userId);
+            return userId;
         } catch (Exception e) {
-            log.debug("从Token获取用户ID失败: {}", e.getMessage());
+            log.warn("从Token获取用户ID失败: {}", e.getMessage());
             return null;
         }
     }

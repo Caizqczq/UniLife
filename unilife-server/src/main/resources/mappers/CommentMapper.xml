@@ -133,4 +133,9 @@
             updated_at = NOW()
         WHERE id = #{commentId}
     </update>
+    
+    <delete id="permanentDeleteComment">
+        DELETE FROM comments
+        WHERE id = #{commentId}
+    </delete>
 </mapper>

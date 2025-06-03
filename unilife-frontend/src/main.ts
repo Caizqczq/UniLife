@@ -24,4 +24,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 const userStore = useUserStore()
 userStore.init()
 
+// 定期检查token有效性（每分钟检查一次）
+setInterval(() => {
+  userStore.checkTokenValidity()
+}, 60000)
+
 app.mount('#app')

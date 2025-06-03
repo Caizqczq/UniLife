@@ -121,5 +121,23 @@ export const adminApi = {
   // 删除资源
   deleteResource(resourceId: number): Promise<ApiResponse> {
     return request.delete(`/admin/resources/${resourceId}`)
+  },
+
+    // 获取系统状态
+  getSystemStatus(): Promise<ApiResponse> {
+    return request.get('/admin/monitor/status')
+  },
+
+  // ========== 课表管理相关接口 ==========
+
+  // 获取用户课表
+  getUserSchedule(userId: number, semester?: string): Promise<ApiResponse> {
+    const params = semester ? { semester } : {}
+    return request.get(`/admin/users/${userId}/schedule`, { params })
+  },
+
+  // 删除课程
+  deleteCourse(courseId: number): Promise<ApiResponse> {
+    return request.delete(`/admin/courses/${courseId}`)
   }
 } 

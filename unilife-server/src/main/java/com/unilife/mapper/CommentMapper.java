@@ -106,4 +106,9 @@ public interface CommentMapper {
      * 删除评论（管理员用）
      */
     void deleteComment(Long commentId);
+    
+    /**
+     * 物理删除评论（永久删除）
+     */
+    void permanentDeleteComment(Long commentId);
 }

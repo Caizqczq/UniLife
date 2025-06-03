@@ -72,6 +72,12 @@ const router = createRouter({
       name: 'admin',
       component: () => import('@/views/admin/AdminDashboard.vue'),
       meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/debug-token',
+      name: 'debug-token',
+      component: () => import('@/views/DebugTokenView.vue'),
+      meta: { requiresAuth: true }
     }
     // {
     //   path: '/courses',
@@ -85,6 +91,14 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach(async (to) => {
   const userStore = useUserStore()
+  
+  // 首先检查token是否有效
+  if (!userStore.checkTokenValidity()) {
+    // token无效或过期，如果要访问需要认证的页面，跳转到登录页
+    if (to.meta.requiresAuth) {
+      return '/login'
+    }
+  }
   
   // 如果需要认证但未登录，跳转到登录页
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {

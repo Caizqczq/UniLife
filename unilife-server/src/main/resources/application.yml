@@ -8,6 +8,11 @@ server:
 spring:
   main:
     allow-bean-definition-overriding: true  # 允许Bean定义覆盖
+  # Jackson JSON配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
   ai:
     openai:
       base-url: https://dashscope.aliyuncs.com/compatible-mode
@@ -100,7 +105,7 @@ logging:
     org.springframework.ai: debug
 jwt:
   secret: qwertyuiopasdfghjklzxcvbnm
-  expiration: 300  # 5分钟过期时间（5 * 60 = 300秒），用于测试
+  expiration: 60 # 60秒过期时间，用于测试JWT过期逻辑
 # 添加阿里云OSS配置
 aliyun:
   oss:

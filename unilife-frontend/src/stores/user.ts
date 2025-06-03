@@ -2,11 +2,12 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { User, LoginRequest, RegisterRequest, ApiResponse, LoginResponse } from '@/types'
 import { login, register, getUserInfo } from '@/api/auth'
+import { isTokenExpired } from '@/utils/jwt'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const token = ref<string>(localStorage.getItem('token') || '')
-  const isLoggedIn = ref<boolean>(!!token.value)
+  const isLoggedIn = ref<boolean>(!!token.value && !isTokenExpired(token.value))
 
   // 登录
   const userLogin = async (loginData: LoginRequest) => {
@@ -44,8 +45,12 @@ export const useUserStore = defineStore('user', () => {
       if (response.code === 200) {
         user.value = response.data
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('获取用户信息失败:', error)
+      // 如果获取用户信息失败，可能是token过期，清除登录状态
+      if (error?.response?.status === 401) {
+        logout()
+      }
     }
   }
 
@@ -57,9 +62,19 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('token')
   }
 
-  // 初始化时如果有token则获取用户信息
+  // 检查token是否有效
+  const checkTokenValidity = () => {
+    if (token.value && isTokenExpired(token.value)) {
+      console.log('Token已过期，自动登出')
+      logout()
+      return false
+    }
+    return !!token.value
+  }
+
+  // 初始化时检查token并获取用户信息
   const init = async () => {
-    if (token.value && !user.value) {
+    if (checkTokenValidity() && !user.value) {
       await fetchUserInfo()
     }
   }
@@ -71,6 +86,7 @@ export const useUserStore = defineStore('user', () => {
     userLogin,
     userRegister,
     fetchUserInfo,
+    checkTokenValidity,
     logout,
     init
   }

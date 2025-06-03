@@ -44,4 +44,9 @@ public interface UserService {
      * @return 操作结果
      */
     Result deleteUser(Long userId);
+    
+    /**
+     * 获取在线用户数量
+     */
+    int getOnlineUserCount();
 }

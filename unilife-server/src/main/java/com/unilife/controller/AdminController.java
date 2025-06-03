@@ -143,4 +143,122 @@ public class AdminController {
     public Result deleteResource(@PathVariable Long resourceId) {
         return adminService.deleteResource(resourceId);
     }
+
+    @Operation(summary = "获取系统监控信息")
+    @GetMapping("/monitor/status")
+    public Result getSystemStatus() {
+        return adminService.getSystemStatus();
+    }
+
+    @Operation(summary = "获取系统日志")
+    @GetMapping("/logs")
+    public Result getSystemLogs(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return adminService.getSystemLogs(page, size, level, keyword, startDate, endDate);
+    }
+
+    @Operation(summary = "获取系统设置")
+    @GetMapping("/settings")
+    public Result getSystemSettings() {
+        return adminService.getSystemSettings();
+    }
+
+    @Operation(summary = "更新系统设置")
+    @PostMapping("/settings")
+    public Result updateSystemSettings(@RequestBody Map<String, Object> settings) {
+        return adminService.updateSystemSettings(settings);
+    }
+
+    @Operation(summary = "获取系统公告列表")
+    @GetMapping("/announcements")
+    public Result getAnnouncements() {
+        return adminService.getAnnouncements();
+    }
+
+    @Operation(summary = "创建系统公告")
+    @PostMapping("/announcements")
+    public Result createAnnouncement(@RequestBody Map<String, Object> announcement) {
+        return adminService.createAnnouncement(announcement);
+    }
+
+    @Operation(summary = "更新系统公告")
+    @PutMapping("/announcements/{id}")
+    public Result updateAnnouncement(@PathVariable Long id, @RequestBody Map<String, Object> announcement) {
+        return adminService.updateAnnouncement(id, announcement);
+    }
+
+    @Operation(summary = "删除系统公告")
+    @DeleteMapping("/announcements/{id}")
+    public Result deleteAnnouncement(@PathVariable Long id) {
+        return adminService.deleteAnnouncement(id);
+    }
+
+    @Operation(summary = "获取系统通知")
+    @GetMapping("/notifications")
+    public Result getNotifications() {
+        return adminService.getNotifications();
+    }
+
+    @Operation(summary = "标记通知已读")
+    @PostMapping("/notifications/{id}/read")
+    public Result markNotificationAsRead(@PathVariable Long id) {
+        return adminService.markNotificationAsRead(id);
+    }
+
+    @Operation(summary = "测试邮件发送")
+    @PostMapping("/settings/email/test")
+    public Result testEmail(@RequestBody Map<String, String> request) {
+        return adminService.testEmail(request);
+    }
+
+    @Operation(summary = "获取数据统计")
+    @GetMapping("/statistics")
+    public Result getStatistics() {
+        return adminService.getStatistics();
+    }
+
+    @Operation(summary = "数据备份")
+    @PostMapping("/backup")
+    public Result backupData() {
+        return adminService.backupData();
+    }
+
+    // ========== 课表管理相关接口 ==========
+
+    @Operation(summary = "获取课程列表")
+    @GetMapping("/courses")
+    public Result getCourseList(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String semester,
+            @RequestParam(required = false) Integer status) {
+        return adminService.getCourseList(page, size, keyword, userId, semester, status);
+    }
+
+    @Operation(summary = "获取课程详情")
+    @GetMapping("/courses/{courseId}")
+    public Result getCourseDetail(@PathVariable Long courseId) {
+        return adminService.getCourseDetail(courseId);
+    }
+
+    @Operation(summary = "删除课程")
+    @DeleteMapping("/courses/{courseId}")
+    public Result deleteCourse(@PathVariable Long courseId) {
+        return adminService.deleteCourse(courseId);
+    }
+
+    @Operation(summary = "获取用户课表")
+    @GetMapping("/users/{userId}/schedule")
+    public Result getUserSchedule(
+            @PathVariable Long userId,
+            @RequestParam(required = false, defaultValue = "2024-2025-2") String semester) {
+        return adminService.getUserSchedule(userId, semester);
+    }
 } 

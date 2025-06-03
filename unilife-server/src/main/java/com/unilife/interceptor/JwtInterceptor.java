@@ -25,15 +25,17 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        log.info("JwtInterceptor preHandle");
+        String requestPath = request.getRequestURI();
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            log.debug("OPTIONS请求，跳过token验证");
             return true; // 直接允许通过，不检查 token
         }
 
         String authHeader = request.getHeader("Authorization");
 
         if(StrUtil.isBlank(authHeader)){
+            log.warn("请求头中缺少Authorization字段 - Path: {}", requestPath);
             response.setStatus(401);
             return false;
         }
@@ -43,10 +45,9 @@ public class JwtInterceptor implements HandlerInterceptor {
         if(authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
         }
-        log.info("Extracted token:{}", token);
-
         boolean verified = jwtUtil.verifyToken(token);
         if (!verified) {
+            log.warn("Token验证失败 - Path: {}", requestPath);
             response.setStatus(401);
             return false;
         }
@@ -54,9 +55,12 @@ public class JwtInterceptor implements HandlerInterceptor {
         //从token中获取userid并存入threadlocal
         Long userId = jwtUtil.getUserIdFromToken(token);
         if(userId == null) {
+            log.warn("无法从Token获取用户ID - Path: {}", requestPath);
             response.setStatus(401);
             return false;
         }
+        
+        log.debug("Token验证成功，用户ID: {} - Path: {}", userId, requestPath);
         BaseContext.setId(userId);
         return true;
     }
